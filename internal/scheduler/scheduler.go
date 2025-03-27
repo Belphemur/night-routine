@@ -17,11 +17,11 @@ type Assignment struct {
 // Scheduler handles the night routine scheduling logic
 type Scheduler struct {
 	config  *config.Config
-	tracker *fairness.Tracker
+	tracker fairness.TrackerInterface
 }
 
 // New creates a new Scheduler instance
-func New(cfg *config.Config, tracker *fairness.Tracker) *Scheduler {
+func New(cfg *config.Config, tracker fairness.TrackerInterface) *Scheduler {
 	return &Scheduler{
 		config:  cfg,
 		tracker: tracker,
@@ -92,35 +92,41 @@ func (s *Scheduler) determineNextParent(lastAssignments []fairness.Assignment, s
 		return s.config.Parents.ParentB
 	}
 
-	// Check consecutive assignments
-	consecutiveCount := 1
 	lastParent := lastAssignments[0].Parent
+
+	// First priority: Alternate from last assignment
+	nextParent := s.config.Parents.ParentB
+	if lastParent == s.config.Parents.ParentB {
+		nextParent = s.config.Parents.ParentA
+	}
+
+	// Check if we need to override the alternation due to consecutive assignments
+	consecutiveCount := 1
 	for i := 1; i < len(lastAssignments) && lastAssignments[i].Parent == lastParent; i++ {
 		consecutiveCount++
 	}
 
 	if consecutiveCount >= 2 {
-		// Switch after two consecutive assignments
+		// Force switch after two consecutive assignments
 		if lastParent == s.config.Parents.ParentA {
 			return s.config.Parents.ParentB
 		}
 		return s.config.Parents.ParentA
 	}
 
-	// Balance monthly assignments
+	// Check if we need to override the alternation due to significant imbalance
 	statsA := stats[s.config.Parents.ParentA]
 	statsB := stats[s.config.Parents.ParentB]
-	if statsA.Last30Days < statsB.Last30Days {
-		return s.config.Parents.ParentA
-	} else if statsB.Last30Days < statsA.Last30Days {
+
+	// If there's a significant imbalance (3+ difference), override the alternation
+	if statsA.Last30Days > statsB.Last30Days+2 && nextParent == s.config.Parents.ParentA {
 		return s.config.Parents.ParentB
+	} else if statsB.Last30Days > statsA.Last30Days+2 && nextParent == s.config.Parents.ParentB {
+		return s.config.Parents.ParentA
 	}
 
-	// If everything is balanced, alternate from last assignment
-	if lastParent == s.config.Parents.ParentA {
-		return s.config.Parents.ParentB
-	}
-	return s.config.Parents.ParentA
+	// Otherwise, stick with alternation
+	return nextParent
 }
 
 // contains checks if a string slice contains a specific value

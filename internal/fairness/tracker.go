@@ -18,12 +18,6 @@ func New(db *database.DB) (*Tracker, error) {
 	return &Tracker{db: db.Conn()}, nil
 }
 
-// Close is a no-op as the database is now managed elsewhere
-func (t *Tracker) Close() error {
-	// No-op as the database is now managed by the database module
-	return nil
-}
-
 // RecordAssignment records a new assignment in the state database
 func (t *Tracker) RecordAssignment(parent string, date time.Time) error {
 	_, err := t.db.Exec(`

@@ -82,7 +82,6 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tracker.Close()
 
 	// Initialize token store
 	tokenStore, err := database.NewTokenStore(db)
