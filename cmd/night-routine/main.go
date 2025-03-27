@@ -97,8 +97,26 @@ func run(ctx context.Context) error {
 	}
 	oauthHandler.RegisterRoutes()
 
+	// Initialize base handler
+	baseHandler, err := handlers.NewBaseHandler(cfg, tokenStore, tracker)
+	if err != nil {
+		return fmt.Errorf("failed to initialize base handler: %w", err)
+	}
+
+	// Initialize home handler
+	homeHandler := handlers.NewHomeHandler(baseHandler)
+	homeHandler.RegisterRoutes()
+
+	// Initialize calendar handler
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, oauthHandler.GetOAuthConfig())
+	calendarHandler.RegisterRoutes()
+
 	// Create scheduler
 	sched := scheduler.New(cfg, tracker)
+
+	// Initialize sync handler
+	syncHandler := handlers.NewSyncHandler(baseHandler, sched)
+	syncHandler.RegisterRoutes()
 
 	// Start HTTP server
 	srv := &http.Server{
