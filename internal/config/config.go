@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/calendar/v3"
 )
 
 // Config holds the application configuration
@@ -15,7 +18,7 @@ type Config struct {
 	Schedule     ScheduleConfig     `toml:"schedule"`
 	Service      ServiceConfig      `toml:"service"`
 	App          *ApplicationConfig // From environment
-	OAuth        *OAuthConfig       // From environment
+	OAuth        *oauth2.Config     // Replaced with Google OAuth2 Config
 }
 
 // ApplicationConfig holds the application configuration from environment
@@ -47,13 +50,6 @@ type ServiceConfig struct {
 	StateFile string `toml:"state_file"`
 }
 
-// OAuthConfig holds the Google OAuth configuration from environment
-type OAuthConfig struct {
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-}
-
 // Load reads the configuration file and environment variables
 func Load(path string) (*Config, error) {
 	var cfg Config
@@ -79,10 +75,15 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Load OAuth config from environment
-	cfg.OAuth = &OAuthConfig{
+	cfg.OAuth = &oauth2.Config{
 		ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
 		RedirectURL:  os.Getenv("GOOGLE_OAUTH_REDIRECT_URL"),
+		Scopes: []string{
+			calendar.CalendarEventsScope,
+			calendar.CalendarCalendarlistReadonlyScope,
+		},
+		Endpoint: google.Endpoint,
 	}
 
 	if err := validate(&cfg); err != nil {

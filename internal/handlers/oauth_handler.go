@@ -7,23 +7,23 @@ import (
 
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/database"
+	"github.com/belphemur/night-routine/internal/token"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/calendar/v3"
 )
 
 // Global variables used in init()
 var (
-	templates  *template.Template
+	templates    *template.Template
 	oauthHandler *OAuthHandler
 )
 
 // OAuthHandler manages OAuth2 authentication and token storage
 type OAuthHandler struct {
-	OAuthConfig *oauth2.Config
-	Templates   *template.Template
-	TokenStore  *database.TokenStore
-	Config      *config.Config
+	OAuthConfig  *oauth2.Config
+	Templates    *template.Template
+	TokenStore   *database.TokenStore
+	TokenManager *token.TokenManager
+	Config       *config.Config
 }
 
 // init initializes the templates for all handlers
@@ -35,24 +35,16 @@ func init() {
 	}
 }
 
-// NewOAuthHandler creates a new OAuth handler
+// Updated to use the unified OAuth configuration from the Config struct
 func NewOAuthHandler(cfg *config.Config, tokenStore *database.TokenStore) (*OAuthHandler, error) {
-	oauthConf := &oauth2.Config{
-		ClientID:     cfg.OAuth.ClientID,
-		ClientSecret: cfg.OAuth.ClientSecret,
-		RedirectURL:  cfg.OAuth.RedirectURL,
-		Scopes: []string{
-			calendar.CalendarEventsScope,
-			calendar.CalendarCalendarlistReadonlyScope,
-		},
-		Endpoint: google.Endpoint,
-	}
+	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
 
 	return &OAuthHandler{
-		OAuthConfig: oauthConf,
-		Templates:   templates,
-		TokenStore:  tokenStore,
-		Config:      cfg,
+		OAuthConfig:  cfg.OAuth,
+		Templates:    templates,
+		TokenStore:   tokenStore,
+		TokenManager: tokenManager,
+		Config:       cfg,
 	}, nil
 }
 
@@ -60,11 +52,6 @@ func NewOAuthHandler(cfg *config.Config, tokenStore *database.TokenStore) (*OAut
 func (h *OAuthHandler) RegisterRoutes() {
 	http.HandleFunc("/auth", h.handleAuth)
 	http.HandleFunc("/oauth/callback", h.handleCallback)
-}
-
-// GetOAuthConfig returns the OAuth config for use by other handlers
-func (h *OAuthHandler) GetOAuthConfig() *oauth2.Config {
-	return h.OAuthConfig
 }
 
 // RenderTemplate is a helper method to render HTML templates

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/belphemur/night-routine/internal/config"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -15,11 +16,11 @@ type CalendarHandler struct {
 	OAuthConfig *oauth2.Config
 }
 
-// NewCalendarHandler creates a new calendar handler
-func NewCalendarHandler(baseHandler *BaseHandler, oauthConfig *oauth2.Config) *CalendarHandler {
+// Updated to use the unified OAuth configuration from the Config struct
+func NewCalendarHandler(baseHandler *BaseHandler, cfg *config.Config) *CalendarHandler {
 	return &CalendarHandler{
 		BaseHandler: baseHandler,
-		OAuthConfig: oauthConfig,
+		OAuthConfig: cfg.OAuth,
 	}
 }
 

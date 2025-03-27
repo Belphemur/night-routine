@@ -106,8 +106,8 @@ func run(ctx context.Context) error {
 	homeHandler := handlers.NewHomeHandler(baseHandler)
 	homeHandler.RegisterRoutes()
 
-	// Initialize calendar handler
-	calendarHandler := handlers.NewCalendarHandler(baseHandler, oauthHandler.GetOAuthConfig())
+	// Updated to pass cfg directly to NewCalendarHandler instead of using GetOAuthConfig.
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, cfg)
 	calendarHandler.RegisterRoutes()
 
 	// Create scheduler
