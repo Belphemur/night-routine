@@ -47,6 +47,7 @@ GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret  # OAuth2 credentials
 GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback  # OAuth2 callback URL
 PORT=8080                                      # Port for OAuth web interface and metrics
 CONFIG_FILE=configs/routine.toml               # Path to TOML configuration file
+APP_URL=http://localhost:8080                  # (Optional) Override application URL
 ```
 
 ### Application Configuration

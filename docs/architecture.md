@@ -49,6 +49,8 @@ look_ahead_days = 30
 state_file = "data/state.db"
 ```
 
+### Environment Variables
+
 ```bash
 # Environment Variables - Configuration
 GOOGLE_OAUTH_CLIENT_ID=your-client-id       # OAuth2 Configuration
@@ -56,6 +58,7 @@ GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
 PORT=8080                                   # Service Configuration
 CONFIG_FILE=configs/routine.toml            # Path to TOML config file
+APP_URL=http://localhost:8080               # (Optional) Override application URL
 ```
 
 ### 2.2 Scheduling Engine

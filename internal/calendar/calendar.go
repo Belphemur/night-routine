@@ -3,7 +3,6 @@ package calendar
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
@@ -102,7 +101,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 	}
 
 	// Fetch all events in the date range at once
-	timeMin := firstDate.Format(time.RFC3339)
+	timeMin := firstDate.Add(-24 * time.Hour).Format(time.RFC3339)
 	timeMax := lastDate.Add(24 * time.Hour).Format(time.RFC3339) // Add a day to include last date fully
 
 	events, err := s.srv.Events.List(s.calendarID).
@@ -118,17 +117,18 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 	// Map events created by our app by date for easy lookup
 	eventsByDate := make(map[string][]*calendar.Event)
 	for _, event := range events.Items {
-		if strings.Contains(event.Description, nightRoutineIdentifier) {
-			// Extract date from the event
-			var eventDate string
-			if event.Start.Date != "" {
-				eventDate = event.Start.Date
-			} else if event.Start.DateTime != "" {
-				// Parse datetime if date is not available directly
-				t, err := time.Parse(time.RFC3339, event.Start.DateTime)
-				if err == nil {
-					eventDate = t.Format("2006-01-02")
-				}
+		if event.Source == nil || event.Source.Title != nightRoutineIdentifier {
+			continue
+		}
+		// Extract date from the event
+		var eventDate string
+		if event.Start.Date != "" {
+			eventDate = event.Start.Date
+		} else if event.Start.DateTime != "" {
+			// Parse datetime if date is not available directly
+			t, err := time.Parse(time.RFC3339, event.Start.DateTime)
+			if err == nil {
+				eventDate = t.Format("2006-01-02")
 			}
 
 			if eventDate != "" {
@@ -170,12 +170,17 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 			Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
 				assignment.Parent, nightRoutineIdentifier),
 			Location: "Home",
+			Source: &calendar.EventSource{
+				Title: nightRoutineIdentifier,
+				Url: s.config.App.Url,
+			},
 			Reminders: &calendar.EventReminders{
-				UseDefault: false,
+				UseDefault:      false,
+				ForceSendFields: []string{"UseDefault"},
 				Overrides: []*calendar.EventReminder{
 					{
 						Method:  "popup",
-						Minutes: 7 * 60, // 7 hours before at 5 PM
+						Minutes: 4 * 60, // The day before at 8 PM
 					},
 				},
 			},

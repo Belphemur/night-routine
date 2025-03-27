@@ -24,6 +24,7 @@ type Config struct {
 // ApplicationConfig holds the application configuration from environment
 type ApplicationConfig struct {
 	Port int
+	Url  string // Application URL
 }
 
 // ParentsConfig holds the parent names
@@ -58,7 +59,7 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Ensure the state file path is absolute
-	if !filepath.IsAbs(cfg.Service.StateFile) {
+	if (!filepath.IsAbs(cfg.Service.StateFile)) {
 		configDir := filepath.Dir(path)
 		cfg.Service.StateFile = filepath.Join(configDir, "..", cfg.Service.StateFile)
 	}
@@ -72,6 +73,11 @@ func Load(path string) (*Config, error) {
 	}
 	cfg.App = &ApplicationConfig{
 		Port: portNum,
+		Url:  fmt.Sprintf("http://localhost:%d", portNum),
+	}
+
+	if appUrl := os.Getenv("APP_URL"); appUrl != "" {
+		cfg.App.Url = appUrl
 	}
 
 	// Load OAuth config from environment
