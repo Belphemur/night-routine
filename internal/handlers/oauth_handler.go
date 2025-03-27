@@ -13,8 +13,7 @@ import (
 
 // Global variables used in init()
 var (
-	templates    *template.Template
-	oauthHandler *OAuthHandler
+	templates *template.Template
 )
 
 // OAuthHandler manages OAuth2 authentication and token storage

@@ -130,10 +130,9 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 			if err == nil {
 				eventDate = t.Format("2006-01-02")
 			}
-
-			if eventDate != "" {
-				eventsByDate[eventDate] = append(eventsByDate[eventDate], event)
-			}
+		}
+		if eventDate != "" {
+			eventsByDate[eventDate] = append(eventsByDate[eventDate], event)
 		}
 	}
 
