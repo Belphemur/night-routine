@@ -20,13 +20,11 @@ WORKDIR /app
 
 # Copy binary from builder stage
 COPY --from=builder /workspace/night-routine .
+# Create directory for state persistence
+RUN mkdir -p /config
 
 # Copy default configuration
-COPY configs/routine.toml /etc/night-routine/routine.toml
-
-# Create directory for state persistence
-RUN mkdir -p /var/lib/night-routine && \
-    chown -R nonroot:nonroot /var/lib/night-routine
+COPY configs/routine.toml /config/routine.toml
 
 USER nonroot:nonroot
 
@@ -34,10 +32,9 @@ USER nonroot:nonroot
 EXPOSE 8080
 
 # Volume for persistent state
-VOLUME ["/var/lib/night-routine"]
+VOLUME ["/config"]
 
 # Set environment variables
-ENV CONFIG_FILE=/etc/night-routine/routine.toml
-ENV STATE_DIR=/var/lib/night-routine
+ENV CONFIG_FILE=/config/routine.toml
 
 ENTRYPOINT ["/app/night-routine"]
