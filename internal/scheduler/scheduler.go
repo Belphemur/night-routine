@@ -33,8 +33,6 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]Assignment, error)
 	var schedule []Assignment
 	current := start
 
-
-
 	for !current.After(end) {
 		assignment, err := s.assignForDate(current)
 		if err != nil {
