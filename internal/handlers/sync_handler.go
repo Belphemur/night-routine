@@ -90,13 +90,6 @@ func (h *SyncHandler) updateSchedule(ctx context.Context, calSvc *calendar.Servi
 		return fmt.Errorf("failed to sync calendar: %w", err)
 	}
 
-	// Record assignments
-	for _, a := range assignments {
-		if err := h.Tracker.RecordAssignment(a.Parent, a.Date); err != nil {
-			return fmt.Errorf("failed to record assignment: %w", err)
-		}
-	}
-
 	log.Printf("Manual sync: Updated schedule for %d days with %d assignments",
 		h.Config.Schedule.LookAheadDays, len(assignments))
 	return nil

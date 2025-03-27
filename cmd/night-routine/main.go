@@ -185,13 +185,6 @@ func updateSchedule(ctx context.Context, cfg *config.Config, sched *scheduler.Sc
 		return err
 	}
 
-	// Record assignments
-	for _, a := range assignments {
-		if err := tracker.RecordAssignment(a.Parent, a.Date); err != nil {
-			return err
-		}
-	}
-
 	log.Printf("Updated schedule for %d days with %d assignments", cfg.Schedule.LookAheadDays, len(assignments))
 	return nil
 }

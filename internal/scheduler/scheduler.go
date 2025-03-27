@@ -57,8 +57,24 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]Assignment, error)
 	return schedule, nil
 }
 
-// assignForDate determines who should do the night routine on a specific date
+// assignForDate determines who should do the night routine on a specific date and records it
 func (s *Scheduler) assignForDate(date time.Time, lastAssignments []fairness.Assignment, stats map[string]fairness.Stats) (Assignment, error) {
+	// Determine the assignment
+	assignment, err := s.determineAssignmentForDate(date, lastAssignments, stats)
+	if err != nil {
+		return Assignment{}, err
+	}
+
+	// Record the assignment in the database
+	if err := s.tracker.RecordAssignment(assignment.Parent, assignment.Date); err != nil {
+		return Assignment{}, fmt.Errorf("failed to record assignment: %w", err)
+	}
+
+	return assignment, nil
+}
+
+// determineAssignmentForDate determines who should do the night routine on a specific date
+func (s *Scheduler) determineAssignmentForDate(date time.Time, lastAssignments []fairness.Assignment, stats map[string]fairness.Stats) (Assignment, error) {
 	dayOfWeek := date.Format("Monday")
 
 	// Check unavailability

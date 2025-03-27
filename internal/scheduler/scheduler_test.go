@@ -72,8 +72,8 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	assert.Equal(t, "Bob", schedule[0].Parent)
 }
 
-// TestAssignForDate tests the assignForDate function
-func TestAssignForDate(t *testing.T) {
+// TestDetermineAssignmentForDate tests the determineAssignmentForDate function
+func TestDetermineAssignmentForDate(t *testing.T) {
 	cfg := createTestConfig()
 	tracker := fairness.NewMockTracker()
 	scheduler := New(cfg, tracker)
@@ -90,14 +90,57 @@ func TestAssignForDate(t *testing.T) {
 	lastAssignments := []fairness.Assignment{}
 
 	// Monday: Alice is unavailable
-	assignment, err := scheduler.assignForDate(monday, lastAssignments, stats)
+	assignment, err := scheduler.determineAssignmentForDate(monday, lastAssignments, stats)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", assignment.Parent)
 
 	// Thursday: Bob is unavailable
+	assignment, err = scheduler.determineAssignmentForDate(thursday, lastAssignments, stats)
+	assert.NoError(t, err)
+	assert.Equal(t, "Alice", assignment.Parent)
+}
+
+// TestAssignForDate tests the assignForDate function including recording the assignment
+func TestAssignForDate(t *testing.T) {
+	cfg := createTestConfig()
+	tracker := fairness.NewMockTracker()
+	scheduler := New(cfg, tracker)
+
+	// Test unavailability
+	monday := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC)   // Monday
+	thursday := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC) // Thursday
+
+	// Get empty stats and assignments for testing
+	stats := make(map[string]fairness.Stats)
+	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
+	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
+
+	lastAssignments := []fairness.Assignment{}
+
+	// Monday: Alice is unavailable, so Bob should be assigned
+	assignment, err := scheduler.assignForDate(monday, lastAssignments, stats)
+	assert.NoError(t, err)
+	assert.Equal(t, "Bob", assignment.Parent)
+
+	// Verify the assignment was recorded
+	recordedAssignments, err := tracker.GetLastAssignments(1)
+	assert.NoError(t, err)
+	assert.Len(t, recordedAssignments, 1)
+	assert.Equal(t, "Bob", recordedAssignments[0].Parent)
+	assert.Equal(t, monday.Format("2006-01-02"), recordedAssignments[0].Date.Format("2006-01-02"))
+
+	// Thursday: Bob is unavailable, so Alice should be assigned
 	assignment, err = scheduler.assignForDate(thursday, lastAssignments, stats)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", assignment.Parent)
+
+	// Verify the assignment was recorded
+	recordedAssignments, err = tracker.GetLastAssignments(2)
+	assert.NoError(t, err)
+	assert.Len(t, recordedAssignments, 2)
+	// The most recent assignment should be first
+	assert.Equal(t, "Alice", recordedAssignments[0].Parent)
+	assert.Equal(t, thursday.Format("2006-01-02"), recordedAssignments[0].Date.Format("2006-01-02"))
 }
 
 // TestDetermineNextParent tests the determineNextParent function
@@ -168,7 +211,7 @@ func TestBothParentsUnavailable(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
 	// Should return an error when both parents are unavailable
-	_, err := scheduler.assignForDate(wednesday, []fairness.Assignment{}, stats)
+	_, err := scheduler.determineAssignmentForDate(wednesday, []fairness.Assignment{}, stats)
 	assert.Error(t, err)
 }
 
