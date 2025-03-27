@@ -2,10 +2,18 @@ package database
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
+	"io/fs"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+//go:embed migrations
+var migrationsFS embed.FS
 
 // DB manages the database connection
 type DB struct {
@@ -32,36 +40,42 @@ func (db *DB) Conn() *sql.DB {
 	return db.conn
 }
 
-// InitSchema initializes the database schema
-func (db *DB) InitSchema() error {
-	// Initialize assignments table
-	_, err := db.conn.Exec(`
-CREATE TABLE IF NOT EXISTS assignments (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-parent_name TEXT NOT NULL,
-assignment_date TEXT NOT NULL,
-created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`)
+// MigrateDatabase performs database migrations
+func (db *DB) MigrateDatabase() error {
+	// Create a new instance of the SQLite driver
+	driver, err := sqlite3.WithInstance(db.conn, &sqlite3.Config{})
 	if err != nil {
-		return fmt.Errorf("failed to initialize assignments table: %w", err)
+		return fmt.Errorf("failed to create database driver: %w", err)
 	}
 
-	// Initialize oauth_tokens and calendar_settings tables
-	_, err = db.conn.Exec(`
-CREATE TABLE IF NOT EXISTS oauth_tokens (
-id INTEGER PRIMARY KEY,
-token_data JSONB NOT NULL,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS calendar_settings (
-id INTEGER PRIMARY KEY,
-calendar_id TEXT NOT NULL,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)`)
+	// Extract the sub-filesystem containing only the migrations
+	subFS, err := fs.Sub(migrationsFS, "migrations/sqlite")
 	if err != nil {
-		return fmt.Errorf("failed to initialize token tables: %w", err)
+		return fmt.Errorf("failed to create sub-filesystem: %w", err)
+	}
+
+	// Create a new instance of the embed source driver
+	sourceInstance, err := iofs.New(subFS, ".")
+	if err != nil {
+		return fmt.Errorf("failed to create embedded file source: %w", err)
+	}
+
+	// Create a new instance of the migrator
+	m, err := migrate.NewWithInstance("iofs", sourceInstance, "sqlite3", driver)
+	if err != nil {
+		return fmt.Errorf("failed to create migrator: %w", err)
+	}
+
+	// Run the migrations up
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	return nil
+}
+
+// InitSchema is kept for backward compatibility but delegates to MigrateDatabase
+// Deprecated: Use MigrateDatabase instead
+func (db *DB) InitSchema() error {
+	return db.MigrateDatabase()
 }
