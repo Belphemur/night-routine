@@ -68,8 +68,11 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, schedule, 3)
 
-	// First day should be Bob since Alice has done 2 consecutive days
-	assert.Equal(t, "Bob", schedule[0].Parent)
+	// First day should be Alice because bob is unavailable
+	assert.Equal(t, "Alice", schedule[0].Parent)
+	assert.Equal(t, "Bob", schedule[1].Parent)
+	assert.Equal(t, "Bob", schedule[2].Parent)
+
 }
 
 // TestDetermineAssignmentForDate tests the determineAssignmentForDate function
@@ -169,9 +172,9 @@ func TestDetermineNextParent(t *testing.T) {
 		{Parent: "Bob", Date: dayBefore},
 	}
 
-	// Bob should be chosen because Alice has done 2 consecutive days
+	// Alice should be chosen because Bob has more total assignments
 	parent = scheduler.determineNextParent(lastAssignments, stats)
-	assert.Equal(t, "Bob", parent)
+	assert.Equal(t, "Alice", parent)
 
 	// Test with alternation (should take precedence over small imbalances)
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 7}
@@ -181,9 +184,9 @@ func TestDetermineNextParent(t *testing.T) {
 		{Parent: "Bob", Date: today},
 	}
 
-	// Alice should be chosen because we alternate from Bob, and the imbalance is not significant
+	// Bob should be chosen because we alternate from Alice, and the imbalance is significant
 	parent = scheduler.determineNextParent(singleAssignment, stats)
-	assert.Equal(t, "Alice", parent)
+	assert.Equal(t, "Bob", parent)
 
 	// Test with significant monthly imbalance (should override alternation)
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 9}

@@ -98,53 +98,6 @@ func (s *Scheduler) determineAssignmentForDate(date time.Time, lastAssignments [
 	return Assignment{Date: date, Parent: nextParent}, nil
 }
 
-// determineNextParent applies fairness rules to select the next parent
-func (s *Scheduler) determineNextParent(lastAssignments []fairness.Assignment, stats map[string]fairness.Stats) string {
-	if len(lastAssignments) == 0 {
-		// First assignment ever, check total stats
-		if stats[s.config.Parents.ParentA].TotalAssignments <= stats[s.config.Parents.ParentB].TotalAssignments {
-			return s.config.Parents.ParentA
-		}
-		return s.config.Parents.ParentB
-	}
-
-	lastParent := lastAssignments[0].Parent
-
-	// First priority: Alternate from last assignment
-	nextParent := s.config.Parents.ParentB
-	if lastParent == s.config.Parents.ParentB {
-		nextParent = s.config.Parents.ParentA
-	}
-
-	// Check if we need to override the alternation due to consecutive assignments
-	consecutiveCount := 1
-	for i := 1; i < len(lastAssignments) && lastAssignments[i].Parent == lastParent; i++ {
-		consecutiveCount++
-	}
-
-	if consecutiveCount >= 2 {
-		// Force switch after two consecutive assignments
-		if lastParent == s.config.Parents.ParentA {
-			return s.config.Parents.ParentB
-		}
-		return s.config.Parents.ParentA
-	}
-
-	// Check if we need to override the alternation due to significant imbalance
-	statsA := stats[s.config.Parents.ParentA]
-	statsB := stats[s.config.Parents.ParentB]
-
-	// If there's a significant imbalance (3+ difference), override the alternation
-	if statsA.Last30Days > statsB.Last30Days+2 && nextParent == s.config.Parents.ParentA {
-		return s.config.Parents.ParentB
-	} else if statsB.Last30Days > statsA.Last30Days+2 && nextParent == s.config.Parents.ParentB {
-		return s.config.Parents.ParentA
-	}
-
-	// Otherwise, stick with alternation
-	return nextParent
-}
-
 // contains checks if a string slice contains a specific value
 func contains(slice []string, value string) bool {
 	for _, item := range slice {
@@ -153,4 +106,53 @@ func contains(slice []string, value string) bool {
 		}
 	}
 	return false
+}
+
+// determineNextParent applies fairness rules to select the next parent
+func (s *Scheduler) determineNextParent(lastAssignments []fairness.Assignment, stats map[string]fairness.Stats) string {
+	if len(lastAssignments) == 0 {
+		// First assignment ever, assign to the parent with fewer total assignments
+		if stats[s.config.Parents.ParentA].TotalAssignments <= stats[s.config.Parents.ParentB].TotalAssignments {
+			return s.config.Parents.ParentA
+		}
+		return s.config.Parents.ParentB
+	}
+
+	// Prioritize the parent with fewer total assignments
+	statsA := stats[s.config.Parents.ParentA]
+	statsB := stats[s.config.Parents.ParentB]
+
+	if statsA.TotalAssignments < statsB.TotalAssignments {
+		return s.config.Parents.ParentA
+	} else if statsB.TotalAssignments < statsA.TotalAssignments {
+		return s.config.Parents.ParentB
+	}
+
+	// If total assignments are equal, prioritize the parent with fewer recent assignments (last 30 days)
+	if statsA.Last30Days < statsB.Last30Days {
+		return s.config.Parents.ParentA
+	} else if statsB.Last30Days < statsA.Last30Days {
+		return s.config.Parents.ParentB
+	}
+
+	// Avoid more than two consecutive assignments
+	lastParent := lastAssignments[0].Parent
+	consecutiveCount := 1
+	for i := 1; i < len(lastAssignments) && lastAssignments[i].Parent == lastParent; i++ {
+		consecutiveCount++
+	}
+
+	if consecutiveCount >= 2 {
+		// Force switch to the other parent
+		if lastParent == s.config.Parents.ParentA {
+			return s.config.Parents.ParentB
+		}
+		return s.config.Parents.ParentA
+	}
+
+	// Default to alternating
+	if lastParent == s.config.Parents.ParentB {
+		return s.config.Parents.ParentA
+	}
+	return s.config.Parents.ParentB
 }
