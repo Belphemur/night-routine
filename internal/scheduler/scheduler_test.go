@@ -118,10 +118,8 @@ func TestAssignForDate(t *testing.T) {
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
-	lastAssignments := []fairness.Assignment{}
-
 	// Monday: Alice is unavailable, so Bob should be assigned
-	assignment, err := scheduler.assignForDate(monday, lastAssignments, stats)
+	assignment, err := scheduler.assignForDate(monday)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", assignment.Parent)
 
@@ -133,7 +131,7 @@ func TestAssignForDate(t *testing.T) {
 	assert.Equal(t, monday.Format("2006-01-02"), recordedAssignments[0].Date.Format("2006-01-02"))
 
 	// Thursday: Bob is unavailable, so Alice should be assigned
-	assignment, err = scheduler.assignForDate(thursday, lastAssignments, stats)
+	assignment, err = scheduler.assignForDate(thursday)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", assignment.Parent)
 

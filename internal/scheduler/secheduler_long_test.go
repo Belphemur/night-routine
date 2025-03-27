@@ -129,25 +129,12 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			actualAssignments["Alice"] = 0
 			actualAssignments["Bob"] = 0
 
-			// Get initial last assignments (empty at first)
-			lastAssignments := []fairness.Assignment{}
-
 			// Assign for each day in the period
 			actualDays := []string{}
 			for day := 0; day < tc.days; day++ {
 				date := startDate.AddDate(0, 0, day)
 
-				// Get updated last assignments and stats after each assignment
-				if day > 0 {
-					var err error
-					lastAssignments, err = tracker.GetLastAssignments(5)
-					assert.NoError(t, err)
-
-					stats, err = tracker.GetParentStats()
-					assert.NoError(t, err)
-				}
-
-				assignment, err := scheduler.assignForDate(date, lastAssignments, stats)
+				assignment, err := scheduler.assignForDate(date)
 				assert.NoError(t, err)
 
 				// Count the assignment
@@ -240,16 +227,8 @@ func TestAssignForDateWithSpecificDays(t *testing.T) {
 			tracker := fairness.NewMockTracker()
 			scheduler := New(cfg, tracker)
 
-			// Create balanced stats
-			stats := make(map[string]fairness.Stats)
-			stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
-			stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
-
-			// Get initial last assignments (empty)
-			lastAssignments := []fairness.Assignment{}
-
 			// Assign for the specific date
-			assignment, err := scheduler.assignForDate(tc.date, lastAssignments, stats)
+			assignment, err := scheduler.assignForDate(tc.date)
 			assert.NoError(t, err)
 
 			// Verify the assignment matches the expected parent

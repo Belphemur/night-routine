@@ -33,20 +33,10 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]Assignment, error)
 	var schedule []Assignment
 	current := start
 
-	// Get last assignments to ensure fairness
-	lastAssignments, err := s.tracker.GetLastAssignments(5)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get last assignments: %w", err)
-	}
 
-	// Get parent stats for balanced distribution
-	stats, err := s.tracker.GetParentStats()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get parent stats: %w", err)
-	}
 
 	for !current.After(end) {
-		assignment, err := s.assignForDate(current, lastAssignments, stats)
+		assignment, err := s.assignForDate(current)
 		if err != nil {
 			return nil, fmt.Errorf("failed to assign for date %v: %w", current, err)
 		}
@@ -58,7 +48,18 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]Assignment, error)
 }
 
 // assignForDate determines who should do the night routine on a specific date and records it
-func (s *Scheduler) assignForDate(date time.Time, lastAssignments []fairness.Assignment, stats map[string]fairness.Stats) (Assignment, error) {
+func (s *Scheduler) assignForDate(date time.Time) (Assignment, error) {
+	// Get last assignments to ensure fairness
+	lastAssignments, err := s.tracker.GetLastAssignments(5)
+	if err != nil {
+		return Assignment{}, fmt.Errorf("failed to get last assignments: %w", err)
+	}
+
+	// Get parent stats for balanced distribution
+	stats, err := s.tracker.GetParentStats()
+	if err != nil {
+		return Assignment{}, fmt.Errorf("failed to get parent stats: %w", err)
+	}
 	// Determine the assignment
 	assignment, err := s.determineAssignmentForDate(date, lastAssignments, stats)
 	if err != nil {
