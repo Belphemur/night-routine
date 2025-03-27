@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build with cached dependencies
-RUN CGO_ENABLED=0 GOOS=linux go build -v -o night-routine ./cmd/night-routine
+RUN CGO_ENABLED=1 GOOS=linux go build -v -o night-routine ./cmd/night-routine
 
 # Runtime stage
 FROM gcr.io/distroless/static:nonroot
