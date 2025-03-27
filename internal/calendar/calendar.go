@@ -3,6 +3,8 @@ package calendar
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -85,19 +87,98 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 		s.calendarID = calendarID
 	}
 
+	// Unique identifier for events created by this application
+	const nightRoutineIdentifier = "night-routine-app-event"
+
+	// If no assignments, nothing to sync
+	if len(assignments) == 0 {
+		return nil
+	}
+
+	// Find first and last date in assignments to define our date range for events
+	firstDate := assignments[0].Date
+	lastDate := assignments[0].Date
+	
+	for _, a := range assignments {
+		if a.Date.Before(firstDate) {
+			firstDate = a.Date
+		}
+		if a.Date.After(lastDate) {
+			lastDate = a.Date
+		}
+	}
+
+	// Fetch all events in the date range at once
+	timeMin := firstDate.Format(time.RFC3339)
+	timeMax := lastDate.Add(24 * time.Hour).Format(time.RFC3339) // Add a day to include last date fully
+	
+	events, err := s.srv.Events.List(s.calendarID).
+		TimeMin(timeMin).
+		TimeMax(timeMax).
+		SingleEvents(true).
+		OrderBy("startTime").
+		Do()
+	if err != nil {
+		return fmt.Errorf("failed to list events for date range: %w", err)
+	}
+
+	// Map events created by our app by date for easy lookup
+	eventsByDate := make(map[string][]*calendar.Event)
+	for _, event := range events.Items {
+		if strings.Contains(event.Description, nightRoutineIdentifier) {
+			// Extract date from the event
+			var eventDate string
+			if event.Start.Date != "" {
+				eventDate = event.Start.Date
+			} else if event.Start.DateTime != "" {
+				// Parse datetime if date is not available directly
+				t, err := time.Parse(time.RFC3339, event.Start.DateTime)
+				if err == nil {
+					eventDate = t.Format("2006-01-02")
+				}
+			}
+			
+			if eventDate != "" {
+				eventsByDate[eventDate] = append(eventsByDate[eventDate], event)
+			}
+		}
+	}
+
+	// Track dates we've already processed to avoid duplicates
+	processedDates := make(map[string]bool)
+
+	// Process assignments
 	for _, assignment := range assignments {
-		event := &calendar.Event{
-			Summary: fmt.Sprintf("Night Routine - %s", assignment.Parent),
-			Start: &calendar.EventDateTime{
-				Date: assignment.Date.Format("2006-01-02"),
-			},
-			End: &calendar.EventDateTime{
-				Date: assignment.Date.Format("2006-01-02"),
-			},
-			Description: fmt.Sprintf("Night routine duty assigned to %s", assignment.Parent),
+		dateStr := assignment.Date.Format("2006-01-02")
+		
+		// Skip if we've already handled this date
+		if processedDates[dateStr] {
+			continue
+		}
+		processedDates[dateStr] = true
+
+		// Delete any existing events on this date
+		for _, existingEvent := range eventsByDate[dateStr] {
+			err := s.srv.Events.Delete(s.calendarID, existingEvent.Id).Do()
+			if err != nil {
+				return fmt.Errorf("failed to delete existing event for %v: %w", assignment.Date, err)
+			}
 		}
 
-		_, err := s.srv.Events.Insert(s.calendarID, event).Do()
+		// Create new event with our identifier
+		event := &calendar.Event{
+			Summary: fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent),
+			Start: &calendar.EventDateTime{
+				Date: dateStr,
+			},
+			End: &calendar.EventDateTime{
+				Date: dateStr,
+			},
+			Description: fmt.Sprintf("Night routine duty assigned to %s [%s]", 
+				assignment.Parent, nightRoutineIdentifier),
+		}
+
+		_, err = s.srv.Events.Insert(s.calendarID, event).Do()
 		if err != nil {
 			return fmt.Errorf("failed to create event for %v: %w", assignment.Date, err)
 		}
