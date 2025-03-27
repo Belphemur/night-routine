@@ -59,6 +59,15 @@ SELECT token_data FROM oauth_tokens WHERE id = 1
 	return &token, nil
 }
 
+// ClearToken removes the saved OAuth token
+func (s *TokenStore) ClearToken() error {
+	_, err := s.db.Exec(`DELETE FROM oauth_tokens WHERE id = 1`)
+	if err != nil {
+		return fmt.Errorf("failed to clear token: %w", err)
+	}
+	return nil
+}
+
 // SaveSelectedCalendar saves the selected calendar ID
 func (s *TokenStore) SaveSelectedCalendar(calendarID string) error {
 	_, err := s.db.Exec(`

@@ -28,6 +28,7 @@ func NewOAuthHandler(config *config.Config, tokenStore *TokenStore) (*OAuthHandl
 		RedirectURL:  config.OAuth.RedirectURL,
 		Scopes: []string{
 			calendar.CalendarEventsScope,
+			calendar.CalendarCalendarlistReadonlyScope,
 		},
 		Endpoint: google.Endpoint,
 	}
@@ -66,12 +67,24 @@ func (h *OAuthHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get error message from query parameter if any
+	errorParam := r.URL.Query().Get("error")
+	var errorMessage string
+	
+	if errorParam == "calendar_client_error" {
+		errorMessage = "Failed to connect to Google Calendar. Please try authenticating again."
+	} else if errorParam == "calendar_fetch_error" {
+		errorMessage = "Failed to fetch your calendars. Please try authenticating again."
+	}
+
 	data := struct {
 		IsAuthenticated bool
 		CalendarID      string
+		ErrorMessage    string
 	}{
 		IsAuthenticated: token != nil && token.Valid(),
 		CalendarID:      calendarID,
+		ErrorMessage:    errorMessage,
 	}
 
 	if err := h.templates.ExecuteTemplate(w, "home.html", data); err != nil {
@@ -121,13 +134,21 @@ func (h *OAuthHandler) handleCalendarList(w http.ResponseWriter, r *http.Request
 	client := h.oauthConf.Client(r.Context(), token)
 	calendarService, err := calendar.NewService(r.Context(), option.WithHTTPClient(client))
 	if err != nil {
-		http.Error(w, "Failed to create calendar client", http.StatusInternalServerError)
+		log.Printf("Failed to create calendar client: %v", err)
+		if clearErr := h.tokenStore.ClearToken(); clearErr != nil {
+			log.Printf("Failed to clear token: %v", clearErr)
+		}
+		http.Redirect(w, r, "/?error=calendar_client_error", http.StatusSeeOther)
 		return
 	}
 
 	calendars, err := calendarService.CalendarList.List().Do()
 	if err != nil {
-		http.Error(w, "Failed to fetch calendars", http.StatusInternalServerError)
+		log.Printf("Failed to fetch calendars: %v", err)
+		if clearErr := h.tokenStore.ClearToken(); clearErr != nil {
+			log.Printf("Failed to clear token: %v", clearErr)
+		}
+		http.Redirect(w, r, "/?error=calendar_fetch_error", http.StatusSeeOther)
 		return
 	}
 

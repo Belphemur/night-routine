@@ -27,6 +27,15 @@
             border: 1px solid #f44336;
         }
 
+        .error-message {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #c62828;
+        }
+
         .button {
             display: inline-block;
             padding: 10px 20px;
@@ -40,6 +49,12 @@
 
 <body>
     <h1>Night Routine Setup</h1>
+
+    {{if .ErrorMessage}}
+    <div class="error-message">
+        <strong>Error:</strong> {{.ErrorMessage}}
+    </div>
+    {{end}}
 
     <div class="status {{if .IsAuthenticated}}authenticated{{else}}unauthenticated{{end}}">
         {{if .IsAuthenticated}}

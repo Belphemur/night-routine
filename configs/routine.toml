@@ -4,14 +4,11 @@ parent_b = "Taina"   # Second parent name
 
 [availability]
 parent_a_unavailable = ["Wednesday"]  # Days when parent A can't do the routine
-parent_b_unavailable = ["Monday"]     # Days when parent B can't do the routine
+parent_b_unavailable = []     # Days when parent B can't do the routine
 
 [schedule]
 update_frequency = "weekly"  # How often to update the calendar
-look_ahead_days = 30        # How many days to schedule in advance
+look_ahead_days = 7        # How many days to schedule in advance
 
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
-
-[google]
-credentials_file = "configs/credentials.json"  # Google OAuth2 credentials
