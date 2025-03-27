@@ -169,6 +169,16 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 			},
 			Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
 				assignment.Parent, nightRoutineIdentifier),
+			Location: "Home",
+			Reminders: &calendar.EventReminders{
+				UseDefault: false,
+				Overrides: []*calendar.EventReminder{
+					{
+						Method:  "popup",
+						Minutes: 7 * 60, // 7 hours before at 5 PM
+					},
+				},
+			},
 		}
 
 		_, err = s.srv.Events.Insert(s.calendarID, event).Do()
