@@ -168,7 +168,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 			},
 			Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
 				assignment.Parent, nightRoutineIdentifier),
-			Location: "Home",
+			Location:     "Home",
+			Transparency: "transparent",
 			Source: &calendar.EventSource{
 				Title: nightRoutineIdentifier,
 				Url:   s.config.App.Url,
