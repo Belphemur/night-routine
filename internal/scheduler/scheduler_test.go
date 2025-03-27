@@ -57,8 +57,8 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	// Add some prior assignments (Alice did the last 2 days)
 	yesterday := time.Now().AddDate(0, 0, -1)
 	dayBefore := time.Now().AddDate(0, 0, -2)
-	tracker.AddAssignment("Alice", yesterday)
-	tracker.AddAssignment("Alice", dayBefore)
+	tracker.RecordAssignment("Alice", yesterday)
+	tracker.RecordAssignment("Alice", dayBefore)
 
 	// Test period: 3 days starting from today
 	start := time.Now()
@@ -72,10 +72,9 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	assert.Equal(t, "Alice", schedule[0].Parent)
 	assert.Equal(t, "Bob", schedule[1].Parent)
 	assert.Equal(t, "Bob", schedule[2].Parent)
-
 }
 
-// TestDetermineAssignmentForDate tests the determineAssignmentForDate function
+// TestDetermineAssignmentForDate tests the determineParentForDate function
 func TestDetermineAssignmentForDate(t *testing.T) {
 	cfg := createTestConfig()
 	tracker := fairness.NewMockTracker()
@@ -90,17 +89,17 @@ func TestDetermineAssignmentForDate(t *testing.T) {
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
-	lastAssignments := []fairness.Assignment{}
+	var lastAssignments []*fairness.Assignment
 
 	// Monday: Alice is unavailable
-	assignment, err := scheduler.determineAssignmentForDate(monday, lastAssignments, stats)
+	parent, err := scheduler.determineParentForDate(monday, lastAssignments, stats)
 	assert.NoError(t, err)
-	assert.Equal(t, "Bob", assignment.Parent)
+	assert.Equal(t, "Bob", parent)
 
 	// Thursday: Bob is unavailable
-	assignment, err = scheduler.determineAssignmentForDate(thursday, lastAssignments, stats)
+	parent, err = scheduler.determineParentForDate(thursday, lastAssignments, stats)
 	assert.NoError(t, err)
-	assert.Equal(t, "Alice", assignment.Parent)
+	assert.Equal(t, "Alice", parent)
 }
 
 // TestAssignForDate tests the assignForDate function including recording the assignment
@@ -112,11 +111,6 @@ func TestAssignForDate(t *testing.T) {
 	// Test unavailability
 	monday := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC)   // Monday
 	thursday := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC) // Thursday
-
-	// Get empty stats and assignments for testing
-	stats := make(map[string]fairness.Stats)
-	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
-	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
 	// Monday: Alice is unavailable, so Bob should be assigned
 	assignment, err := scheduler.assignForDate(monday)
@@ -156,7 +150,7 @@ func TestDetermineNextParent(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 12, Last30Days: 5}
 
 	// Alice should be chosen because she has fewer total assignments
-	parent := scheduler.determineNextParent([]fairness.Assignment{}, stats)
+	parent := scheduler.determineNextParent([]*fairness.Assignment{}, stats)
 	assert.Equal(t, "Alice", parent)
 
 	// Test with consecutive assignments
@@ -164,7 +158,7 @@ func TestDetermineNextParent(t *testing.T) {
 	yesterday := today.AddDate(0, 0, -1)
 	dayBefore := today.AddDate(0, 0, -2)
 
-	lastAssignments := []fairness.Assignment{
+	lastAssignments := []*fairness.Assignment{
 		{Parent: "Alice", Date: today},
 		{Parent: "Alice", Date: yesterday},
 		{Parent: "Bob", Date: dayBefore},
@@ -178,7 +172,7 @@ func TestDetermineNextParent(t *testing.T) {
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 7}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
-	singleAssignment := []fairness.Assignment{
+	singleAssignment := []*fairness.Assignment{
 		{Parent: "Bob", Date: today},
 	}
 
@@ -212,7 +206,7 @@ func TestBothParentsUnavailable(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
 	// Should return an error when both parents are unavailable
-	_, err := scheduler.determineAssignmentForDate(wednesday, []fairness.Assignment{}, stats)
+	_, err := scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats)
 	assert.Error(t, err)
 }
 
@@ -230,7 +224,7 @@ func TestAlternatingAssignments(t *testing.T) {
 	today := time.Now()
 
 	// Last assignment was Alice
-	lastAssignments := []fairness.Assignment{
+	lastAssignments := []*fairness.Assignment{
 		{Parent: "Alice", Date: today},
 	}
 
@@ -239,7 +233,7 @@ func TestAlternatingAssignments(t *testing.T) {
 	assert.Equal(t, "Bob", parent)
 
 	// Last assignment was Bob
-	lastAssignments = []fairness.Assignment{
+	lastAssignments = []*fairness.Assignment{
 		{Parent: "Bob", Date: today},
 	}
 

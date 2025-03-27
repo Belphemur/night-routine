@@ -65,7 +65,7 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 
 // createCalendarService creates a new Google Calendar service
 func (h *SyncHandler) createCalendarService(ctx context.Context) (*calendar.Service, error) {
-	calendarService, err := calendar.New(ctx, h.Config, h.TokenStore)
+	calendarService, err := calendar.New(ctx, h.Config, h.TokenStore, h.Scheduler)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create calendar service: %w", err)
 	}

@@ -21,10 +21,11 @@ type Service struct {
 	config       *config.Config
 	tokenStore   *database.TokenStore
 	tokenManager *token.TokenManager
+	scheduler    *scheduler.Scheduler
 }
 
 // Updated to use the unified OAuth configuration from the Config struct
-func New(ctx context.Context, cfg *config.Config, tokenStore *database.TokenStore) (*Service, error) {
+func New(ctx context.Context, cfg *config.Config, tokenStore *database.TokenStore, scheduler *scheduler.Scheduler) (*Service, error) {
 	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
 
 	token, err := tokenManager.GetValidToken(ctx)
@@ -56,11 +57,12 @@ func New(ctx context.Context, cfg *config.Config, tokenStore *database.TokenStor
 		config:       cfg,
 		tokenStore:   tokenStore,
 		tokenManager: tokenManager,
+		scheduler:    scheduler,
 	}, nil
 }
 
 // SyncSchedule synchronizes the schedule with Google Calendar
-func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assignment) error {
+func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Assignment) error {
 	// Get latest token in case it was refreshed
 	token, err := s.tokenManager.GetValidToken(ctx)
 	if err != nil {
@@ -186,9 +188,16 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 			},
 		}
 
-		_, err = s.srv.Events.Insert(s.calendarID, event).Do()
+		// Create the event in Google Calendar
+		createdEvent, err := s.srv.Events.Insert(s.calendarID, event).Do()
 		if err != nil {
 			return fmt.Errorf("failed to create event for %v: %w", assignment.Date, err)
+		}
+
+		// Update the assignment with the Google Calendar event ID
+		if err := s.scheduler.UpdateGoogleCalendarEventID(assignment, createdEvent.Id); err != nil {
+			// Log error but continue; this isn't fatal
+			fmt.Printf("Warning: Failed to update assignment with Google Calendar event ID: %v\n", err)
 		}
 	}
 

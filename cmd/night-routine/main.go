@@ -131,7 +131,7 @@ func run(ctx context.Context) error {
 	}()
 
 	// Initialize calendar service with token store
-	calSvc, err := calendar.New(ctx, cfg, tokenStore)
+	calSvc, err := calendar.New(ctx, cfg, tokenStore, sched)
 	if err != nil {
 		if err.Error() == "failed to get token: no token found" {
 			log.Printf("Please visit http://localhost:%d to authenticate with Google Calendar", cfg.App.Port)
@@ -155,12 +155,12 @@ func run(ctx context.Context) error {
 
 		case <-ticker.C:
 			if calSvc != nil {
-				if err := updateSchedule(ctx, cfg, sched, calSvc, tracker); err != nil {
+				if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
 					log.Printf("Failed to update schedule: %v", err)
 				}
 			} else {
 				// Try to initialize calendar service if it wasn't available before
-				calSvc, err = calendar.New(ctx, cfg, tokenStore)
+				calSvc, err = calendar.New(ctx, cfg, tokenStore, sched)
 				if err != nil {
 					log.Printf("Calendar service not ready: %v", err)
 				}
@@ -169,7 +169,7 @@ func run(ctx context.Context) error {
 	}
 }
 
-func updateSchedule(ctx context.Context, cfg *config.Config, sched *scheduler.Scheduler, calSvc *calendar.Service, tracker *fairness.Tracker) error {
+func updateSchedule(ctx context.Context, cfg *config.Config, sched *scheduler.Scheduler, calSvc *calendar.Service) error {
 	// Calculate date range
 	now := time.Now()
 	end := now.AddDate(0, 0, cfg.Schedule.LookAheadDays)

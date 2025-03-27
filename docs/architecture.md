@@ -9,6 +9,7 @@ graph TD
     A --> D[Calendar Service]
     A --> E[Fairness Tracker]
     A --> W[Web UI]
+    A --> DB[Database Manager]
 
     B --> F[routine.toml]
     B --> M[Environment Variables]
@@ -17,10 +18,12 @@ graph TD
     E --> I[State Storage]
     W --> J[OAuth Handler]
     W --> K[Calendar Selection]
+    DB --> MG[Database Migrations]
 
     J --> I
     K --> I
     I --> L[(SQLite DB)]
+    MG --> L
 ```
 
 ## 2. Components Breakdown
@@ -109,29 +112,31 @@ sequenceDiagram
 
 ### 2.5 State Storage (SQLite)
 
+- Database schema managed through migrations
+- Migrations stored as embedded SQL files in the application
 - Tables:
 
   ```sql
   -- Night routine assignments
   assignments (
-    id INTEGER PRIMARY KEY,
-    parent_name TEXT,
-    assignment_date TEXT,
-    created_at DATETIME
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_name TEXT NOT NULL,
+    assignment_date TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 
   -- OAuth tokens
   oauth_tokens (
     id INTEGER PRIMARY KEY,
-    token_data BLOB,
-    updated_at DATETIME
+    token_data JSONB NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
 
   -- Calendar settings
   calendar_settings (
     id INTEGER PRIMARY KEY,
-    calendar_id TEXT,
-    updated_at DATETIME
+    calendar_id TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
   ```
 
@@ -191,6 +196,7 @@ sequenceDiagram
   - `google.golang.org/api/calendar/v3` for Google Calendar
   - `github.com/robfig/cron` for scheduling
   - Built-in `database/sql` with SQLite for state management
+  - `github.com/golang-migrate/migrate/v4` for database migrations
   - `html/template` for web UI
   - `github.com/kelseyhightower/envconfig` for environment variables
 
@@ -201,4 +207,10 @@ sequenceDiagram
 - HTTPS recommended for production deployments
 - Proper error handling for credential issues
 
-[Rest of the document remains unchanged...]
+### Database Management:
+
+- Database schema versioned and managed through migrations
+- Migrations embedded in the application binary using Go 1.16+ embed package
+- Migration files organized in numbered pairs (up/down) for versioning
+- Automatic migration at application startup
+- Support for both schema creation and updates
