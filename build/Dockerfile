@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1-alpine AS builder
 
 WORKDIR /workspace
 
@@ -9,12 +9,12 @@ RUN go mod download
 
 # Copy source code
 COPY . .
-
+RUN apk add build-base --no-cache
 # Build with cached dependencies
 RUN CGO_ENABLED=1 GOOS=linux go build -v -o night-routine ./cmd/night-routine
 
 # Runtime stage
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 
