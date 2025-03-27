@@ -41,10 +41,12 @@ data/
 Set up the following environment variables for Google OAuth2:
 
 ```bash
-# Required OAuth2 credentials
-GOOGLE_OAUTH_CLIENT_ID=your-client-id
-GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
-GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
+# Required environment variables
+GOOGLE_OAUTH_CLIENT_ID=your-client-id          # OAuth2 credentials
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret  # OAuth2 credentials
+GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback  # OAuth2 callback URL
+PORT=8080                                      # Port for OAuth web interface and metrics
+CONFIG_FILE=configs/routine.toml               # Path to TOML configuration file
 ```
 
 ### Application Configuration
@@ -65,7 +67,6 @@ update_frequency = "weekly"  # How often to update the calendar
 look_ahead_days = 30        # How many days to schedule in advance
 
 [service]
-port = 8080                 # Port for OAuth web interface and metrics
 state_file = "data/state.db"  # SQLite database file for state tracking
 ```
 
@@ -101,9 +102,11 @@ docker build -t night-routine:latest .
 export GOOGLE_OAUTH_CLIENT_ID=your-client-id
 export GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 export GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
+export PORT=8080
+export CONFIG_FILE=configs/routine.toml
 
 # Run the application
-./night-routine -config configs/routine.toml
+./night-routine
 ```
 
 ### Docker Run
@@ -113,6 +116,8 @@ docker run \
   -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
   -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
   -e GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback \
+  -e PORT=8080 \
+  -e CONFIG_FILE=/etc/night-routine/routine.toml \
   -v /path/to/configs:/etc/night-routine \
   -v /path/to/data:/var/lib/night-routine \
   -p 8080:8080 \

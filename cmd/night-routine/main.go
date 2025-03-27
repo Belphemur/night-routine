@@ -23,8 +23,6 @@ var (
 	version = "dev"
 	commit  = "none"
 	date    = "unknown"
-
-	configFile = flag.String("config", "configs/routine.toml", "path to configuration file")
 )
 
 func main() {
@@ -51,8 +49,14 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	// Get config file path from environment or use default
+	configPath := os.Getenv("CONFIG_FILE")
+	if configPath == "" {
+		configPath = "configs/routine.toml"
+	}
+
 	// Load configuration
-	cfg, err := config.Load(*configFile)
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
@@ -87,12 +91,12 @@ func run(ctx context.Context) error {
 
 	// Start HTTP server
 	srv := &http.Server{
-		Addr: fmt.Sprintf(":%d", cfg.Service.Port),
+		Addr: fmt.Sprintf(":%d", cfg.App.Port),
 	}
 
 	// Start HTTP server in a goroutine
 	go func() {
-		log.Printf("Starting OAuth web server on port %d", cfg.Service.Port)
+		log.Printf("Starting OAuth web server on port %d", cfg.App.Port)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Printf("HTTP server error: %v", err)
 		}
@@ -102,7 +106,7 @@ func run(ctx context.Context) error {
 	calSvc, err := calendar.New(ctx, cfg, tokenStore)
 	if err != nil {
 		if err.Error() == "no token available - please authenticate via web interface first" {
-			log.Printf("Please visit http://localhost:%d to authenticate with Google Calendar", cfg.Service.Port)
+			log.Printf("Please visit http://localhost:%d to authenticate with Google Calendar", cfg.App.Port)
 		} else {
 			return fmt.Errorf("failed to create calendar service: %w", err)
 		}

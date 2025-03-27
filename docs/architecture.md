@@ -46,15 +46,16 @@ update_frequency = "weekly"
 look_ahead_days = 30
 
 [service]
-port = 8080
 state_file = "data/state.db"
 ```
 
 ```bash
-# Environment Variables - OAuth Configuration
-GOOGLE_OAUTH_CLIENT_ID=your-client-id
+# Environment Variables - Configuration
+GOOGLE_OAUTH_CLIENT_ID=your-client-id       # OAuth2 Configuration
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
+PORT=8080                                   # Service Configuration
+CONFIG_FILE=configs/routine.toml            # Path to TOML config file
 ```
 
 ### 2.2 Scheduling Engine

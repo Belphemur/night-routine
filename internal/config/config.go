@@ -14,7 +14,13 @@ type Config struct {
 	Availability AvailabilityConfig `toml:"availability"`
 	Schedule     ScheduleConfig     `toml:"schedule"`
 	Service      ServiceConfig      `toml:"service"`
+	App          *ApplicationConfig // From environment
 	OAuth        *OAuthConfig       // From environment
+}
+
+// ApplicationConfig holds the application configuration from environment
+type ApplicationConfig struct {
+	Port int
 }
 
 // ParentsConfig holds the parent names
@@ -38,7 +44,6 @@ type ScheduleConfig struct {
 
 // ServiceConfig holds the service configuration
 type ServiceConfig struct {
-	Port      int    `toml:"port"`
 	StateFile string `toml:"state_file"`
 }
 
@@ -60,6 +65,17 @@ func Load(path string) (*Config, error) {
 	if !filepath.IsAbs(cfg.Service.StateFile) {
 		configDir := filepath.Dir(path)
 		cfg.Service.StateFile = filepath.Join(configDir, "..", cfg.Service.StateFile)
+	}
+
+	// Load application config from environment
+	portNum := 8888 // Default port
+	if port := os.Getenv("PORT"); port != "" {
+		if _, err := fmt.Sscanf(port, "%d", &portNum); err != nil {
+			return nil, fmt.Errorf("PORT must be a valid number: %v", err)
+		}
+	}
+	cfg.App = &ApplicationConfig{
+		Port: portNum,
 	}
 
 	// Load OAuth config from environment
