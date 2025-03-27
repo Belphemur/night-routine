@@ -133,7 +133,7 @@ func run(ctx context.Context) error {
 	// Initialize calendar service with token store
 	calSvc, err := calendar.New(ctx, cfg, tokenStore)
 	if err != nil {
-		if err.Error() == "no token available - please authenticate via web interface first" {
+		if err.Error() == "failed to get token: no token found" {
 			log.Printf("Please visit http://localhost:%d to authenticate with Google Calendar", cfg.App.Port)
 		} else {
 			return fmt.Errorf("failed to create calendar service: %w", err)

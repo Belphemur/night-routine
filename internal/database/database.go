@@ -50,7 +50,7 @@ created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	_, err = db.conn.Exec(`
 CREATE TABLE IF NOT EXISTS oauth_tokens (
 id INTEGER PRIMARY KEY,
-token_data BLOB NOT NULL,
+token_data JSONB NOT NULL,
 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -64,7 +64,7 @@ func (h *OAuthHandler) RenderTemplate(w http.ResponseWriter, name string, data i
 
 // handleAuth initiates the OAuth flow
 func (h *OAuthHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
-	url := h.OAuthConfig.AuthCodeURL("state")
+	url := h.OAuthConfig.AuthCodeURL("state", oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
