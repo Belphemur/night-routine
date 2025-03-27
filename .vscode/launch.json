@@ -1,15 +1,18 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch Night Routine",
-            "type": "go",
-            "request": "launch",
-            "mode": "auto",
-            "program": "${workspaceFolder}/cmd/night-routine/main.go",
-            "args": ["-config", "${workspaceFolder}/configs/routine.toml"],
-            "envFile": "${workspaceFolder}/.env",
-            "cwd": "${workspaceFolder}"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Night Routine",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/night-routine/main.go",
+      "args": ["-config", "${workspaceFolder}/configs/routine.toml"],
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "CGO_ENABLED": "1"
+      },
+      "cwd": "${workspaceFolder}"
+    }
+  ]
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,7 +25,6 @@ var (
 )
 
 func main() {
-	flag.Parse()
 
 	log.Printf("Starting Night Routine Scheduler v%s (%s) built at %s", version, commit, date)
 
