@@ -20,8 +20,6 @@ WORKDIR /app
 
 # Copy binary from builder stage
 COPY --from=builder /workspace/night-routine .
-# Create directory for state persistence
-RUN mkdir -p /config
 
 # Copy default configuration
 COPY configs/routine.toml /config/routine.toml
