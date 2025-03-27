@@ -185,15 +185,15 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
         return nil, fmt.Errorf("failed to get existing assignments: %w", err)
     }
 
-// Map assignments by date for easy lookup
-    assignmentByDateOverriden := make(map[string]*fairness.Assignment)
+    // Map overriden assignments by date for easy lookup
+    assignmentByDateOverridden := make(map[string]*Assignment)
     for _, a := range existingAssignments {
         if !a.Override {
             // Only keep overridden assignments
             continue
         }
         dateStr := a.Date.Format("2006-01-02")
-        assignmentByDateOverriden[dateStr] = a
+        assignmentByDateOverridden[dateStr] = a
     }
 
     // Process each day in the range
@@ -201,7 +201,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
         dateStr := current.Format("2006-01-02")
 
         // Check if there's an existing assignment overriden for this date
-        if existing, ok := assignmentByDateOverriden[dateStr]; ok {
+        if existing, ok := assignmentByDateOverridden[dateStr]; ok {
             // Convert to scheduler assignment
             assignment := &Assignment{
                 ID:                    existing.ID,
