@@ -1,4 +1,4 @@
-package handlers
+package database
 
 import (
 	"database/sql"
@@ -14,11 +14,8 @@ type TokenStore struct {
 }
 
 // NewTokenStore creates a new token store
-func NewTokenStore(db *sql.DB) (*TokenStore, error) {
-	if err := initTokenTable(db); err != nil {
-		return nil, err
-	}
-	return &TokenStore{db: db}, nil
+func NewTokenStore(db *DB) (*TokenStore, error) {
+	return &TokenStore{db: db.Conn()}, nil
 }
 
 // SaveToken implements the TokenSaver interface

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/belphemur/night-routine/internal/database"
 )
 
 // Tracker maintains the state of night routine assignments
@@ -14,27 +14,14 @@ type Tracker struct {
 }
 
 // New creates a new Tracker instance
-func New(dbPath string) (*Tracker, error) {
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	if err := initDB(db); err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
-	}
-
-	return &Tracker{db: db}, nil
+func New(db *database.DB) (*Tracker, error) {
+	return &Tracker{db: db.Conn()}, nil
 }
 
-// Close closes the database connection
+// Close is a no-op as the database is now managed elsewhere
 func (t *Tracker) Close() error {
-	return t.db.Close()
-}
-
-// DB returns the underlying database connection
-func (t *Tracker) DB() *sql.DB {
-	return t.db
+	// No-op as the database is now managed by the database module
+	return nil
 }
 
 // RecordAssignment records a new assignment in the state database
@@ -121,16 +108,4 @@ type Assignment struct {
 type Stats struct {
 	TotalAssignments int
 	Last30Days       int
-}
-
-func initDB(db *sql.DB) error {
-	_, err := db.Exec(`
-CREATE TABLE IF NOT EXISTS assignments (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-parent_name TEXT NOT NULL,
-assignment_date TEXT NOT NULL,
-created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`)
-
-	return err
 }

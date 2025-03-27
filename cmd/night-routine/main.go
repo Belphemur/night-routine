@@ -13,6 +13,7 @@ import (
 
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/belphemur/night-routine/internal/handlers"
 	"github.com/belphemur/night-routine/internal/scheduler"
@@ -59,20 +60,32 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// Initialize fairness tracker
-	tracker, err := fairness.New(cfg.Service.StateFile)
-	if err != nil {
-		return err
-	}
-	defer tracker.Close()
-
 	// Create data directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(cfg.Service.StateFile), 0755); err != nil {
 		return err
 	}
 
+	// Initialize database
+	db, err := database.New(cfg.Service.StateFile)
+	if err != nil {
+		return fmt.Errorf("failed to initialize database: %w", err)
+	}
+	defer db.Close()
+
+	// Initialize database schema
+	if err := db.InitSchema(); err != nil {
+		return fmt.Errorf("failed to initialize database schema: %w", err)
+	}
+
+	// Initialize fairness tracker
+	tracker, err := fairness.New(db)
+	if err != nil {
+		return err
+	}
+	defer tracker.Close()
+
 	// Initialize token store
-	tokenStore, err := handlers.NewTokenStore(tracker.DB())
+	tokenStore, err := database.NewTokenStore(db)
 	if err != nil {
 		return fmt.Errorf("failed to initialize token store: %w", err)
 	}
@@ -82,7 +95,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize OAuth handler: %w", err)
 	}
-	oauthHandler.RegisterHandlers()
+	oauthHandler.RegisterRoutes()
 
 	// Create scheduler
 	sched := scheduler.New(cfg, tracker)

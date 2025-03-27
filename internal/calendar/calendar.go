@@ -12,7 +12,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/belphemur/night-routine/internal/config"
-	"github.com/belphemur/night-routine/internal/handlers"
+	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/scheduler"
 )
 
@@ -21,11 +21,11 @@ type Service struct {
 	calendarID string
 	srv        *calendar.Service
 	config     *config.Config
-	tokenStore *handlers.TokenStore
+	tokenStore *database.TokenStore
 }
 
 // New creates a new calendar service
-func New(ctx context.Context, cfg *config.Config, tokenStore *handlers.TokenStore) (*Service, error) {
+func New(ctx context.Context, cfg *config.Config, tokenStore *database.TokenStore) (*Service, error) {
 	oauthConfig := &oauth2.Config{
 		ClientID:     cfg.OAuth.ClientID,
 		ClientSecret: cfg.OAuth.ClientSecret,

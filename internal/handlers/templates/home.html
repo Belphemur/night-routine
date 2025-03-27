@@ -36,6 +36,15 @@
             color: #c62828;
         }
 
+        .success-message {
+            background-color: #e8f5e9;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #2e7d32;
+        }
+
         .button {
             display: inline-block;
             padding: 10px 20px;
@@ -43,6 +52,11 @@
             color: white;
             text-decoration: none;
             border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .sync-button {
+            background-color: #4caf50;
         }
     </style>
 </head>
@@ -56,12 +70,21 @@
     </div>
     {{end}}
 
+    {{if .SuccessMessage}}
+    <div class="success-message">
+        <strong>Success:</strong> {{.SuccessMessage}}
+    </div>
+    {{end}}
+
     <div class="status {{if .IsAuthenticated}}authenticated{{else}}unauthenticated{{end}}">
         {{if .IsAuthenticated}}
         <h2>✓ Google Calendar Connected</h2>
         {{if .CalendarID}}
         <p>Selected Calendar: {{.CalendarID}}</p>
-        <a href="/calendars" class="button">Change Calendar</a>
+        <div>
+            <a href="/calendars" class="button">Change Calendar</a>
+            <a href="/sync" class="button sync-button">Sync Now</a>
+            </div>
         {{else}}
         <p>No calendar selected</p>
         <a href="/calendars" class="button">Select Calendar</a>
