@@ -174,4 +174,4 @@ This will trigger the GitHub Actions release workflow, which will:
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is open source and available under the [AGPLv3 License](LICENSE).
