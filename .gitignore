@@ -41,3 +41,4 @@ temp/
 
 # Log files
 *.log
+/data/*.db

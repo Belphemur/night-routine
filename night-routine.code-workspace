@@ -4,5 +4,11 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {},
+	"extensions": {
+		"recommendations": [
+			"golang.go",
+			"qwtel.sqlite-viewer"
+		]
+	}
 }
