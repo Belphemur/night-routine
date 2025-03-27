@@ -172,7 +172,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assi
 			Location: "Home",
 			Source: &calendar.EventSource{
 				Title: nightRoutineIdentifier,
-				Url: s.config.App.Url,
+				Url:   s.config.App.Url,
 			},
 			Reminders: &calendar.EventReminders{
 				UseDefault:      false,

@@ -59,7 +59,7 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Ensure the state file path is absolute
-	if (!filepath.IsAbs(cfg.Service.StateFile)) {
+	if !filepath.IsAbs(cfg.Service.StateFile) {
 		configDir := filepath.Dir(path)
 		cfg.Service.StateFile = filepath.Join(configDir, "..", cfg.Service.StateFile)
 	}
