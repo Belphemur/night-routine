@@ -11,6 +11,7 @@ graph TD
     A --> W[Web UI]
 
     B --> F[routine.toml]
+    B --> M[Environment Variables]
     C --> G[Schedule Generator]
     D --> H[Google Calendar API]
     E --> I[State Storage]
@@ -26,10 +27,12 @@ graph TD
 
 ### 2.1 Configuration Manager
 
-- Uses TOML format for configuration
-- Sample structure:
+- Uses TOML format for application configuration
+- Uses environment variables for sensitive data
+- Configuration sources:
 
 ```toml
+# routine.toml - Application configuration
 [parents]
 parent_a = "Parent1"
 parent_b = "Parent2"
@@ -39,13 +42,19 @@ parent_a_unavailable = ["Wednesday"]
 parent_b_unavailable = ["Monday"]
 
 [schedule]
-update_frequency = "weekly"  # How often to update the calendar
-calendar_id = "primary"      # Default Google Calendar ID
-look_ahead_days = 30        # How many days to schedule in advance
+update_frequency = "weekly"
+look_ahead_days = 30
 
 [service]
-port = 8080                 # Web UI port
-state_file = "data/state.db"  # SQLite database location
+port = 8080
+state_file = "data/state.db"
+```
+
+```bash
+# Environment Variables - OAuth Configuration
+GOOGLE_OAUTH_CLIENT_ID=your-client-id
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
 ```
 
 ### 2.2 Scheduling Engine
@@ -69,6 +78,7 @@ sequenceDiagram
     participant DB as SQLite
     participant GCal
 
+    Note over App: Load OAuth config from env
     UI->>Auth: OAuth2 Flow
     Auth-->>UI: Token
     UI->>DB: Store Token
@@ -85,7 +95,7 @@ sequenceDiagram
 
 ### 2.4 Web Interface
 
-- OAuth2 authentication flow
+- OAuth2 authentication flow using environment variables
 - Calendar selection UI
 - Components:
   - Home page with connection status
@@ -134,6 +144,7 @@ sequenceDiagram
 1. **Phase 1: Core Structure**
 
    - Project initialization with Go 1.24
+   - Environment variables configuration
    - Basic TOML configuration setup
    - Command-line interface
    - Docker configuration
@@ -141,7 +152,7 @@ sequenceDiagram
 
 2. **Phase 2: Web Interface**
 
-   - OAuth2 flow implementation
+   - OAuth2 flow with environment variables
    - Calendar selection UI
    - Token storage in SQLite
    - Basic web server setup
@@ -177,5 +188,13 @@ sequenceDiagram
   - `github.com/robfig/cron` for scheduling
   - Built-in `database/sql` with SQLite for state management
   - `html/template` for web UI
+  - `github.com/kelseyhightower/envconfig` for environment variables
+
+### Security Considerations:
+
+- OAuth2 credentials stored in environment variables
+- Tokens stored securely in SQLite database
+- HTTPS recommended for production deployments
+- Proper error handling for credential issues
 
 [Rest of the document remains unchanged...]

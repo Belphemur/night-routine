@@ -36,6 +36,19 @@ data/
 
 ## Configuration
 
+### Environment Variables
+
+Set up the following environment variables for Google OAuth2:
+
+```bash
+# Required OAuth2 credentials
+GOOGLE_OAUTH_CLIENT_ID=your-client-id
+GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
+```
+
+### Application Configuration
+
 Create a `configs/routine.toml` file:
 
 ```toml
@@ -49,15 +62,11 @@ parent_b_unavailable = ["Monday"]     # Days when parent B can't do the routine
 
 [schedule]
 update_frequency = "weekly"  # How often to update the calendar
-calendar_id = "primary"      # Default Google Calendar ID (can be changed via UI)
 look_ahead_days = 30        # How many days to schedule in advance
 
 [service]
 port = 8080                 # Port for OAuth web interface and metrics
 state_file = "data/state.db"  # SQLite database file for state tracking
-
-[google]
-credentials_file = "configs/credentials.json"  # Google OAuth2 credentials
 ```
 
 ## Google Calendar Setup
@@ -66,7 +75,8 @@ credentials_file = "configs/credentials.json"  # Google OAuth2 credentials
 2. Create a new project or select an existing one
 3. Enable the Google Calendar API
 4. Create OAuth 2.0 credentials
-5. Download the credentials and save as `configs/credentials.json`
+5. Note your Client ID and Client Secret
+6. Set up environment variables with the credentials
 
 ## Building
 
@@ -87,14 +97,25 @@ docker build -t night-routine:latest .
 ### Local Run
 
 ```bash
+# Set environment variables
+export GOOGLE_OAUTH_CLIENT_ID=your-client-id
+export GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+export GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
+
+# Run the application
 ./night-routine -config configs/routine.toml
 ```
 
 ### Docker Run
 
 ```bash
-docker run -v /path/to/configs:/etc/night-routine \
+docker run \
+  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
+  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
+  -e GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback \
+  -v /path/to/configs:/etc/night-routine \
   -v /path/to/data:/var/lib/night-routine \
+  -p 8080:8080 \
   night-routine:latest
 ```
 
@@ -136,6 +157,14 @@ This will trigger the GitHub Actions release workflow, which will:
 - Build binaries for multiple platforms
 - Create a Docker image
 - Create a GitHub release
+
+## Security Notes
+
+- OAuth2 credentials are handled via environment variables for security
+- Tokens are securely stored in the SQLite database
+- Use HTTPS in production environments
+- Keep your environment variables secure
+- Regularly update dependencies
 
 ## License
 

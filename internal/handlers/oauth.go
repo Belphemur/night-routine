@@ -5,44 +5,39 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 
+	"github.com/belphemur/night-routine/internal/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
-
-	"github.com/belphemur/night-routine/internal/config"
 )
 
 // OAuthHandler manages OAuth2 authentication and token storage
 type OAuthHandler struct {
-	config     *config.Config
 	oauthConf  *oauth2.Config
 	templates  *template.Template
 	tokenStore *TokenStore
 }
 
 // NewOAuthHandler creates a new OAuth handler
-func NewOAuthHandler(cfg *config.Config, tokenStore *TokenStore) (*OAuthHandler, error) {
-	b, err := os.ReadFile(cfg.Google.CredentialsFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read client secret file: %w", err)
+func NewOAuthHandler(config *config.Config, tokenStore *TokenStore) (*OAuthHandler, error) {
+	oauthConf := &oauth2.Config{
+		ClientID:     config.OAuth.ClientID,
+		ClientSecret: config.OAuth.ClientSecret,
+		RedirectURL:  config.OAuth.RedirectURL,
+		Scopes: []string{
+			calendar.CalendarEventsScope,
+		},
+		Endpoint: google.Endpoint,
 	}
 
-	oauthConf, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse client secret file: %w", err)
-	}
-
-	// Initialize templates
 	tmpl, err := template.New("").ParseGlob("internal/handlers/templates/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse templates: %w", err)
 	}
 
 	return &OAuthHandler{
-		config:     cfg,
 		oauthConf:  oauthConf,
 		templates:  tmpl,
 		tokenStore: tokenStore,

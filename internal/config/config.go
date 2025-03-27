@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-	"time"
+	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -13,7 +14,7 @@ type Config struct {
 	Availability AvailabilityConfig `toml:"availability"`
 	Schedule     ScheduleConfig     `toml:"schedule"`
 	Service      ServiceConfig      `toml:"service"`
-	Google       GoogleConfig       `toml:"google"`
+	OAuth        *OAuthConfig       // From environment
 }
 
 // ParentsConfig holds the parent names
@@ -41,59 +42,70 @@ type ServiceConfig struct {
 	StateFile string `toml:"state_file"`
 }
 
-// GoogleConfig holds the Google Calendar API configuration
-type GoogleConfig struct {
-	CredentialsFile string `toml:"credentials_file"`
-	TokenFile       string `toml:"token_file"`
+// OAuthConfig holds the Google OAuth configuration from environment
+type OAuthConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
 }
 
-// Load reads the configuration file and returns a Config struct
+// Load reads the configuration file and environment variables
 func Load(path string) (*Config, error) {
-	var config Config
-	if _, err := toml.DecodeFile(path, &config); err != nil {
-		return nil, fmt.Errorf("failed to decode config file: %w", err)
+	var cfg Config
+	if _, err := toml.DecodeFile(path, &cfg); err != nil {
+		return nil, err
 	}
 
-	if err := validate(&config); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
+	// Ensure the state file path is absolute
+	if !filepath.IsAbs(cfg.Service.StateFile) {
+		configDir := filepath.Dir(path)
+		cfg.Service.StateFile = filepath.Join(configDir, "..", cfg.Service.StateFile)
 	}
 
-	return &config, nil
+	// Load OAuth config from environment
+	cfg.OAuth = &OAuthConfig{
+		ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_OAUTH_REDIRECT_URL"),
+	}
+
+	if err := validate(&cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
 
 // validate checks if the configuration is valid
-func validate(config *Config) error {
-	if config.Parents.ParentA == "" || config.Parents.ParentB == "" {
+func validate(cfg *Config) error {
+	if cfg.Parents.ParentA == "" || cfg.Parents.ParentB == "" {
 		return fmt.Errorf("both parent names are required")
 	}
 
-	if config.Parents.ParentA == config.Parents.ParentB {
+	if cfg.Parents.ParentA == cfg.Parents.ParentB {
 		return fmt.Errorf("parent names must be different")
 	}
 
-	// Validate update frequency
-	switch config.Schedule.UpdateFrequency {
+	switch cfg.Schedule.UpdateFrequency {
 	case "daily", "weekly", "monthly":
 	// Valid frequencies
 	default:
-		return fmt.Errorf("invalid update frequency: %s", config.Schedule.UpdateFrequency)
+		return fmt.Errorf("invalid update frequency: %s", cfg.Schedule.UpdateFrequency)
 	}
 
-	if config.Schedule.LookAheadDays < 1 {
+	if cfg.Schedule.LookAheadDays < 1 {
 		return fmt.Errorf("look ahead days must be positive")
 	}
 
-	// Validate days of week
-	for _, day := range config.Availability.ParentAUnavailable {
-		if _, err := time.Parse("Monday", day); err != nil {
-			return fmt.Errorf("invalid day of week for ParentA: %s", day)
-		}
+	// Validate OAuth configuration
+	if cfg.OAuth.ClientID == "" {
+		return fmt.Errorf("GOOGLE_OAUTH_CLIENT_ID environment variable is required")
 	}
-
-	for _, day := range config.Availability.ParentBUnavailable {
-		if _, err := time.Parse("Monday", day); err != nil {
-			return fmt.Errorf("invalid day of week for ParentB: %s", day)
-		}
+	if cfg.OAuth.ClientSecret == "" {
+		return fmt.Errorf("GOOGLE_OAUTH_CLIENT_SECRET environment variable is required")
+	}
+	if cfg.OAuth.RedirectURL == "" {
+		return fmt.Errorf("GOOGLE_OAUTH_REDIRECT_URL environment variable is required")
 	}
 
 	return nil

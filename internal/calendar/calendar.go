@@ -3,8 +3,8 @@ package calendar
 import (
 	"context"
 	"fmt"
-	"os"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -18,18 +18,20 @@ import (
 type Service struct {
 	calendarID string
 	srv        *calendar.Service
+	config     *config.Config
+	tokenStore *handlers.TokenStore
 }
 
 // New creates a new calendar service
 func New(ctx context.Context, cfg *config.Config, tokenStore *handlers.TokenStore) (*Service, error) {
-	creds, err := os.ReadFile(cfg.Google.CredentialsFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read credentials file: %w", err)
-	}
-
-	oauthConfig, err := google.ConfigFromJSON(creds, calendar.CalendarEventsScope)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse credentials: %w", err)
+	oauthConfig := &oauth2.Config{
+		ClientID:     cfg.OAuth.ClientID,
+		ClientSecret: cfg.OAuth.ClientSecret,
+		RedirectURL:  cfg.OAuth.RedirectURL,
+		Scopes: []string{
+			calendar.CalendarEventsScope,
+		},
+		Endpoint: google.Endpoint,
 	}
 
 	token, err := tokenStore.GetToken()
@@ -58,11 +60,31 @@ func New(ctx context.Context, cfg *config.Config, tokenStore *handlers.TokenStor
 	return &Service{
 		calendarID: calendarID,
 		srv:        srv,
+		config:     cfg,
+		tokenStore: tokenStore,
 	}, nil
 }
 
 // SyncSchedule synchronizes the schedule with Google Calendar
 func (s *Service) SyncSchedule(ctx context.Context, assignments []scheduler.Assignment) error {
+	// Get latest token in case it was refreshed
+	token, err := s.tokenStore.GetToken()
+	if err != nil {
+		return fmt.Errorf("failed to get token: %w", err)
+	}
+	if token == nil {
+		return fmt.Errorf("no valid token available")
+	}
+
+	// Get latest calendar ID in case it was changed
+	calendarID, err := s.tokenStore.GetSelectedCalendar()
+	if err != nil {
+		return fmt.Errorf("failed to get calendar ID: %w", err)
+	}
+	if calendarID != "" {
+		s.calendarID = calendarID
+	}
+
 	for _, assignment := range assignments {
 		event := &calendar.Event{
 			Summary: fmt.Sprintf("Night Routine - %s", assignment.Parent),
