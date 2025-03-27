@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Night Routine - Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .status {
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .authenticated {
+            background-color: #e8f5e9;
+            border: 1px solid #4caf50;
+        }
+
+        .unauthenticated {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Night Routine Setup</h1>
+
+    <div class="status {{if .IsAuthenticated}}authenticated{{else}}unauthenticated{{end}}">
+        {{if .IsAuthenticated}}
+        <h2>✓ Google Calendar Connected</h2>
+        {{if .CalendarID}}
+        <p>Selected Calendar: {{.CalendarID}}</p>
+        <a href="/calendars" class="button">Change Calendar</a>
+        {{else}}
+        <p>No calendar selected</p>
+        <a href="/calendars" class="button">Select Calendar</a>
+        {{end}}
+        {{else}}
+        <h2>✗ Not Connected</h2>
+        <p>Connect your Google Calendar to get started</p>
+        <a href="/auth" class="button">Connect Google Calendar</a>
+        {{end}}
+    </div>
+</body>
+
+</html>
