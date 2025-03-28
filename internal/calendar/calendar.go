@@ -11,6 +11,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
@@ -110,9 +111,6 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 		s.calendarID = calendarID
 	}
 
-	// Unique identifier for events created by this application
-	const nightRoutineIdentifier = "night-routine-app-event"
-
 	// If no assignments, nothing to sync
 	if len(assignments) == 0 {
 		return nil
@@ -148,7 +146,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	// Map events created by our app by date for easy lookup
 	eventsByDate := make(map[string][]*calendar.Event)
 	for _, event := range events.Items {
-		if event.Source == nil || event.Source.Title != nightRoutineIdentifier {
+		if val, ok := event.ExtendedProperties.Private["app"]; !ok || val != constants.NightRoutineIdentifier {
 			continue
 		}
 		// Extract date from the event
@@ -206,6 +204,13 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 
 			dateStr := a.Date.Format("2006-01-02")
 
+			privateData := map[string]string{
+				"updatedAt":   a.UpdatedAt.Format(time.RFC3339),
+				"assigmentId": fmt.Sprintf("%d", a.ID),
+				"parent":      a.Parent,
+				"app":         constants.NightRoutineIdentifier,
+			}
+
 			// Check if we already have a Google Calendar event ID for this assignment
 			if a.GoogleCalendarEventID != "" {
 				// Try to update the existing event
@@ -214,15 +219,12 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					// Event exists, update it
 					event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", a.Parent)
 					event.Description = fmt.Sprintf("Night routine duty assigned to %s [%s]",
-						a.Parent, nightRoutineIdentifier)
+						a.Parent, constants.NightRoutineIdentifier)
 					event.Reminders = &calendar.EventReminders{
 						UseDefault:      false,
 						ForceSendFields: []string{"UseDefault"},
 					}
-					event.ExtendedProperties.Private = map[string]string{
-						"updatedAt":   a.UpdatedAt.Format(time.RFC3339),
-						"assigmentId": fmt.Sprintf("%d", a.ID),
-					}
+					event.ExtendedProperties.Private = privateData
 
 					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
 					if err == nil {
@@ -264,18 +266,15 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					Date: dateStr,
 				},
 				Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
-					a.Parent, nightRoutineIdentifier),
+					a.Parent, constants.NightRoutineIdentifier),
 				Location:     "Home",
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
-					Title: nightRoutineIdentifier,
+					Title: constants.NightRoutineIdentifier,
 					Url:   s.config.App.Url,
 				},
 				ExtendedProperties: &calendar.EventExtendedProperties{
-					Private: map[string]string{
-						"updatedAt":   a.UpdatedAt.Format(time.RFC3339),
-						"assigmentId": fmt.Sprintf("%d", a.ID),
-					},
+					Private: privateData,
 				},
 				Reminders: &calendar.EventReminders{
 					UseDefault:      false,

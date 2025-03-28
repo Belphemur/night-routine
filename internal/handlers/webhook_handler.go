@@ -13,6 +13,7 @@ import (
 
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
 )
@@ -100,11 +101,11 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 
 	// Process each event
 	for _, event := range events.Items {
-		// Check if this is one of our events
-		if event.Source == nil || event.Source.Title != "night-routine-app-event" {
+
+		if val, ok := event.ExtendedProperties.Private["app"]; !ok || val != constants.NightRoutineIdentifier {
+			log.Printf("Event %s is not from Night Routine app, skipping", event.Id)
 			continue
 		}
-
 		// Extract the parent name from the event summary
 		// Format: "[Parent] 🌃👶Routine"
 		parentName := extractParentName(event.Summary)
@@ -121,6 +122,11 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 
 		// If assignment not found or parent name hasn't changed, skip
 		if assignment == nil || assignment.Parent == parentName {
+			continue
+		}
+
+		if assignment.Parent == event.ExtendedProperties.Private["parent"] {
+			log.Printf("Same parent name, skipping update for event %s", event.Id)
 			continue
 		}
 
