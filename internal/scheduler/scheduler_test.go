@@ -57,8 +57,10 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	// Add some prior assignments (Alice did the last 2 days)
 	yesterday := time.Now().AddDate(0, 0, -1)
 	dayBefore := time.Now().AddDate(0, 0, -2)
-	tracker.RecordAssignment("Alice", yesterday)
-	tracker.RecordAssignment("Alice", dayBefore)
+	_, err := tracker.RecordAssignment("Alice", yesterday)
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Alice", dayBefore)
+	assert.NoError(t, err)
 
 	// Test period: 3 days starting from today
 	start := time.Now()
