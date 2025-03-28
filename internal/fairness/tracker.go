@@ -185,14 +185,16 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	return nil
 }
 
-// GetLastAssignments returns the last n assignments
-func (t *Tracker) GetLastAssignments(n int) ([]*Assignment, error) {
+// GetLastAssignmentsUntil returns the last n assignments up to a specific date
+func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
+	untilStr := until.Format("2006-01-02")
 	rows, err := t.db.Query(`
 	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
 	FROM assignments 
+	WHERE assignment_date <= ?
 	ORDER BY assignment_date DESC 
 	LIMIT ?
-	`, n)
+	`, untilStr, n)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query assignments: %w", err)
 	}
@@ -398,16 +400,20 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 	return assignments, nil
 }
 
-// GetParentStats returns statistics for each parent
-func (t *Tracker) GetParentStats() (map[string]Stats, error) {
+// GetParentStatsUntil returns statistics for each parent up to a specific date
+func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error) {
+	untilStr := until.Format("2006-01-02")
+	thirtyDaysBeforeUntil := until.AddDate(0, 0, -30).Format("2006-01-02")
+
 	rows, err := t.db.Query(`
 	SELECT 
 	parent_name,
 	COUNT(*) as total_assignments,
-	SUM(CASE WHEN assignment_date >= date('now', '-30 days') THEN 1 ELSE 0 END) as last_30_days
+	SUM(CASE WHEN assignment_date >= ? AND assignment_date <= ? THEN 1 ELSE 0 END) as last_30_days
 	FROM assignments
+	WHERE assignment_date <= ?
 	GROUP BY parent_name
-	`)
+	`, thirtyDaysBeforeUntil, untilStr, untilStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query stats: %w", err)
 	}

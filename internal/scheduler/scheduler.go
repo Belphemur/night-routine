@@ -84,14 +84,14 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 
 // assignForDate determines who should do the night routine on a specific date and records it
 func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
-	// Get last assignments to ensure fairness, including overridden ones
-	lastAssignments, err := s.tracker.GetLastAssignments(5)
+	// Get last assignments up to the given date to ensure fairness, including overridden ones
+	lastAssignments, err := s.tracker.GetLastAssignmentsUntil(5, date)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last assignments: %w", err)
 	}
 
-	// Get parent stats for balanced distribution
-	stats, err := s.tracker.GetParentStats()
+	// Get parent stats for balanced distribution up to the given date
+	stats, err := s.tracker.GetParentStatsUntil(date)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get parent stats: %w", err)
 	}

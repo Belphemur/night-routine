@@ -86,33 +86,50 @@ func (m *MockTracker) RecordAssignmentWithDetails(parent string, date time.Time,
 	return assignment, nil
 }
 
-// GetLastAssignments returns the last n assignments
-func (m *MockTracker) GetLastAssignments(n int) ([]*Assignment, error) {
+// GetLastAssignmentsUntil returns the last n assignments up to a specific date
+func (m *MockTracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
+	untilStr := until.Format("2006-01-02")
+
+	// Filter assignments that are before or on the given date
+	filtered := make([]*Assignment, 0)
+	for _, a := range m.assignments {
+		if a.Date.Format("2006-01-02") <= untilStr {
+			filtered = append(filtered, a)
+		}
+	}
+
 	// Sort assignments by date descending
-	sort.Slice(m.assignments, func(i, j int) bool {
-		return m.assignments[i].Date.After(m.assignments[j].Date)
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Date.After(filtered[j].Date)
 	})
 
+	// Get the last n assignments
 	result := make([]*Assignment, 0, n)
-	for i := 0; i < n && i < len(m.assignments); i++ {
-		result = append(result, m.assignments[i])
+	for i := 0; i < n && i < len(filtered); i++ {
+		result = append(result, filtered[i])
 	}
+
 	return result, nil
 }
 
-// GetParentStats returns statistics for each parent
-func (m *MockTracker) GetParentStats() (map[string]Stats, error) {
+// GetParentStatsUntil returns statistics for each parent up to a specific date
+func (m *MockTracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error) {
 	stats := make(map[string]Stats)
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+	thirtyDaysBeforeUntil := until.AddDate(0, 0, -30)
+	untilStr := until.Format("2006-01-02")
 
 	for _, a := range m.assignments {
-		s := stats[a.Parent]
-		s.TotalAssignments++
-		if a.Date.After(thirtyDaysAgo) {
-			s.Last30Days++
+		// Only count assignments up to the given date
+		if a.Date.Format("2006-01-02") <= untilStr {
+			s := stats[a.Parent]
+			s.TotalAssignments++
+			if a.Date.After(thirtyDaysBeforeUntil) && a.Date.Before(until.AddDate(0, 0, 1)) {
+				s.Last30Days++
+			}
+			stats[a.Parent] = s
 		}
-		stats[a.Parent] = s
 	}
+
 	return stats, nil
 }
 

@@ -13,11 +13,11 @@ type TrackerInterface interface {
 	// RecordAssignmentWithDetails records assignment with all available details
 	RecordAssignmentWithDetails(parent string, date time.Time, override bool, googleCalendarEventID string) (*Assignment, error)
 
-	// GetLastAssignments returns the last n assignments
-	GetLastAssignments(n int) ([]*Assignment, error)
+	// GetLastAssignmentsUntil returns the last n assignments up to a specific date
+	GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
 
-	// GetParentStats returns statistics for each parent
-	GetParentStats() (map[string]Stats, error)
+	// GetParentStatsUntil returns statistics for each parent up to a specific date
+	GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 
 	// GetAssignmentByID retrieves an assignment by its ID
 	GetAssignmentByID(id int64) (*Assignment, error)

@@ -54,26 +54,33 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	tracker := fairness.NewMockTracker()
 	scheduler := New(cfg, tracker)
 
-	// Add some prior assignments (Alice did the last 2 days)
-	yesterday := time.Now().AddDate(0, 0, -1)
-	dayBefore := time.Now().AddDate(0, 0, -2)
-	_, err := tracker.RecordAssignment("Alice", yesterday)
+	// Use fixed dates instead of time.Now() to make the test deterministic
+	// Let's use a known sequence starting on a Tuesday (neither parent is unavailable)
+	dayBefore := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC) // Sunday
+	yesterday := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday - Alice unavailable
+	today := time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC)     // Tuesday
+	dayAfter := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC)  // Thursday - Bob unavailable
+
+	// Add some prior assignments (Alice did the day before, Bob did yesterday)
+	_, err := tracker.RecordAssignment("Alice", dayBefore)
 	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Alice", dayBefore)
+	// On Monday, Alice is unavailable, so Bob would be assigned
+	_, err = tracker.RecordAssignment("Bob", yesterday)
 	assert.NoError(t, err)
 
-	// Test period: 3 days starting from today
-	start := time.Now()
-	end := time.Now().AddDate(0, 0, 2)
-
-	schedule, err := scheduler.GenerateSchedule(start, end)
+	// Test period: 3 days starting from today (Tuesday)
+	schedule, err := scheduler.GenerateSchedule(today, dayAfter)
 	assert.NoError(t, err)
 	assert.Len(t, schedule, 3)
 
-	// First day should be Alice because bob is unavailable
+	// Tuesday: Neither parent is unavailable, and we're alternating, so Alice should be next
 	assert.Equal(t, "Alice", schedule[0].Parent)
+
+	// Wednesday: Neither parent is unavailable
 	assert.Equal(t, "Bob", schedule[1].Parent)
-	assert.Equal(t, "Bob", schedule[2].Parent)
+
+	// Thursday: Bob is unavailable, so Alice must be assigned
+	assert.Equal(t, "Alice", schedule[2].Parent)
 }
 
 // TestDetermineAssignmentForDate tests the determineParentForDate function
@@ -120,7 +127,7 @@ func TestAssignForDate(t *testing.T) {
 	assert.Equal(t, "Bob", assignment.Parent)
 
 	// Verify the assignment was recorded
-	recordedAssignments, err := tracker.GetLastAssignments(1)
+	recordedAssignments, err := tracker.GetLastAssignmentsUntil(1, time.Now())
 	assert.NoError(t, err)
 	assert.Len(t, recordedAssignments, 1)
 	assert.Equal(t, "Bob", recordedAssignments[0].Parent)
@@ -132,7 +139,7 @@ func TestAssignForDate(t *testing.T) {
 	assert.Equal(t, "Alice", assignment.Parent)
 
 	// Verify the assignment was recorded
-	recordedAssignments, err = tracker.GetLastAssignments(2)
+	recordedAssignments, err = tracker.GetLastAssignmentsUntil(2, time.Now())
 	assert.NoError(t, err)
 	assert.Len(t, recordedAssignments, 2)
 	// The most recent assignment should be first
