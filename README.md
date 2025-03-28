@@ -44,10 +44,11 @@ Set up the following environment variables for Google OAuth2:
 # Required environment variables
 GOOGLE_OAUTH_CLIENT_ID=your-client-id          # OAuth2 credentials
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret  # OAuth2 credentials
-GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback  # OAuth2 callback URL
 PORT=8080                                      # Port for OAuth web interface and metrics
 CONFIG_FILE=configs/routine.toml               # Path to TOML configuration file
-APP_URL=http://localhost:8080                  # (Optional) Override application URL
+APP_URL=http://localhost:8080                  # Application URL (defaults to http://localhost:<PORT>)
+
+The OAuth2 callback URL is automatically constructed from APP_URL as "<APP_URL>/oauth/callback"
 ```
 
 ### Application Configuration
@@ -116,9 +117,9 @@ export CONFIG_FILE=configs/routine.toml
 docker run \
   -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
   -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
-  -e GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback \
   -e PORT=8080 \
   -e CONFIG_FILE=/etc/night-routine/routine.toml \
+  -e APP_URL=http://localhost:8080 \
   -v /path/to/configs:/etc/night-routine \
   -v /path/to/data:/var/lib/night-routine \
   -p 8080:8080 \

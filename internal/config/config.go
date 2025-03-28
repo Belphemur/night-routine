@@ -84,7 +84,7 @@ func Load(path string) (*Config, error) {
 	cfg.OAuth = &oauth2.Config{
 		ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("GOOGLE_OAUTH_REDIRECT_URL"),
+		RedirectURL:  cfg.App.Url + "/oauth/callback",
 		Scopes: []string{
 			calendar.CalendarEventsScope,
 			calendar.CalendarCalendarlistReadonlyScope,
@@ -126,9 +126,6 @@ func validate(cfg *Config) error {
 	}
 	if cfg.OAuth.ClientSecret == "" {
 		return fmt.Errorf("GOOGLE_OAUTH_CLIENT_SECRET environment variable is required")
-	}
-	if cfg.OAuth.RedirectURL == "" {
-		return fmt.Errorf("GOOGLE_OAUTH_REDIRECT_URL environment variable is required")
 	}
 
 	return nil
