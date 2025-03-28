@@ -31,10 +31,20 @@ type HomePageData struct {
 
 // handleHome shows the main page with auth status
 func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
-	token, err := h.TokenStore.GetToken()
+	// Use TokenManager to check if we have a valid token
+	hasToken, err := h.TokenManager.HasToken()
 	if err != nil {
 		http.Error(w, "Failed to check auth status", http.StatusInternalServerError)
 		return
+	}
+
+	isAuthenticated := false
+	if hasToken {
+		// Only attempt to get a valid token if we know one exists
+		token, err := h.TokenManager.GetValidToken(r.Context())
+		if err == nil && token != nil && token.Valid() {
+			isAuthenticated = true
+		}
 	}
 
 	calendarID, err := h.TokenStore.GetSelectedCalendar()
@@ -48,7 +58,6 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	successParam := r.URL.Query().Get("success")
 
 	var errorMessage, successMessage string
-
 	if errorParam == "calendar_client_error" {
 		errorMessage = "Failed to connect to Google Calendar. Please try authenticating again."
 	} else if errorParam == "calendar_fetch_error" {
@@ -66,7 +75,7 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := HomePageData{
-		IsAuthenticated: token != nil && token.Valid(),
+		IsAuthenticated: isAuthenticated,
 		CalendarID:      calendarID,
 		ErrorMessage:    errorMessage,
 		SuccessMessage:  successMessage,

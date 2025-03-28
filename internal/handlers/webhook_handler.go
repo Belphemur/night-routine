@@ -14,6 +14,7 @@ import (
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/token"
 )
 
 // WebhookHandler handles incoming webhook notifications
@@ -22,6 +23,7 @@ type WebhookHandler struct {
 	CalendarService *calendar.Service
 	Scheduler       *scheduler.Scheduler
 	Config          *config.Config
+	TokenManager    *token.TokenManager
 }
 
 // RegisterRoutes registers webhook related routes
@@ -72,10 +74,10 @@ func (h *WebhookHandler) handleCalendarWebhook(w http.ResponseWriter, r *http.Re
 
 // processEventChanges fetches recent changes and updates assignments
 func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID string) error {
-	// Get the latest token
-	token, err := h.TokenStore.GetToken()
+	// Get a valid token using TokenManager
+	token, err := h.TokenManager.GetValidToken(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get token: %w", err)
+		return fmt.Errorf("failed to get valid token: %w", err)
 	}
 
 	// Create a calendar client

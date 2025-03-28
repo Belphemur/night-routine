@@ -48,9 +48,12 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 	calendars, err := h.CalendarManager.GetCalendarList(r.Context())
 	if err != nil {
 		log.Printf("Failed to fetch calendars: %v", err)
-		if clearErr := h.TokenStore.ClearToken(); clearErr != nil {
-			log.Printf("Failed to clear token: %v", clearErr)
+
+		// Use TokenManager's ClearToken method instead of direct TokenStore access
+		if tokenErr := h.TokenManager.ClearToken(r.Context()); tokenErr != nil {
+			log.Printf("Failed to clear token: %v", tokenErr)
 		}
+
 		http.Redirect(w, r, "/?error=calendar_fetch_error", http.StatusSeeOther)
 		return
 	}

@@ -8,28 +8,31 @@ import (
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
+	"github.com/belphemur/night-routine/internal/token"
 )
 
 // BaseHandler contains common handler functionality
 type BaseHandler struct {
-	Templates  *template.Template
-	TokenStore *database.TokenStore
-	Config     *config.Config
-	Tracker    *fairness.Tracker
+	Templates    *template.Template
+	TokenStore   *database.TokenStore
+	TokenManager *token.TokenManager
+	Config       *config.Config
+	Tracker      *fairness.Tracker
 }
 
 // NewBaseHandler creates a common base handler with shared components
-func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tracker *fairness.Tracker) (*BaseHandler, error) {
+func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker *fairness.Tracker) (*BaseHandler, error) {
 	tmpl, err := template.New("").ParseGlob("internal/handlers/templates/*.html")
 	if err != nil {
 		return nil, err
 	}
 
 	return &BaseHandler{
-		Templates:  tmpl,
-		TokenStore: tokenStore,
-		Config:     cfg,
-		Tracker:    tracker,
+		Templates:    tmpl,
+		TokenStore:   tokenStore,
+		TokenManager: tokenManager,
+		Config:       cfg,
+		Tracker:      tracker,
 	}, nil
 }
 

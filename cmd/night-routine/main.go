@@ -112,7 +112,7 @@ func run(ctx context.Context) error {
 	oauthHandler.RegisterRoutes()
 
 	// Initialize base handler
-	baseHandler, err := handlers.NewBaseHandler(cfg, tokenStore, tracker)
+	baseHandler, err := handlers.NewBaseHandler(cfg, tokenStore, tokenManager, tracker)
 	if err != nil {
 		return fmt.Errorf("failed to initialize base handler: %w", err)
 	}
@@ -148,8 +148,26 @@ func run(ctx context.Context) error {
 		CalendarService: calSvc,
 		Scheduler:       sched,
 		Config:          cfg,
+		TokenManager:    tokenManager,
 	}
 	webhookHandler.RegisterRoutes()
+	hasToken, _ := tokenManager.HasToken()
+	if hasToken {
+		// Initialize calendar service if not already initialized
+		if !calSvc.IsInitialized() {
+			if err := calSvc.Initialize(ctx); err != nil {
+				log.Printf("Failed to initialize calendar service on calendar selection: %v", err)
+				return err
+			}
+		}
+
+		// Set up notification channel for calendar changes
+		if err := calSvc.SetupNotificationChannel(ctx); err != nil {
+			log.Printf("Warning: Failed to set up notification channel: %v", err)
+		} else {
+			log.Printf("Successfully set up notification channel for calendar changes")
+		}
+	}
 
 	// Register handler for token setup signals
 	appSignals.OnTokenSetup(func(ctx context.Context, data appSignals.TokenSetupData) {

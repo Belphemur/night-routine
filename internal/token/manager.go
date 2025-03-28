@@ -70,3 +70,15 @@ func (tm *TokenManager) SaveToken(ctx context.Context, token *oauth2.Token) erro
 
 	return nil
 }
+
+// ClearToken removes the token from the store and emits a signal
+func (tm *TokenManager) ClearToken(ctx context.Context) error {
+	if err := tm.tokenStore.ClearToken(); err != nil {
+		return fmt.Errorf("failed to clear token: %w", err)
+	}
+
+	// Emit token setup signal with false to indicate token was cleared
+	signals.EmitTokenSetup(ctx, false)
+
+	return nil
+}
