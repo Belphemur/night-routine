@@ -1,1 +1,1 @@
-CREATE INDEX IF NOT EXISTS idx_assignments_date ON assignments(assignment_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_assignments_date ON assignments(assignment_date);
