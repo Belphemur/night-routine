@@ -8,7 +8,7 @@ parent_b_unavailable = []     # Days when parent B can't do the routine
 
 [schedule]
 update_frequency = "weekly"  # How often to update the calendar
-look_ahead_days = 7        # How many days to schedule in advance
+look_ahead_days = 1        # How many days to schedule in advance
 
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking

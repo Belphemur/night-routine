@@ -4,23 +4,24 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
-	"golang.org/x/oauth2"
-	"google.golang.org/api/calendar/v3"
-	"google.golang.org/api/option"
+	gcal "google.golang.org/api/calendar/v3"
 )
 
 // CalendarHandler manages calendar selection functionality
 type CalendarHandler struct {
 	*BaseHandler
-	OAuthConfig *oauth2.Config
+	CalendarManager *calendar.Manager
+	Config          *config.Config
 }
 
-// Updated to use the unified OAuth configuration from the Config struct
-func NewCalendarHandler(baseHandler *BaseHandler, cfg *config.Config) *CalendarHandler {
+// NewCalendarHandler creates a new calendar handler
+func NewCalendarHandler(baseHandler *BaseHandler, cfg *config.Config, calendarManager *calendar.Manager) *CalendarHandler {
 	return &CalendarHandler{
-		BaseHandler: baseHandler,
-		OAuthConfig: cfg.OAuth,
+		BaseHandler:     baseHandler,
+		CalendarManager: calendarManager,
+		Config:          cfg,
 	}
 }
 
@@ -31,8 +32,9 @@ func (h *CalendarHandler) RegisterRoutes() {
 
 // CalendarPageData contains data for the calendar selection page
 type CalendarPageData struct {
-	Calendars *calendar.CalendarList
+	Calendars *gcal.CalendarList
 	Selected  string
+	Error     string
 }
 
 // handleCalendarList shows available calendars and allows selection
@@ -42,24 +44,8 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	token, err := h.TokenStore.GetToken()
-	if err != nil {
-		http.Error(w, "Failed to get token", http.StatusInternalServerError)
-		return
-	}
-
-	client := h.OAuthConfig.Client(r.Context(), token)
-	calendarService, err := calendar.NewService(r.Context(), option.WithHTTPClient(client))
-	if err != nil {
-		log.Printf("Failed to create calendar client: %v", err)
-		if clearErr := h.TokenStore.ClearToken(); clearErr != nil {
-			log.Printf("Failed to clear token: %v", clearErr)
-		}
-		http.Redirect(w, r, "/?error=calendar_client_error", http.StatusSeeOther)
-		return
-	}
-
-	calendars, err := calendarService.CalendarList.List().Do()
+	// Get available calendars
+	calendars, err := h.CalendarManager.GetCalendarList(r.Context())
 	if err != nil {
 		log.Printf("Failed to fetch calendars: %v", err)
 		if clearErr := h.TokenStore.ClearToken(); clearErr != nil {
@@ -69,7 +55,8 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	selected, err := h.TokenStore.GetSelectedCalendar()
+	// Get currently selected calendar
+	selected, err := h.CalendarManager.GetSelectedCalendar()
 	if err != nil {
 		http.Error(w, "Failed to get selected calendar", http.StatusInternalServerError)
 		return
@@ -91,7 +78,8 @@ func (h *CalendarHandler) handleCalendarSelection(w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := h.TokenStore.SaveSelectedCalendar(calendarID); err != nil {
+	// Use the calendar manager to select the calendar
+	if err := h.CalendarManager.SelectCalendar(r.Context(), calendarID); err != nil {
 		http.Error(w, "Failed to save calendar selection", http.StatusInternalServerError)
 		return
 	}

@@ -97,6 +97,9 @@ func run(ctx context.Context) error {
 	// Create scheduler
 	sched := scheduler.New(cfg, tracker)
 
+	// Initialize calendar manager
+	calendarManager := calendar.NewManager(tokenStore, tokenManager, cfg.OAuth)
+
 	// Initialize calendar service without requiring a token
 	calSvc := calendar.New(cfg, tokenStore, sched, tokenManager)
 	log.Printf("Calendar service initialized. Waiting for authentication...")
@@ -118,8 +121,8 @@ func run(ctx context.Context) error {
 	homeHandler := handlers.NewHomeHandler(baseHandler)
 	homeHandler.RegisterRoutes()
 
-	// Updated to pass cfg directly to NewCalendarHandler instead of using GetOAuthConfig.
-	calendarHandler := handlers.NewCalendarHandler(baseHandler, cfg)
+	// Initialize calendar handler with the calendar manager
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, cfg, calendarManager)
 	calendarHandler.RegisterRoutes()
 
 	// Initialize sync handler with calendar service
@@ -148,8 +151,8 @@ func run(ctx context.Context) error {
 	}
 	webhookHandler.RegisterRoutes()
 
-	// Register handler for token setup signals using the new approach with generics
-	appSignals.TokenSetup.AddListener(func(ctx context.Context, data appSignals.TokenSetupData) {
+	// Register handler for token setup signals
+	appSignals.OnTokenSetup(func(ctx context.Context, data appSignals.TokenSetupData) {
 		if data.Success {
 			log.Printf("Token setup detected - initializing calendar service")
 
@@ -161,19 +164,35 @@ func run(ctx context.Context) error {
 
 			log.Printf("Calendar service initialized successfully")
 
-			// Set up notification channel for calendar changes
-			if err := calSvc.SetupNotificationChannel(ctx); err != nil {
-				log.Printf("Warning: Failed to set up notification channel: %v", err)
-			} else {
-				log.Printf("Successfully set up notification channel for calendar changes")
-			}
-
-			// Update schedule immediately after authentication
-			if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
-				log.Printf("Failed to update schedule after auth: %v", err)
-			}
+			// We don't set up notification channels here anymore,
+			// they will be set up when a calendar is selected
 		}
 	}, "main-token-setup-handler")
+
+	// Register handler for calendar selection signals
+	appSignals.OnCalendarSelected(func(ctx context.Context, data appSignals.CalendarSelectedData) {
+		log.Printf("Calendar selection detected - setting up notification channel for calendar ID: %s", data.CalendarID)
+
+		// Initialize calendar service if not already initialized
+		if !calSvc.IsInitialized() {
+			if err := calSvc.Initialize(ctx); err != nil {
+				log.Printf("Failed to initialize calendar service on calendar selection: %v", err)
+				return
+			}
+		}
+
+		// Set up notification channel for calendar changes
+		if err := calSvc.SetupNotificationChannel(ctx); err != nil {
+			log.Printf("Warning: Failed to set up notification channel: %v", err)
+		} else {
+			log.Printf("Successfully set up notification channel for calendar changes")
+		}
+
+		// Update schedule immediately after calendar selection
+		if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
+			log.Printf("Failed to update schedule after calendar selection: %v", err)
+		}
+	}, "main-calendar-selected-handler")
 
 	// Main service loop
 	ticker := time.NewTicker(getUpdateInterval(cfg.Schedule.UpdateFrequency))
@@ -207,12 +226,8 @@ func run(ctx context.Context) error {
 				} else {
 					log.Printf("Calendar service initialized successfully on scheduled check")
 
-					// Set up notification channel for calendar changes
-					if err := calSvc.SetupNotificationChannel(ctx); err != nil {
-						log.Printf("Warning: Failed to set up notification channel: %v", err)
-					} else {
-						log.Printf("Successfully set up notification channel for calendar changes")
-					}
+					// We don't automatically set up notification channels here either,
+					// as we want to wait for calendar selection
 				}
 			}
 		}
