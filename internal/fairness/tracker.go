@@ -191,7 +191,7 @@ func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment
 	rows, err := t.db.Query(`
 	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
 	FROM assignments 
-	WHERE assignment_date <= ?
+	WHERE assignment_date < ?
 	ORDER BY assignment_date DESC 
 	LIMIT ?
 	`, untilStr, n)
@@ -409,9 +409,9 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	SELECT 
 	parent_name,
 	COUNT(*) as total_assignments,
-	SUM(CASE WHEN assignment_date >= ? AND assignment_date <= ? THEN 1 ELSE 0 END) as last_30_days
+	SUM(CASE WHEN assignment_date >= ? AND assignment_date < ? THEN 1 ELSE 0 END) as last_30_days
 	FROM assignments
-	WHERE assignment_date <= ?
+	WHERE assignment_date < ?
 	GROUP BY parent_name
 	`, thirtyDaysBeforeUntil, untilStr, untilStr)
 	if err != nil {

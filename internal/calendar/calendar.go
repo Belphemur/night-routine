@@ -146,6 +146,10 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	// Map events created by our app by date for easy lookup
 	eventsByDate := make(map[string][]*calendar.Event)
 	for _, event := range events.Items {
+		if event.ExtendedProperties == nil || event.ExtendedProperties.Private == nil {
+			continue
+		}
+
 		if val, ok := event.ExtendedProperties.Private["app"]; !ok || val != constants.NightRoutineIdentifier {
 			continue
 		}

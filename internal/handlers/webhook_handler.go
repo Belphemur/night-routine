@@ -102,6 +102,10 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 	// Process each event
 	for _, event := range events.Items {
 
+		if event.ExtendedProperties == nil || event.ExtendedProperties.Private == nil {
+			continue
+		}
+
 		if val, ok := event.ExtendedProperties.Private["app"]; !ok || val != constants.NightRoutineIdentifier {
 			log.Printf("Event %s is not from Night Routine app, skipping", event.Id)
 			continue
@@ -125,8 +129,8 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 			continue
 		}
 
-		if assignment.Parent == event.ExtendedProperties.Private["parent"] {
-			log.Printf("Same parent name, skipping update for event %s", event.Id)
+		if event.ExtendedProperties.Private["parent"] == parentName {
+			log.Printf("Same parent name, skipping update for event %s and assignment %d", event.Id, assignment.ID)
 			continue
 		}
 
@@ -143,8 +147,8 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 			continue
 		}
 
-		log.Printf("Updated assignment %d from %s to %s (override)",
-			assignment.ID, assignment.Parent, parentName)
+		log.Printf("Updated assignment [%s] %d from %s to %s (override)",
+			assignment.Date, assignment.ID, assignment.Parent, parentName)
 
 		// Recalculate the schedule for future days
 		if err := h.recalculateSchedule(ctx, assignment.Date); err != nil {
