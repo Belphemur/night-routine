@@ -3,6 +3,7 @@ package calendar
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
@@ -187,9 +188,14 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent)
 				event.Description = fmt.Sprintf("Night routine duty assigned to %s [%s]",
 					assignment.Parent, nightRoutineIdentifier)
+				event.Reminders = &calendar.EventReminders{
+					UseDefault:      false,
+					ForceSendFields: []string{"UseDefault"},
+				}
 
 				_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
 				if err == nil {
+					log.Printf("Couldn't update event %s for %s: %v", event.Id, assignment.Parent, err)
 					// Successfully updated, continue to next assignment
 					continue
 				}
