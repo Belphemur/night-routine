@@ -151,8 +151,33 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 		}
 		processedDates[dateStr] = true
 
-		// Delete any existing events on this date
+		// Check if we already have a Google Calendar event ID for this assignment
+		if assignment.GoogleCalendarEventID != "" {
+			// Try to update the existing event
+			event, err := s.srv.Events.Get(s.calendarID, assignment.GoogleCalendarEventID).Do()
+			if err == nil {
+				// Event exists, update it
+				event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent)
+				event.Description = fmt.Sprintf("Night routine duty assigned to %s [%s]",
+					assignment.Parent, nightRoutineIdentifier)
+
+				_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
+				if err == nil {
+					// Successfully updated, continue to next assignment
+					continue
+				}
+				// If update fails, we'll fall through to create a new event
+			}
+			// If get fails or update fails, we'll fall through to create a new event
+		}
+
+		// Delete any existing events on this date (if we couldn't update)
 		for _, existingEvent := range eventsByDate[dateStr] {
+			// Skip if this is the event we just tried to update
+			if existingEvent.Id == assignment.GoogleCalendarEventID {
+				continue
+			}
+
 			err := s.srv.Events.Delete(s.calendarID, existingEvent.Id).Do()
 			if err != nil {
 				return fmt.Errorf("failed to delete existing event for %v: %w", assignment.Date, err)

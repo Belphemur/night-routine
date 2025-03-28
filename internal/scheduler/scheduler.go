@@ -31,16 +31,51 @@ func New(cfg *config.Config, tracker fairness.TrackerInterface) *Scheduler {
 }
 
 // GenerateSchedule creates a schedule for the specified date range
+// This updated version respects overridden assignments as fixed points
 func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error) {
 	var schedule []*Assignment
 	current := start
 
-	for !current.After(end) {
-		assignment, err := s.assignForDate(current)
-		if err != nil {
-			return nil, fmt.Errorf("failed to assign for date %v: %w", current, err)
+	// Get all existing assignments in the date range, including overrides
+	existingAssignments, err := s.tracker.GetAssignmentsInRange(start, end)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing assignments: %w", err)
+	}
+
+	// Map overridden assignments by date for easy lookup
+	assignmentByDateOverridden := make(map[string]*fairness.Assignment)
+	for _, a := range existingAssignments {
+		if !a.Override {
+			// Only keep overridden assignments
+			continue
 		}
-		schedule = append(schedule, assignment)
+		dateStr := a.Date.Format("2006-01-02")
+		assignmentByDateOverridden[dateStr] = a
+	}
+
+	// Process each day in the range
+	for !current.After(end) {
+		dateStr := current.Format("2006-01-02")
+
+		// Check if there's an existing assignment overridden for this date
+		if existing, ok := assignmentByDateOverridden[dateStr]; ok {
+			// Convert to scheduler assignment
+			assignment := &Assignment{
+				ID:                    existing.ID,
+				Date:                  existing.Date,
+				Parent:                existing.Parent,
+				GoogleCalendarEventID: existing.GoogleCalendarEventID,
+			}
+			schedule = append(schedule, assignment)
+		} else {
+			// No overridden assignment, create a new one or update existing one
+			assignment, err := s.assignForDate(current)
+			if err != nil {
+				return nil, fmt.Errorf("failed to assign for date %v: %w", current, err)
+			}
+			schedule = append(schedule, assignment)
+		}
+
 		current = current.AddDate(0, 0, 1)
 	}
 
@@ -49,23 +84,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 
 // assignForDate determines who should do the night routine on a specific date and records it
 func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
-	// First check if there's already an assignment for this date
-	existingAssignment, err := s.tracker.GetAssignmentByDate(date)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existing assignment: %w", err)
-	}
-
-	// If there's already an assignment for this date, use it
-	if existingAssignment != nil {
-		return &Assignment{
-			ID:                    existingAssignment.ID,
-			Date:                  existingAssignment.Date,
-			Parent:                existingAssignment.Parent,
-			GoogleCalendarEventID: existingAssignment.GoogleCalendarEventID,
-		}, nil
-	}
-
-	// Get last assignments to ensure fairness
+	// Get last assignments to ensure fairness, including overridden ones
 	lastAssignments, err := s.tracker.GetLastAssignments(5)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last assignments: %w", err)
@@ -107,6 +126,35 @@ func (s *Scheduler) UpdateGoogleCalendarEventID(assignment *Assignment, eventID 
 
 	// Update the assignment object
 	assignment.GoogleCalendarEventID = eventID
+	return nil
+}
+
+// GetAssignmentByGoogleCalendarEventID finds an assignment by its Google Calendar event ID
+func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignment, error) {
+	assignment, err := s.tracker.GetAssignmentByGoogleCalendarEventID(eventID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assignment by Google Calendar event ID: %w", err)
+	}
+
+	if assignment == nil {
+		return nil, nil
+	}
+
+	return &Assignment{
+		ID:                    assignment.ID,
+		Date:                  assignment.Date,
+		Parent:                assignment.Parent,
+		GoogleCalendarEventID: assignment.GoogleCalendarEventID,
+	}, nil
+}
+
+// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
+func (s *Scheduler) UpdateAssignmentParent(id int64, parent string, override bool) error {
+	err := s.tracker.UpdateAssignmentParent(id, parent, override)
+	if err != nil {
+		return fmt.Errorf("failed to update assignment parent: %w", err)
+	}
+
 	return nil
 }
 

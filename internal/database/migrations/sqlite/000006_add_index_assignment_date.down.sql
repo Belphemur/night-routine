@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_assignments_date_parent;

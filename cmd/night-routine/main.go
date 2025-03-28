@@ -140,6 +140,24 @@ func run(ctx context.Context) error {
 		}
 	}
 
+	// Initialize webhook handler if calendar service is available
+	if calSvc != nil {
+		webhookHandler := &handlers.WebhookHandler{
+			BaseHandler:     baseHandler,
+			CalendarService: calSvc,
+			Scheduler:       sched,
+			Config:          cfg,
+		}
+		webhookHandler.RegisterRoutes()
+
+		// Set up notification channel for calendar changes
+		if err := calSvc.SetupNotificationChannel(ctx); err != nil {
+			log.Printf("Warning: Failed to set up notification channel: %v", err)
+		} else {
+			log.Printf("Successfully set up notification channel for calendar changes")
+		}
+	}
+
 	// Main service loop
 	ticker := time.NewTicker(getUpdateInterval(cfg.Schedule.UpdateFrequency))
 	defer ticker.Stop()
@@ -147,6 +165,13 @@ func run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			// Stop notification channels if calendar service is available
+			if calSvc != nil {
+				if err := calSvc.StopAllNotificationChannels(ctx); err != nil {
+					log.Printf("Warning: Failed to stop notification channels: %v", err)
+				}
+			}
+
 			// Shutdown HTTP server
 			if err := srv.Shutdown(ctx); err != nil {
 				log.Printf("HTTP server shutdown error: %v", err)
@@ -163,6 +188,22 @@ func run(ctx context.Context) error {
 				calSvc, err = calendar.New(ctx, cfg, tokenStore, sched)
 				if err != nil {
 					log.Printf("Calendar service not ready: %v", err)
+				} else {
+					// Initialize webhook handler now that calendar service is available
+					webhookHandler := &handlers.WebhookHandler{
+						BaseHandler:     baseHandler,
+						CalendarService: calSvc,
+						Scheduler:       sched,
+						Config:          cfg,
+					}
+					webhookHandler.RegisterRoutes()
+
+					// Set up notification channel for calendar changes
+					if err := calSvc.SetupNotificationChannel(ctx); err != nil {
+						log.Printf("Warning: Failed to set up notification channel: %v", err)
+					} else {
+						log.Printf("Successfully set up notification channel for calendar changes")
+					}
 				}
 			}
 		}

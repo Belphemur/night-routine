@@ -22,6 +22,26 @@ func NewMockTracker() *MockTracker {
 
 // RecordAssignment records a new assignment
 func (m *MockTracker) RecordAssignment(parent string, date time.Time) (*Assignment, error) {
+	// Check if there's already an assignment for this date
+	existingAssignment, err := m.GetAssignmentByDate(date)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing assignment: %w", err)
+	}
+
+	// If there's already an assignment, update it
+	if existingAssignment != nil {
+		// Only update if the parent has changed
+		if existingAssignment.Parent != parent {
+			existingAssignment.Parent = parent
+			existingAssignment.UpdatedAt = time.Now()
+			return existingAssignment, nil
+		}
+
+		// Parent hasn't changed, return the existing assignment
+		return existingAssignment, nil
+	}
+
+	// No existing assignment, create a new one
 	return m.RecordAssignmentWithDetails(parent, date, false, "")
 }
 
@@ -32,6 +52,22 @@ func (m *MockTracker) RecordAssignmentWithOverride(parent string, date time.Time
 
 // RecordAssignmentWithDetails records an assignment with all available details
 func (m *MockTracker) RecordAssignmentWithDetails(parent string, date time.Time, override bool, googleCalendarEventID string) (*Assignment, error) {
+	// Check if there's already an assignment for this date
+	existingAssignment, err := m.GetAssignmentByDate(date)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing assignment: %w", err)
+	}
+
+	// If there's already an assignment, update it
+	if existingAssignment != nil {
+		existingAssignment.Parent = parent
+		existingAssignment.Override = override
+		existingAssignment.GoogleCalendarEventID = googleCalendarEventID
+		existingAssignment.UpdatedAt = time.Now()
+		return existingAssignment, nil
+	}
+
+	// No existing assignment, create a new one
 	now := time.Now()
 
 	assignment := &Assignment{
@@ -107,6 +143,42 @@ func (m *MockTracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 	return result, nil
 }
 
+// GetAssignmentByGoogleCalendarEventID retrieves an assignment by its Google Calendar event ID
+func (m *MockTracker) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignment, error) {
+	if eventID == "" {
+		return nil, nil
+	}
+
+	for _, a := range m.assignments {
+		if a.GoogleCalendarEventID == eventID {
+			return a, nil
+		}
+	}
+
+	return nil, nil
+}
+
+// GetAssignmentsInRange retrieves all assignments in a date range
+func (m *MockTracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, error) {
+	startStr := start.Format("2006-01-02")
+	endStr := end.Format("2006-01-02")
+
+	var result []*Assignment
+	for _, a := range m.assignments {
+		dateStr := a.Date.Format("2006-01-02")
+		if dateStr >= startStr && dateStr <= endStr {
+			result = append(result, a)
+		}
+	}
+
+	// Sort by date
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Date.Before(result[j].Date)
+	})
+
+	return result, nil
+}
+
 // UpdateAssignmentGoogleCalendarEventID updates an assignment with Google Calendar event ID
 func (m *MockTracker) UpdateAssignmentGoogleCalendarEventID(id int64, googleCalendarEventID string) error {
 	assignment, err := m.GetAssignmentByID(id)
@@ -115,6 +187,20 @@ func (m *MockTracker) UpdateAssignmentGoogleCalendarEventID(id int64, googleCale
 	}
 
 	assignment.GoogleCalendarEventID = googleCalendarEventID
+	assignment.UpdatedAt = time.Now()
+
+	return nil
+}
+
+// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
+func (m *MockTracker) UpdateAssignmentParent(id int64, parent string, override bool) error {
+	assignment, err := m.GetAssignmentByID(id)
+	if err != nil {
+		return err
+	}
+
+	assignment.Parent = parent
+	assignment.Override = override
 	assignment.UpdatedAt = time.Now()
 
 	return nil

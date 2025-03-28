@@ -27,8 +27,17 @@ type TrackerInterface interface {
 
 	// UpdateAssignmentGoogleCalendarEventID updates an assignment with Google Calendar event ID
 	UpdateAssignmentGoogleCalendarEventID(id int64, googleCalendarEventID string) error
+
+	// GetAssignmentByGoogleCalendarEventID retrieves an assignment by its Google Calendar event ID
+	GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignment, error)
+
+	// GetAssignmentsInRange retrieves all assignments in a date range
+	GetAssignmentsInRange(start, end time.Time) ([]*Assignment, error)
+
+	// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
+	UpdateAssignmentParent(id int64, parent string, override bool) error
 }
 
-// Ensure both Tracker and MockTracker implement the TrackerInterface
+// Ensure Tracker implements the TrackerInterface
 var _ TrackerInterface = (*Tracker)(nil)
 var _ TrackerInterface = (*MockTracker)(nil)

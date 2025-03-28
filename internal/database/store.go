@@ -4,9 +4,20 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"golang.org/x/oauth2"
 )
+
+// NotificationChannel represents a Google Calendar notification channel
+type NotificationChannel struct {
+	ID         string
+	ResourceID string
+	CalendarID string
+	Expiration time.Time
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
 
 // TokenStore handles OAuth token storage in SQLite
 type TokenStore struct {
@@ -91,4 +102,132 @@ SELECT calendar_id FROM calendar_settings WHERE id = 1
 	}
 
 	return calendarID, nil
+}
+
+// SaveNotificationChannel saves a notification channel
+func (s *TokenStore) SaveNotificationChannel(channel *NotificationChannel) error {
+	_, err := s.db.Exec(`
+INSERT OR REPLACE INTO notification_channels (id, resource_id, calendar_id, expiration)
+VALUES (?, ?, ?, ?)`,
+		channel.ID, channel.ResourceID, channel.CalendarID, channel.Expiration.Format(time.RFC3339))
+	if err != nil {
+		return fmt.Errorf("failed to save notification channel: %w", err)
+	}
+
+	return nil
+}
+
+// GetNotificationChannelByID retrieves a notification channel by its ID
+func (s *TokenStore) GetNotificationChannelByID(id string) (*NotificationChannel, error) {
+	if id == "" {
+		return nil, nil
+	}
+
+	var channel NotificationChannel
+	var expirationStr, createdAtStr, updatedAtStr string
+
+	err := s.db.QueryRow(`
+SELECT id, resource_id, calendar_id, expiration, created_at, updated_at
+FROM notification_channels
+WHERE id = ?`, id).Scan(
+		&channel.ID,
+		&channel.ResourceID,
+		&channel.CalendarID,
+		&expirationStr,
+		&createdAtStr,
+		&updatedAtStr,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve notification channel: %w", err)
+	}
+
+	expiration, err := time.Parse(time.RFC3339, expirationStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse expiration date: %w", err)
+	}
+	channel.Expiration = expiration
+
+	createdAt, err := time.Parse("2006-01-02 15:04:05", createdAtStr)
+	if err == nil {
+		channel.CreatedAt = createdAt
+	}
+
+	updatedAt, err := time.Parse("2006-01-02 15:04:05", updatedAtStr)
+	if err == nil {
+		channel.UpdatedAt = updatedAt
+	}
+
+	return &channel, nil
+}
+
+// GetActiveNotificationChannels retrieves all active notification channels
+func (s *TokenStore) GetActiveNotificationChannels() ([]*NotificationChannel, error) {
+	rows, err := s.db.Query(`
+SELECT id, resource_id, calendar_id, expiration, created_at, updated_at
+FROM notification_channels
+WHERE expiration > datetime('now')
+ORDER BY expiration ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query notification channels: %w", err)
+	}
+	defer rows.Close()
+
+	var channels []*NotificationChannel
+	for rows.Next() {
+		var channel NotificationChannel
+		var expirationStr, createdAtStr, updatedAtStr string
+
+		if err := rows.Scan(
+			&channel.ID,
+			&channel.ResourceID,
+			&channel.CalendarID,
+			&expirationStr,
+			&createdAtStr,
+			&updatedAtStr,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan notification channel: %w", err)
+		}
+
+		expiration, err := time.Parse(time.RFC3339, expirationStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse expiration date: %w", err)
+		}
+		channel.Expiration = expiration
+
+		createdAt, err := time.Parse("2006-01-02 15:04:05", createdAtStr)
+		if err == nil {
+			channel.CreatedAt = createdAt
+		}
+
+		updatedAt, err := time.Parse("2006-01-02 15:04:05", updatedAtStr)
+		if err == nil {
+			channel.UpdatedAt = updatedAt
+		}
+
+		channels = append(channels, &channel)
+	}
+
+	return channels, nil
+}
+
+// DeleteNotificationChannel deletes a notification channel by its ID
+func (s *TokenStore) DeleteNotificationChannel(id string) error {
+	_, err := s.db.Exec(`DELETE FROM notification_channels WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete notification channel: %w", err)
+	}
+	return nil
+}
+
+// DeleteExpiredNotificationChannels deletes all expired notification channels
+func (s *TokenStore) DeleteExpiredNotificationChannels() error {
+	_, err := s.db.Exec(`DELETE FROM notification_channels WHERE expiration <= datetime('now')`)
+	if err != nil {
+		return fmt.Errorf("failed to delete expired notification channels: %w", err)
+	}
+	return nil
 }
