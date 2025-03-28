@@ -14,6 +14,7 @@ type Assignment struct {
 	Date                  time.Time
 	Parent                string
 	GoogleCalendarEventID string
+	UpdatedAt             time.Time
 }
 
 // Scheduler handles the night routine scheduling logic
@@ -65,6 +66,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 				Date:                  existing.Date,
 				Parent:                existing.Parent,
 				GoogleCalendarEventID: existing.GoogleCalendarEventID,
+				UpdatedAt:             existing.UpdatedAt,
 			}
 			schedule = append(schedule, assignment)
 		} else {
@@ -114,6 +116,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 		Date:                  trackerAssignment.Date,
 		Parent:                trackerAssignment.Parent,
 		GoogleCalendarEventID: trackerAssignment.GoogleCalendarEventID,
+		UpdatedAt:             trackerAssignment.UpdatedAt,
 	}, nil
 }
 

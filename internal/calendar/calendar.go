@@ -219,6 +219,10 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 						UseDefault:      false,
 						ForceSendFields: []string{"UseDefault"},
 					}
+					event.ExtendedProperties.Private = map[string]string{
+						"updatedAt":   a.UpdatedAt.Format(time.RFC3339),
+						"assigmentId": fmt.Sprintf("%d", a.ID),
+					}
 
 					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
 					if err == nil {
@@ -266,6 +270,12 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				Source: &calendar.EventSource{
 					Title: nightRoutineIdentifier,
 					Url:   s.config.App.Url,
+				},
+				ExtendedProperties: &calendar.EventExtendedProperties{
+					Private: map[string]string{
+						"updatedAt":   a.UpdatedAt.Format(time.RFC3339),
+						"assigmentId": fmt.Sprintf("%d", a.ID),
+					},
 				},
 				Reminders: &calendar.EventReminders{
 					UseDefault:      false,

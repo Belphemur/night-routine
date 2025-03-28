@@ -141,7 +141,7 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 			assignment.ID, assignment.Parent, parentName)
 
 		// Recalculate the schedule for future days
-		if err := h.recalculateSchedule(ctx, assignment.Date, calendarID); err != nil {
+		if err := h.recalculateSchedule(ctx, assignment.Date); err != nil {
 			log.Printf("Error recalculating schedule: %v", err)
 		}
 	}
@@ -150,7 +150,7 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 }
 
 // recalculateSchedule regenerates the schedule from the given date
-func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.Time, calendarID string) error {
+func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.Time) error {
 	// Use the same look-ahead period as defined in the config
 	lookAheadDays := h.Config.Schedule.LookAheadDays
 
