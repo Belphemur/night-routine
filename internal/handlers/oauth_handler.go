@@ -34,10 +34,9 @@ func init() {
 	}
 }
 
-// Updated to use the unified OAuth configuration from the Config struct
-func NewOAuthHandler(cfg *config.Config, tokenStore *database.TokenStore) (*OAuthHandler, error) {
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
-
+// NewOAuthHandler creates a new OAuth handler
+// Updated to accept the TokenManager directly instead of creating it internally
+func NewOAuthHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager) (*OAuthHandler, error) {
 	return &OAuthHandler{
 		OAuthConfig:  cfg.OAuth,
 		Templates:    templates,
@@ -77,7 +76,8 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.TokenStore.SaveToken(token); err != nil {
+	// Use TokenManager's SaveToken method which emits a signal, passing the request context
+	if err := h.TokenManager.SaveToken(r.Context(), token); err != nil {
 		log.Printf("Token save error: %v", err)
 		http.Error(w, "Failed to save token", http.StatusInternalServerError)
 		return

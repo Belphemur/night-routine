@@ -22,47 +22,74 @@ type Service struct {
 	tokenStore   *database.TokenStore
 	tokenManager *token.TokenManager
 	scheduler    *scheduler.Scheduler
+	initialized  bool
 }
 
-// Updated to use the unified OAuth configuration from the Config struct
-func New(ctx context.Context, cfg *config.Config, tokenStore *database.TokenStore, scheduler *scheduler.Scheduler) (*Service, error) {
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
-
-	token, err := tokenManager.GetValidToken(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get token: %w", err)
-	}
-	if token == nil {
-		return nil, fmt.Errorf("no token available - please authenticate via web interface first")
-	}
-
-	client := cfg.OAuth.Client(ctx, token)
-	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create calendar service: %w", err)
-	}
-
-	// Get calendar ID from store
-	calendarID, err := tokenStore.GetSelectedCalendar()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get selected calendar: %w", err)
-	}
-	if calendarID == "" {
-		calendarID = cfg.Schedule.CalendarID // Fallback to config
-	}
-
+// New creates a new calendar service. It doesn't require a valid token to initialize.
+// The service will return errors for operations that require authentication until Initialize is called.
+func New(cfg *config.Config, tokenStore *database.TokenStore, scheduler *scheduler.Scheduler, tokenManager *token.TokenManager) *Service {
 	return &Service{
-		calendarID:   calendarID,
-		srv:          srv,
+		calendarID:   cfg.Schedule.CalendarID, // Default calendar ID from config
 		config:       cfg,
 		tokenStore:   tokenStore,
 		tokenManager: tokenManager,
 		scheduler:    scheduler,
-	}, nil
+		initialized:  false,
+	}
+}
+
+// Initialize sets up the authenticated calendar service if a valid token is available
+func (s *Service) Initialize(ctx context.Context) error {
+	// Check if we have a token
+	hasToken, err := s.tokenManager.HasToken()
+	if err != nil {
+		return fmt.Errorf("failed to check token availability: %w", err)
+	}
+
+	if !hasToken {
+		return fmt.Errorf("no token available - please authenticate via web interface first")
+	}
+
+	// Get and validate token
+	token, err := s.tokenManager.GetValidToken(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get valid token: %w", err)
+	}
+
+	// Create authenticated client
+	client := s.config.OAuth.Client(ctx, token)
+	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return fmt.Errorf("failed to create calendar service: %w", err)
+	}
+
+	// Get calendar ID from store
+	calendarID, err := s.tokenStore.GetSelectedCalendar()
+	if err != nil {
+		return fmt.Errorf("failed to get selected calendar: %w", err)
+	}
+	if calendarID != "" {
+		s.calendarID = calendarID
+	}
+
+	// Update service with authenticated client
+	s.srv = srv
+	s.initialized = true
+
+	return nil
+}
+
+// IsInitialized returns whether the service has been initialized with a valid token
+func (s *Service) IsInitialized() bool {
+	return s.initialized
 }
 
 // SyncSchedule synchronizes the schedule with Google Calendar
 func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Assignment) error {
+	if !s.initialized || s.srv == nil {
+		return fmt.Errorf("calendar service not initialized - authentication required")
+	}
+
 	// Get latest token in case it was refreshed
 	token, err := s.tokenManager.GetValidToken(ctx)
 	if err != nil {

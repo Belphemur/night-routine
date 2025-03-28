@@ -17,6 +17,8 @@ import (
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/belphemur/night-routine/internal/handlers"
 	"github.com/belphemur/night-routine/internal/scheduler"
+	appSignals "github.com/belphemur/night-routine/internal/signals"
+	"github.com/belphemur/night-routine/internal/token"
 )
 
 var (
@@ -89,8 +91,18 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize token store: %w", err)
 	}
 
+	// Initialize token manager
+	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
+
+	// Create scheduler
+	sched := scheduler.New(cfg, tracker)
+
+	// Initialize calendar service without requiring a token
+	calSvc := calendar.New(cfg, tokenStore, sched, tokenManager)
+	log.Printf("Calendar service initialized. Waiting for authentication...")
+
 	// Initialize OAuth handler
-	oauthHandler, err := handlers.NewOAuthHandler(cfg, tokenStore)
+	oauthHandler, err := handlers.NewOAuthHandler(cfg, tokenStore, tokenManager)
 	if err != nil {
 		return fmt.Errorf("failed to initialize OAuth handler: %w", err)
 	}
@@ -110,11 +122,8 @@ func run(ctx context.Context) error {
 	calendarHandler := handlers.NewCalendarHandler(baseHandler, cfg)
 	calendarHandler.RegisterRoutes()
 
-	// Create scheduler
-	sched := scheduler.New(cfg, tracker)
-
-	// Initialize sync handler
-	syncHandler := handlers.NewSyncHandler(baseHandler, sched)
+	// Initialize sync handler with calendar service
+	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc)
 	syncHandler.RegisterRoutes()
 
 	// Start HTTP server
@@ -130,33 +139,41 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	// Initialize calendar service with token store
-	calSvc, err := calendar.New(ctx, cfg, tokenStore, sched)
-	if err != nil {
-		if err.Error() == "failed to get token: no token found" {
-			log.Printf("Please visit http://localhost:%d to authenticate with Google Calendar", cfg.App.Port)
-		} else {
-			return fmt.Errorf("failed to create calendar service: %w", err)
-		}
+	// Set up webhook handler using the calendar service (will be initialized later)
+	webhookHandler := &handlers.WebhookHandler{
+		BaseHandler:     baseHandler,
+		CalendarService: calSvc,
+		Scheduler:       sched,
+		Config:          cfg,
 	}
+	webhookHandler.RegisterRoutes()
 
-	// Initialize webhook handler if calendar service is available
-	if calSvc != nil {
-		webhookHandler := &handlers.WebhookHandler{
-			BaseHandler:     baseHandler,
-			CalendarService: calSvc,
-			Scheduler:       sched,
-			Config:          cfg,
-		}
-		webhookHandler.RegisterRoutes()
+	// Register handler for token setup signals using the new approach with generics
+	appSignals.TokenSetup.AddListener(func(ctx context.Context, data appSignals.TokenSetupData) {
+		if data.Success {
+			log.Printf("Token setup detected - initializing calendar service")
 
-		// Set up notification channel for calendar changes
-		if err := calSvc.SetupNotificationChannel(ctx); err != nil {
-			log.Printf("Warning: Failed to set up notification channel: %v", err)
-		} else {
-			log.Printf("Successfully set up notification channel for calendar changes")
+			// Initialize the calendar service with the new token
+			if err := calSvc.Initialize(ctx); err != nil {
+				log.Printf("Failed to initialize calendar service: %v", err)
+				return
+			}
+
+			log.Printf("Calendar service initialized successfully")
+
+			// Set up notification channel for calendar changes
+			if err := calSvc.SetupNotificationChannel(ctx); err != nil {
+				log.Printf("Warning: Failed to set up notification channel: %v", err)
+			} else {
+				log.Printf("Successfully set up notification channel for calendar changes")
+			}
+
+			// Update schedule immediately after authentication
+			if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
+				log.Printf("Failed to update schedule after auth: %v", err)
+			}
 		}
-	}
+	}, "main-token-setup-handler")
 
 	// Main service loop
 	ticker := time.NewTicker(getUpdateInterval(cfg.Schedule.UpdateFrequency))
@@ -166,7 +183,7 @@ func run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			// Stop notification channels if calendar service is available
-			if calSvc != nil {
+			if calSvc.IsInitialized() {
 				if err := calSvc.StopAllNotificationChannels(ctx); err != nil {
 					log.Printf("Warning: Failed to stop notification channels: %v", err)
 				}
@@ -179,24 +196,16 @@ func run(ctx context.Context) error {
 			return nil
 
 		case <-ticker.C:
-			if calSvc != nil {
+			if calSvc.IsInitialized() {
 				if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
 					log.Printf("Failed to update schedule: %v", err)
 				}
 			} else {
 				// Try to initialize calendar service if it wasn't available before
-				calSvc, err = calendar.New(ctx, cfg, tokenStore, sched)
-				if err != nil {
+				if err := calSvc.Initialize(ctx); err != nil {
 					log.Printf("Calendar service not ready: %v", err)
 				} else {
-					// Initialize webhook handler now that calendar service is available
-					webhookHandler := &handlers.WebhookHandler{
-						BaseHandler:     baseHandler,
-						CalendarService: calSvc,
-						Scheduler:       sched,
-						Config:          cfg,
-					}
-					webhookHandler.RegisterRoutes()
+					log.Printf("Calendar service initialized successfully on scheduled check")
 
 					// Set up notification channel for calendar changes
 					if err := calSvc.SetupNotificationChannel(ctx); err != nil {

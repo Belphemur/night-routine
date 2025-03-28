@@ -9,19 +9,24 @@ import (
 
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/token"
 )
 
 // SyncHandler manages manual synchronization functionality
 type SyncHandler struct {
 	*BaseHandler
-	Scheduler *scheduler.Scheduler
+	Scheduler       *scheduler.Scheduler
+	TokenManager    *token.TokenManager
+	CalendarService *calendar.Service
 }
 
 // NewSyncHandler creates a new sync handler
-func NewSyncHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler) *SyncHandler {
+func NewSyncHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler, tokenManager *token.TokenManager, calendarService *calendar.Service) *SyncHandler {
 	return &SyncHandler{
-		BaseHandler: baseHandler,
-		Scheduler:   scheduler,
+		BaseHandler:     baseHandler,
+		Scheduler:       scheduler,
+		TokenManager:    tokenManager,
+		CalendarService: calendarService,
 	}
 }
 
@@ -32,8 +37,16 @@ func (h *SyncHandler) RegisterRoutes() {
 
 // handleManualSync handles manual synchronization requests
 func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
-	token, err := h.TokenStore.GetToken()
-	if err != nil || token == nil || !token.Valid() {
+	// Check if we have a valid token
+	hasToken, err := h.TokenManager.HasToken()
+	if err != nil || !hasToken {
+		http.Redirect(w, r, "/?error=authentication_required", http.StatusSeeOther)
+		return
+	}
+
+	// Verify token is valid
+	token, err := h.TokenManager.GetValidToken(r.Context())
+	if err != nil || token == nil {
 		http.Redirect(w, r, "/?error=authentication_required", http.StatusSeeOther)
 		return
 	}
@@ -44,16 +57,17 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a new calendar service
-	calService, err := h.createCalendarService(r.Context())
-	if err != nil {
-		log.Printf("Failed to create calendar service: %v", err)
-		http.Redirect(w, r, "/?error=sync_error", http.StatusSeeOther)
-		return
+	// Check if calendar service is initialized
+	if !h.CalendarService.IsInitialized() {
+		if err := h.CalendarService.Initialize(r.Context()); err != nil {
+			log.Printf("Failed to initialize calendar service: %v", err)
+			http.Redirect(w, r, "/?error=sync_error", http.StatusSeeOther)
+			return
+		}
 	}
 
 	// Run the schedule update
-	if err := h.updateSchedule(r.Context(), calService); err != nil {
+	if err := h.updateSchedule(r.Context()); err != nil {
 		log.Printf("Failed to update schedule: %v", err)
 		http.Redirect(w, r, "/?error=sync_error", http.StatusSeeOther)
 		return
@@ -63,18 +77,8 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?success=sync_complete", http.StatusSeeOther)
 }
 
-// createCalendarService creates a new Google Calendar service
-func (h *SyncHandler) createCalendarService(ctx context.Context) (*calendar.Service, error) {
-	calendarService, err := calendar.New(ctx, h.Config, h.TokenStore, h.Scheduler)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create calendar service: %w", err)
-	}
-
-	return calendarService, nil
-}
-
 // updateSchedule generates and syncs a new schedule
-func (h *SyncHandler) updateSchedule(ctx context.Context, calSvc *calendar.Service) error {
+func (h *SyncHandler) updateSchedule(ctx context.Context) error {
 	// Calculate date range
 	now := time.Now()
 	end := now.AddDate(0, 0, h.Config.Schedule.LookAheadDays)
@@ -86,7 +90,7 @@ func (h *SyncHandler) updateSchedule(ctx context.Context, calSvc *calendar.Servi
 	}
 
 	// Sync with calendar
-	if err := calSvc.SyncSchedule(ctx, assignments); err != nil {
+	if err := h.CalendarService.SyncSchedule(ctx, assignments); err != nil {
 		return fmt.Errorf("failed to sync calendar: %w", err)
 	}
 

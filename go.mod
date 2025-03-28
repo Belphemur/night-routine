@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/maniartech/signals v1.2.0
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/oauth2 v0.28.0
