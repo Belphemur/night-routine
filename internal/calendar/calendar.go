@@ -197,9 +197,9 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				if err == nil {
 					// Successfully updated, continue to next assignment
 					continue
-				} else {
-					log.Printf("Couldn't update event %s for %s: %v", event.Id, assignment.Parent, err)
 				}
+				log.Printf("Couldn't update event %s for %s: %v", event.Id, assignment.Parent, err)
+
 				// If update fails, we'll fall through to create a new event
 			}
 			// If get fails or update fails, we'll fall through to create a new event
