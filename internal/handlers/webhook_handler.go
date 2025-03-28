@@ -27,6 +27,17 @@ type WebhookHandler struct {
 	TokenManager    *token.TokenManager
 }
 
+// NewWebhookHandler creates a new webhook handler
+func NewWebhookHandler(baseHandler *BaseHandler, calendarService *calendar.Service, scheduler *scheduler.Scheduler, config *config.Config, tokenManager *token.TokenManager) *WebhookHandler {
+	return &WebhookHandler{
+		BaseHandler:     baseHandler,
+		CalendarService: calendarService,
+		Scheduler:       scheduler,
+		Config:          config,
+		TokenManager:    tokenManager,
+	}
+}
+
 // RegisterRoutes registers webhook related routes
 func (h *WebhookHandler) RegisterRoutes() {
 	http.HandleFunc("/api/webhook/calendar", h.handleCalendarWebhook)
@@ -89,7 +100,7 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 	}
 
 	// Get events that were recently updated
-	timeMin := time.Now().Add(-10 * time.Minute).Format(time.RFC3339)
+	timeMin := time.Now().Add(-30 * time.Second).Format(time.RFC3339)
 	events, err := calendarSvc.Events.List(calendarID).
 		UpdatedMin(timeMin).
 		SingleEvents(true).
@@ -161,11 +172,19 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 
 // recalculateSchedule regenerates the schedule from the given date
 func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.Time) error {
-	// Use the same look-ahead period as defined in the config
-	lookAheadDays := h.Config.Schedule.LookAheadDays
+	// Get the last assignment date from the database
+	lastAssignmentDate, err := h.Tracker.GetLastAssignmentDate()
+	if err != nil {
+		return fmt.Errorf("failed to get last assignment date: %w", err)
+	}
 
-	// Calculate the end date
-	endDate := fromDate.AddDate(0, 0, lookAheadDays)
+	// If there are no assignments in the database, use the default look-ahead period
+	endDate := lastAssignmentDate
+	if endDate.IsZero() {
+		// Use the same look-ahead period as defined in the config
+		lookAheadDays := h.Config.Schedule.LookAheadDays
+		endDate = fromDate.AddDate(0, 0, lookAheadDays)
+	}
 
 	// Generate a new schedule
 	assignments, err := h.Scheduler.GenerateSchedule(fromDate, endDate)

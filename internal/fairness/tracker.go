@@ -432,6 +432,34 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	return stats, nil
 }
 
+// GetLastAssignmentDate returns the date of the last assignment in the database
+func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
+	row := t.db.QueryRow(`
+	SELECT assignment_date
+	FROM assignments
+	ORDER BY assignment_date DESC
+	LIMIT 1
+	`)
+
+	var dateStr string
+	err := row.Scan(&dateStr)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No assignments found, return zero time
+			return time.Time{}, nil
+		}
+		return time.Time{}, fmt.Errorf("failed to get last assignment date: %w", err)
+	}
+
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to parse date: %w", err)
+	}
+
+	return date, nil
+}
+
+
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
@@ -448,3 +476,4 @@ type Stats struct {
 	TotalAssignments int
 	Last30Days       int
 }
+

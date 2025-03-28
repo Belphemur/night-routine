@@ -1,14 +1,11 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {},
-	"extensions": {
-		"recommendations": [
-			"golang.go",
-			"qwtel.sqlite-viewer"
-		]
-	}
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {},
+  "extensions": {
+    "recommendations": ["golang.go", "yy0931.vscode-sqlite3-editor"]
+  }
 }
