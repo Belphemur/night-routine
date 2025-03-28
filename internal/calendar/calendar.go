@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
@@ -168,96 +169,138 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 
 	// Track dates we've already processed to avoid duplicates
 	processedDates := make(map[string]bool)
+	var mu sync.Mutex // Mutex to protect the map
 
-	// Process assignments
+	// Use a wait group to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Channel for collecting errors from goroutines
+	errChan := make(chan error, len(assignments))
+
+	// Semaphore to limit concurrency to 2 at a time
+	sem := make(chan struct{}, 2)
+
+	// Process assignments concurrently
 	for _, assignment := range assignments {
 		dateStr := assignment.Date.Format("2006-01-02")
 
-		// Skip if we've already handled this date
+		// Skip if we've already handled this date - thread-safe check
+		mu.Lock()
 		if processedDates[dateStr] {
+			mu.Unlock()
 			continue
 		}
 		processedDates[dateStr] = true
+		mu.Unlock()
 
-		// Check if we already have a Google Calendar event ID for this assignment
-		if assignment.GoogleCalendarEventID != "" {
-			// Try to update the existing event
-			event, err := s.srv.Events.Get(s.calendarID, assignment.GoogleCalendarEventID).Do()
-			if err == nil {
-				// Event exists, update it
-				event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent)
-				event.Description = fmt.Sprintf("Night routine duty assigned to %s [%s]",
-					assignment.Parent, nightRoutineIdentifier)
-				event.Reminders = &calendar.EventReminders{
-					UseDefault:      false,
-					ForceSendFields: []string{"UseDefault"},
-				}
+		// Add to wait group
+		wg.Add(1)
 
-				_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
+		// Launch goroutine for this assignment
+		go func(a *scheduler.Assignment) {
+			defer wg.Done()
+
+			// Acquire semaphore slot (limits concurrency)
+			sem <- struct{}{}
+			defer func() { <-sem }() // Release semaphore when done
+
+			dateStr := a.Date.Format("2006-01-02")
+
+			// Check if we already have a Google Calendar event ID for this assignment
+			if a.GoogleCalendarEventID != "" {
+				// Try to update the existing event
+				event, err := s.srv.Events.Get(s.calendarID, a.GoogleCalendarEventID).Do()
 				if err == nil {
-					// Successfully updated, continue to next assignment
+					// Event exists, update it
+					event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", a.Parent)
+					event.Description = fmt.Sprintf("Night routine duty assigned to %s [%s]",
+						a.Parent, nightRoutineIdentifier)
+					event.Reminders = &calendar.EventReminders{
+						UseDefault:      false,
+						ForceSendFields: []string{"UseDefault"},
+					}
+
+					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
+					if err == nil {
+						// Successfully updated, return from goroutine
+						return
+					}
+					log.Printf("Couldn't update event %s for %s: %v", event.Id, a.Parent, err)
+					// If update fails, we'll fall through to create a new event
+				}
+				// If get fails or update fails, we'll fall through to create a new event
+			}
+
+			// We need to safely access the shared eventsByDate map
+			mu.Lock()
+			dateEvents := eventsByDate[dateStr]
+			mu.Unlock()
+
+			// Delete any existing events on this date (if we couldn't update)
+			for _, existingEvent := range dateEvents {
+				// Skip if this is the event we just tried to update
+				if existingEvent.Id == a.GoogleCalendarEventID {
 					continue
 				}
-				log.Printf("Couldn't update event %s for %s: %v", event.Id, assignment.Parent, err)
 
-				// If update fails, we'll fall through to create a new event
-			}
-			// If get fails or update fails, we'll fall through to create a new event
-		}
-
-		// Delete any existing events on this date (if we couldn't update)
-		for _, existingEvent := range eventsByDate[dateStr] {
-			// Skip if this is the event we just tried to update
-			if existingEvent.Id == assignment.GoogleCalendarEventID {
-				continue
+				err := s.srv.Events.Delete(s.calendarID, existingEvent.Id).Do()
+				if err != nil {
+					errChan <- fmt.Errorf("failed to delete existing event for %v: %w", a.Date, err)
+					return
+				}
 			}
 
-			err := s.srv.Events.Delete(s.calendarID, existingEvent.Id).Do()
-			if err != nil {
-				return fmt.Errorf("failed to delete existing event for %v: %w", assignment.Date, err)
-			}
-		}
-
-		// Create new event with our identifier
-		event := &calendar.Event{
-			Summary: fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent),
-			Start: &calendar.EventDateTime{
-				Date: dateStr,
-			},
-			End: &calendar.EventDateTime{
-				Date: dateStr,
-			},
-			Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
-				assignment.Parent, nightRoutineIdentifier),
-			Location:     "Home",
-			Transparency: "transparent",
-			Source: &calendar.EventSource{
-				Title: nightRoutineIdentifier,
-				Url:   s.config.App.Url,
-			},
-			Reminders: &calendar.EventReminders{
-				UseDefault:      false,
-				ForceSendFields: []string{"UseDefault"},
-				Overrides: []*calendar.EventReminder{
-					{
-						Method:  "popup",
-						Minutes: 4 * 60, // The day before at 8 PM
+			// Create new event with our identifier
+			event := &calendar.Event{
+				Summary: fmt.Sprintf("[%s] 🌃👶Routine", a.Parent),
+				Start: &calendar.EventDateTime{
+					Date: dateStr,
+				},
+				End: &calendar.EventDateTime{
+					Date: dateStr,
+				},
+				Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
+					a.Parent, nightRoutineIdentifier),
+				Location:     "Home",
+				Transparency: "transparent",
+				Source: &calendar.EventSource{
+					Title: nightRoutineIdentifier,
+					Url:   s.config.App.Url,
+				},
+				Reminders: &calendar.EventReminders{
+					UseDefault:      false,
+					ForceSendFields: []string{"UseDefault"},
+					Overrides: []*calendar.EventReminder{
+						{
+							Method:  "popup",
+							Minutes: 4 * 60, // The day before at 8 PM
+						},
 					},
 				},
-			},
-		}
+			}
 
-		// Create the event in Google Calendar
-		createdEvent, err := s.srv.Events.Insert(s.calendarID, event).Do()
-		if err != nil {
-			return fmt.Errorf("failed to create event for %v: %w", assignment.Date, err)
-		}
+			// Create the event in Google Calendar
+			createdEvent, err := s.srv.Events.Insert(s.calendarID, event).Do()
+			if err != nil {
+				errChan <- fmt.Errorf("failed to create event for %v: %w", a.Date, err)
+				return
+			}
 
-		// Update the assignment with the Google Calendar event ID
-		if err := s.scheduler.UpdateGoogleCalendarEventID(assignment, createdEvent.Id); err != nil {
-			// Log error but continue; this isn't fatal
-			fmt.Printf("Warning: Failed to update assignment with Google Calendar event ID: %v\n", err)
-		}
+			// Update the assignment with the Google Calendar event ID
+			if err := s.scheduler.UpdateGoogleCalendarEventID(a, createdEvent.Id); err != nil {
+				// Log error but continue; this isn't fatal
+				fmt.Printf("Warning: Failed to update assignment with Google Calendar event ID: %v\n", err)
+			}
+		}(assignment)
+	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+	close(errChan)
+
+	// Check if any errors occurred
+	for err := range errChan {
+		return err // Return the first error encountered
 	}
 
 	return nil
