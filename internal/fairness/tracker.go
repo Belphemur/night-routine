@@ -459,7 +459,6 @@ func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
 	return date, nil
 }
 
-
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
@@ -476,4 +475,3 @@ type Stats struct {
 	TotalAssignments int
 	Last30Days       int
 }
-
