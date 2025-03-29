@@ -72,7 +72,7 @@ jobs:
           build-args: | # Pass build args to Dockerfile
             VERSION=${{ github.ref_name }}
             COMMIT=${{ github.sha }}
-            DATE=${{ steps.build_date.outputs.date }} # Use output from previous step
+            DATE=${{ steps.build_date.outputs.date }}
 
       - name: Attest
         uses: actions/attest-build-provenance@v2
