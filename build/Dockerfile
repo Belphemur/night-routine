@@ -28,6 +28,8 @@ RUN CGO_ENABLED=1 \
 # Runtime stage
 FROM gcr.io/distroless/static-debian12:nonroot
 
+ENV ENV="production"
+
 WORKDIR /app
 
 # Copy binary from builder stage
