@@ -77,7 +77,7 @@ jobs:
       - name: Attest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ghcr.io/${{ github.repository }}:${{ github.ref_name }} # Use repository and ref_name
+          subject-name: ghcr.io/${{ github.repository }} # Use repository and ref_name
           subject-digest: ${{ steps.build-push.outputs.digest }} # Use digest from build-push step
           push-to-registry: true
 
