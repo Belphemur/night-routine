@@ -9,6 +9,7 @@ A Go application that manages night routine scheduling between two parents, with
 - Configurable parent availability
 - Automated scheduling with daily/weekly/monthly updates
 - Webhook endpoint for manual assignment overrides (e.g., via Google Calendar updates)
+- Structured logging using [zerolog](https://github.com/rs/zerolog) with configurable levels
 - Persistent storage using SQLite:
   - Assignment history and fairness tracking
   - OAuth2 tokens and refresh tokens
@@ -30,9 +31,10 @@ The application uses SQLite for persistent storage:
 ```
 data/
 └── state.db  # SQLite database containing:
-    ├── assignments     # Night routine assignments
-    ├── oauth_tokens    # Google OAuth2 tokens
-    └── calendar_settings # Selected calendar configuration
+    ├── assignments         # Night routine assignments
+    ├── oauth_tokens        # Google OAuth2 tokens
+    ├── calendar_settings   # Selected calendar configuration
+    └── notification_channels # Google Calendar webhook channels
 ```
 
 ## Configuration
@@ -48,6 +50,8 @@ GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret  # OAuth2 credentials
 PORT=8080                                      # Port for OAuth web interface and metrics
 CONFIG_FILE=configs/routine.toml               # Path to TOML configuration file
 APP_URL=http://localhost:8080                  # Application URL (defaults to http://localhost:<PORT>)
+# Optional environment variables
+ENV=development                                # Set to "production" for JSON logging, otherwise pretty console logging
 
 The OAuth2 callback URL is automatically constructed from APP_URL as "<APP_URL>/oauth/callback"
 ```
@@ -71,7 +75,16 @@ look_ahead_days = 30        # How many days to schedule in advance
 
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
+log_level = "info"            # Logging level (trace, debug, info, warn, error, fatal, panic)
 ```
+
+## Logging
+
+The application uses [zerolog](https://github.com/rs/zerolog) for structured logging.
+
+- By default (or when `ENV=development`), logs are output to the console in a human-readable format.
+- When `ENV=production`, logs are output as JSON to stdout.
+- The log level can be configured using the `log_level` setting in `configs/routine.toml`.
 
 ## Override Night Routine (via Google Calendar Event Title)
 
@@ -124,9 +137,9 @@ docker build -t night-routine:latest .
 # Set environment variables
 export GOOGLE_OAUTH_CLIENT_ID=your-client-id
 export GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
-export GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
 export PORT=8080
 export CONFIG_FILE=configs/routine.toml
+# export ENV=production # Uncomment for JSON logging
 
 # Run the application
 ./night-routine
@@ -140,17 +153,21 @@ docker run \
   -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
   -e PORT=8080 \
   -e CONFIG_FILE=/etc/night-routine/routine.toml \
-  -e APP_URL=http://localhost:8080 \
+  -e APP_URL=http://your-public-url:8080 \ # Needs to be publicly accessible for webhooks
+  # -e ENV=production \ # Uncomment for JSON logging
   -v /path/to/configs:/etc/night-routine \
-  -v /path/to/data:/var/lib/night-routine \
+  -v /path/to/data:/app/data \ # Mount data directory inside container
   -p 8080:8080 \
   night-routine:latest
 ```
 
+_Note: Ensure `/path/to/data` exists and has appropriate permissions._
+_Note: For Google Calendar webhooks to work, `APP_URL` must be publicly accessible._
+
 ## First-Time Setup
 
 1. Start the application
-2. Visit http://localhost:8080 (or your configured port)
+2. Visit http://localhost:8080 (or your configured `APP_URL`)
 3. Click "Connect Google Calendar" to start OAuth flow
 4. Select which calendar to use for night routine events
 5. The scheduler will now automatically create events
@@ -190,7 +207,7 @@ This will trigger the GitHub Actions release workflow, which will:
 
 - OAuth2 credentials are handled via environment variables for security
 - Tokens are securely stored in the SQLite database
-- Use HTTPS in production environments
+- Use HTTPS in production environments (e.g., via a reverse proxy)
 - Keep your environment variables secure
 - Regularly update dependencies
 

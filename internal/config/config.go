@@ -49,6 +49,7 @@ type ScheduleConfig struct {
 // ServiceConfig holds the service configuration
 type ServiceConfig struct {
 	StateFile string `toml:"state_file"`
+	LogLevel  string `toml:"log_level"` // New field for log level
 }
 
 // Load reads the configuration file and environment variables

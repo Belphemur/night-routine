@@ -12,3 +12,4 @@ look_ahead_days = 7        # How many days to schedule in advance
 
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
+log_level = "info"  # Possible values: trace, debug, info, warn, error, fatal, panic

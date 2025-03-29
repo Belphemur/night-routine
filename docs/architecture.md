@@ -11,6 +11,7 @@ graph TD
     A --> W[Web UI]
     A --> WH[Webhook Handler] // Added Webhook Handler
     A --> DB[Database Manager]
+    A --> LG[Logging Service] // Added Logging Service
 
     B --> F[routine.toml]
     B --> M[Environment Variables]
@@ -22,6 +23,7 @@ graph TD
     WH --> DB             // Webhook updates assignments
     WH --> C              // Webhook might influence scheduler
     DB --> MG[Database Migrations]
+    LG --> ZL[Zerolog Library]
 
     J --> I
     K --> I
@@ -34,7 +36,7 @@ graph TD
 ### 2.1 Configuration Manager
 
 - Uses TOML format for application configuration
-- Uses environment variables for sensitive data
+- Uses environment variables for sensitive data and environment settings (e.g., `ENV` for logging format)
 - Configuration sources:
 
 ```toml
@@ -53,6 +55,7 @@ look_ahead_days = 30
 
 [service]
 state_file = "data/state.db"
+log_level = "info" # Logging level
 ```
 
 ### Environment Variables
@@ -61,10 +64,10 @@ state_file = "data/state.db"
 # Environment Variables - Configuration
 GOOGLE_OAUTH_CLIENT_ID=your-client-id       # OAuth2 Configuration
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
-GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/oauth/callback
 PORT=8080                                   # Service Configuration
 CONFIG_FILE=configs/routine.toml            # Path to TOML config file
 APP_URL=http://localhost:8080               # (Optional) Override application URL
+ENV=development                             # (Optional) "production" for JSON logs, otherwise pretty console logs
 ```
 
 ### 2.2 Scheduling Engine
@@ -125,21 +128,34 @@ sequenceDiagram
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     parent_name TEXT NOT NULL,
     assignment_date TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    override BOOLEAN DEFAULT FALSE,
+    google_calendar_event_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 
   -- OAuth tokens
   oauth_tokens (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY, -- Should always be 1
     token_data JSONB NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
 
   -- Calendar settings
   calendar_settings (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY, -- Should always be 1
     calendar_id TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+
+  -- Notification channels
+  notification_channels (
+      id TEXT PRIMARY KEY,
+      resource_id TEXT NOT NULL,
+      calendar_id TEXT NOT NULL,
+      expiration DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
   ```
 
@@ -163,7 +179,7 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
     - If the channel ID or resource ID doesn't match, the request is rejected (HTTP 400).
     - It checks the `X-Goog-Resource-State` header. If it's `sync`, it's an initial synchronization message, and the handler simply acknowledges it (HTTP 200) without further processing.
 3.  **Channel Renewal Check:** The handler checks the expiration time of the notification channel. If it's nearing expiration (e.g., within 7 days), it proactively attempts to renew the subscription with Google Calendar using the stored refresh token and calendar ID.
-4.  **Fetch Updated Events:** For actual change notifications (`X-Goog-Resource-State` is not `sync`), the handler uses the Google Calendar API to fetch events that have been updated recently (e.g., within the last 30 seconds). It uses the `updatedMin` parameter for efficiency.
+4.  **Fetch Updated Events:** For actual change notifications (`X-Goog-Resource-State` is not `sync`), the handler uses the Google Calendar API to fetch events that have been updated recently (e.g., within the last 2 minutes). It uses the `updatedMin` parameter for efficiency.
 5.  **Event Processing Loop:**
     - For each updated event retrieved:
       - **Ownership Check:** It verifies the event belongs to this application by checking for a specific private extended property (e.g., `private["app"] == "night-routine"`). Events without this property are ignored.
@@ -171,7 +187,7 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
       - **Find Local Assignment:** It queries the `assignments` table using the `google_calendar_event_id` to find the corresponding local record.
       - **Change Detection:** It compares the extracted parent name with the parent name stored in the local assignment record.
       - **Date Check:** It ensures the assignment date is not in the past. Overrides for past dates are rejected.
-      - **Update Local Assignment:** If the parent name has changed and the assignment is for today or the future, it updates the `parent_name` and sets the `is_override` flag to `true` in the `assignments` table for that record.
+      - **Update Local Assignment:** If the parent name has changed and the assignment is for today or the future, it updates the `parent_name` and sets the `override` flag to `true` in the `assignments` table for that record.
 6.  **Trigger Schedule Recalculation:** If any local assignment was updated due to an override, the handler triggers the `Scheduler` component.
     - The scheduler regenerates the schedule starting from the date of the earliest overridden assignment up to the previously calculated end date.
     - This recalculation respects the new override(s) and applies fairness rules to the subsequent, non-overridden days.
@@ -185,6 +201,16 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
 - **Calendar Service:** Renews notification channels, fetches updated events, syncs recalculated schedule.
 - **Scheduler:** Retrieves assignments by event ID, updates assignments, triggers schedule regeneration.
 - **Config Manager:** Provides Google API credentials.
+
+### 2.8 Logging Service
+
+- Centralized logging configuration in `internal/logging`.
+- Uses [zerolog](https://github.com/rs/zerolog) for structured, leveled logging.
+- Log level configured via `log_level` in `routine.toml`.
+- Log format determined by `ENV` environment variable:
+  - `development` (default): Human-readable console output.
+  - `production`: JSON output to stdout.
+- Provides helper functions (`GetLogger`) to create component-specific loggers with context.
 
 ## 3. Implementation Plan
 
@@ -218,10 +244,11 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
    - Event management
    - Error handling
 
-5. **Phase 5: Service Mode**
+5. **Phase 5: Service Mode & Logging**
+
    - Background service implementation
    - Scheduling loop
-   - Error handling and logging
+   - Structured logging implementation (zerolog)
    - Health checks
 
 ## 4. Technical Specifications
@@ -232,11 +259,11 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
 - Libraries:
   - `github.com/BurntSushi/toml` for TOML parsing
   - `google.golang.org/api/calendar/v3` for Google Calendar
-  - `github.com/robfig/cron` for scheduling
-  - Built-in `database/sql` with SQLite for state management
+  - `golang.org/x/oauth2` for OAuth2 handling
+  - Built-in `database/sql` with `github.com/mattn/go-sqlite3` for state management
   - `github.com/golang-migrate/migrate/v4` for database migrations
   - `html/template` for web UI
-  - `github.com/kelseyhightower/envconfig` for environment variables
+  - `github.com/rs/zerolog` for logging
 
 ### Security Considerations:
 
