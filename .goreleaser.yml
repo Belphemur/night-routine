@@ -21,22 +21,6 @@ builds:
 
 # Docker builds are now handled by GitHub Actions
 
-# signs the checksum file
-# https://goreleaser.com/customization/sign
-signs:
-  - cmd: cosign
-    env:
-      - COSIGN_EXPERIMENTAL=1
-    certificate: "${artifact}.pem"
-    args:
-      - sign-blob
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
-      - "${artifact}"
-      - "--yes" # needed on cosign 2.0.0+
-    artifacts: checksum
-    output: true
-
 # Use built-in Syft integration for SBOM generation
 sboms:
   - artifacts: archive # Generate SBOM for the binary archive
