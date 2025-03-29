@@ -26,8 +26,10 @@ jobs:
           go-version: "1.24"
           cache: true
 
-      - name: Install CycloneDX
-        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3 # Use an official action
+
+      # Removed CycloneDX install step as GoReleaser's built-in SBOM generation is used
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -64,16 +66,16 @@ jobs:
         run: |
           mkdir -p /tmp/digests
           # Extract digest for the multi-arch manifest
-          MANIFEST_TAG="ghcr.io/belphemur/night-routine:${{ steps.goreleaser.outputs.version }}"
+          MANIFEST_TAG="ghcr.io/belphemur/night-routine:${{ github.ref_name }}" # Use github.ref_name for version
           echo "Inspecting manifest: $MANIFEST_TAG"
           DIGEST=$(docker buildx imagetools inspect $MANIFEST_TAG --format "{{json .Manifest.Digest}}" | xargs)
           echo "Found digest: $DIGEST"
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "${{ steps.goreleaser.outputs.version }}@sha256:$DIGEST" > "/tmp/digests/${{ steps.goreleaser.outputs.version }}"
+          echo "${{ github.ref_name }}@sha256:$DIGEST" > "/tmp/digests/${{ github.ref_name }}" # Use github.ref_name for version
 
       - name: Attest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: "ghcr.io/belphemur/night-routine:${{ steps.goreleaser.outputs.version }}"
+          subject-name: "ghcr.io/belphemur/night-routine:${{ github.ref_name }}" # Use github.ref_name for version
           subject-digest: ${{ steps.digest.outputs.digest }}
           push-to-registry: true
