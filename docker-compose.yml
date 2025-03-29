@@ -1,0 +1,17 @@
+services:
+  night-routine:
+    image: ghcr.io/belphemur/night-routine:latest
+    container_name: night-routine
+    restart: unless-stopped
+    environment:
+      - GOOGLE_OAUTH_CLIENT_ID=your-client-id
+      - GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+      - PORT=8080
+      - CONFIG_FILE=/app/config/routine.toml
+      - APP_URL=http://your-public-url:8080
+      - ENV=production
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    ports:
+      - "8080:8080"

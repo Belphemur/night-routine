@@ -29,7 +29,30 @@ Available tags:
 - `vX.Y.Z` (e.g., `v1.0.0`): Specific versions
 - `vX.Y` (e.g., `v1.0`): Latest in a minor version series
 
-_Note: These images are signed using Sigstore Cosign and include SBOM attestations._
+## Quick Start with Docker Compose
+
+For easier self-hosting, you can use the provided `docker-compose.yml` file:
+
+```bash
+# Clone the repository
+git clone https://github.com/belphemur/night-routine.git
+cd night-routine
+
+# Create the config directory
+mkdir -p config
+cp configs/routine.toml config/
+
+# Edit the configuration file
+nano config/routine.toml
+
+# Edit docker-compose.yml to set your environment variables
+nano docker-compose.yml
+
+# Start the service
+docker-compose up -d
+```
+
+This will create the necessary directories for configuration and data persistence, and start the application in the background.
 
 ## Features
 
