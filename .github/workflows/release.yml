@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write # Required for attestations
+  attestations: write # Required for attestations
 
 jobs:
   release:
@@ -24,6 +26,22 @@ jobs:
           go-version: "1.24"
           cache: true
 
+      - name: Install CycloneDX
+        run: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Install cross-compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+
       - name: Docker Login
         uses: docker/login-action@v3
         with:
@@ -32,6 +50,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GoReleaser
+        id: goreleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -39,3 +58,18 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export Digest
+        id: digest
+        run: |
+          mkdir -p /tmp/digests
+          # Extract digest for amd64
+          echo "digest=$(docker buildx imagetools inspect ghcr.io/belphemur/night-routine:${{ steps.goreleaser.outputs.version }}-amd64 --format "{{json .Manifest.Digest}}" | xargs)" >> $GITHUB_OUTPUT
+          echo "${{ steps.goreleaser.outputs.version }}@sha256:$digest" > "/tmp/digests/${{ steps.goreleaser.outputs.version }}"
+
+      - name: Attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: "ghcr.io/belphemur/night-routine:${{ steps.goreleaser.outputs.version }}"
+          subject-digest: ${{ steps.digest.outputs.digest }}
+          push-to-registry: true

@@ -1,7 +1,20 @@
 # Build stage
-FROM golang:1-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1-alpine AS builder
+
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workspace
+
+# Install build dependencies
+RUN apk add --no-cache build-base
+
+# For cross-compilation with SQLite
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+    apk add --no-cache gcc-aarch64-linux-musl musl-dev; \
+    fi
 
 # Copy Go module manifests
 COPY go.mod go.sum ./
@@ -9,12 +22,13 @@ RUN go mod download
 
 # Copy source code
 COPY . .
-RUN apk add build-base --no-cache
-# Build with cached dependencies
-RUN CGO_ENABLED=1 GOOS=linux go build -v -o night-routine ./cmd/night-routine
+
+# Build with appropriate flags for the target architecture
+RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -v -o night-routine ./cmd/night-routine
 
 # Runtime stage
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 

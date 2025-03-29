@@ -6,11 +6,9 @@ builds:
   - id: night-routine
     main: ./cmd/night-routine
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
       - linux
-      - windows
-      - darwin
     goarch:
       - amd64
       - arm64
@@ -22,16 +20,67 @@ builds:
 
 dockers:
   - image_templates:
-      - "ghcr.io/antoineco/night-routine:{{ .Version }}"
-      - "ghcr.io/antoineco/night-routine:latest"
+      - "ghcr.io/belphemur/night-routine:{{ .Version }}-amd64"
+      - "ghcr.io/belphemur/night-routine:latest-amd64"
+    use: buildx
     dockerfile: build/Dockerfile
     build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--cache-from=type=gha,scope={{.Env.GITHUB_REF}}"
+      - "--cache-to=type=gha,mode=max,scope={{.Env.GITHUB_REF}}"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title=night-routine"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
+    goarch: amd64
+    goos: linux
     extra_files:
       - configs/routine.toml
+
+  - image_templates:
+      - "ghcr.io/belphemur/night-routine:{{ .Version }}-arm64"
+      - "ghcr.io/belphemur/night-routine:latest-arm64"
+    use: buildx
+    dockerfile: build/Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--cache-from=type=gha,scope={{.Env.GITHUB_REF}}"
+      - "--cache-to=type=gha,mode=max,scope={{.Env.GITHUB_REF}}"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title=night-routine"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    goarch: arm64
+    goos: linux
+    extra_files:
+      - configs/routine.toml
+
+docker_manifests:
+  - name_template: ghcr.io/belphemur/night-routine:{{ .Version }}
+    image_templates:
+      - ghcr.io/belphemur/night-routine:{{ .Version }}-amd64
+      - ghcr.io/belphemur/night-routine:{{ .Version }}-arm64
+  - name_template: ghcr.io/belphemur/night-routine:latest
+    image_templates:
+      - ghcr.io/belphemur/night-routine:latest-amd64
+      - ghcr.io/belphemur/night-routine:latest-arm64
+
+sboms:
+  - artifacts: archive
+    documents:
+      - "{{ .ProjectName }}_{{ .Version }}_sbom.cdx.json"
+    cmd: cyclonedx-gomod
+    args:
+      [
+        "app",
+        "-json",
+        "-output",
+        "$document",
+        "-licenses",
+        "-std",
+        "-main",
+        "./cmd/night-routine",
+      ]
 
 archives:
   - format: tar.gz

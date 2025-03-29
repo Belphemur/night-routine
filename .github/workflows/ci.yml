@@ -37,6 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
@@ -44,3 +47,5 @@ jobs:
           file: build/Dockerfile
           push: false
           tags: night-routine:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
