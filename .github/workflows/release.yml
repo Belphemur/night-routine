@@ -63,9 +63,13 @@ jobs:
         id: digest
         run: |
           mkdir -p /tmp/digests
-          # Extract digest for amd64
-          echo "digest=$(docker buildx imagetools inspect ghcr.io/belphemur/night-routine:${{ steps.goreleaser.outputs.version }}-amd64 --format "{{json .Manifest.Digest}}" | xargs)" >> $GITHUB_OUTPUT
-          echo "${{ steps.goreleaser.outputs.version }}@sha256:$digest" > "/tmp/digests/${{ steps.goreleaser.outputs.version }}"
+          # Extract digest for the multi-arch manifest
+          MANIFEST_TAG="ghcr.io/belphemur/night-routine:${{ steps.goreleaser.outputs.version }}"
+          echo "Inspecting manifest: $MANIFEST_TAG"
+          DIGEST=$(docker buildx imagetools inspect $MANIFEST_TAG --format "{{json .Manifest.Digest}}" | xargs)
+          echo "Found digest: $DIGEST"
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "${{ steps.goreleaser.outputs.version }}@sha256:$DIGEST" > "/tmp/digests/${{ steps.goreleaser.outputs.version }}"
 
       - name: Attest
         uses: actions/attest-build-provenance@v2

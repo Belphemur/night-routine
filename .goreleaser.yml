@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -10,8 +12,7 @@ builds:
     goos:
       - linux
     goarch:
-      - amd64
-      - arm64
+      - amd64 # Keep only amd64
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -83,8 +84,7 @@ sboms:
       ]
 
 archives:
-  - format: tar.gz
-    name_template: >-
+  - name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
@@ -92,7 +92,6 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
 
 checksum:
   name_template: "checksums.txt"
