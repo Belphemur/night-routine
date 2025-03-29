@@ -2,6 +2,35 @@
 
 A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation.
 
+## Quick Start with Docker
+
+Pre-built multi-architecture Docker images (supporting both amd64 and arm64) are available in the GitHub Container Registry:
+
+```bash
+# Pull the latest release
+docker pull ghcr.io/belphemur/night-routine:latest
+
+# Run the container
+docker run \
+  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
+  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
+  -e PORT=8080 \
+  -e CONFIG_FILE=/etc/night-routine/routine.toml \
+  -e APP_URL=http://your-public-url:8080 \
+  -v /path/to/configs:/etc/night-routine \
+  -v /path/to/data:/app/data \
+  -p 8080:8080 \
+  ghcr.io/belphemur/night-routine:latest
+```
+
+Available tags:
+
+- `latest`: Most recent release
+- `vX.Y.Z` (e.g., `v1.0.0`): Specific versions
+- `vX.Y` (e.g., `v1.0`): Latest in a minor version series
+
+_Note: These images are signed using Sigstore Cosign and include SBOM attestations._
+
 ## Features
 
 - Fair schedule distribution between parents
@@ -161,8 +190,39 @@ docker run \
   night-routine:latest
 ```
 
-_Note: Ensure `/path/to/data` exists and has appropriate permissions._
-_Note: For Google Calendar webhooks to work, `APP_URL` must be publicly accessible._
+### Using Pre-built Docker Images from GitHub Container Registry
+
+Pre-built multi-architecture Docker images (supporting both amd64 and arm64) are available in the GitHub Container Registry. These are automatically built and published when a new release tag is pushed.
+
+```bash
+# Pull the latest release
+docker pull ghcr.io/$(echo $GITHUB_REPOSITORY || echo "belphemur/night-routine"):latest
+
+# Or pull a specific version
+docker pull ghcr.io/$(echo $GITHUB_REPOSITORY || echo "belphemur/night-routine"):v1.0.0
+
+# Run the container
+docker run \
+  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
+  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
+  -e PORT=8080 \
+  -e CONFIG_FILE=/etc/night-routine/routine.toml \
+  -e APP_URL=http://your-public-url:8080 \
+  -v /path/to/configs:/etc/night-routine \
+  -v /path/to/data:/app/data \
+  -p 8080:8080 \
+  ghcr.io/belphemur/night-routine:latest
+```
+
+When running the container, replace `belphemur/night-routine` with your actual GitHub repository path.
+
+Available image tags:
+
+- `latest`: The most recent release
+- `vX.Y.Z` (e.g., `v1.0.0`): Specific version releases
+- `vX.Y` (e.g., `v1.0`): Latest release in a minor version series
+
+_Note: These images are signed using Sigstore Cosign and include SBOM attestations for enhanced security._
 
 ## First-Time Setup
 
