@@ -26,8 +26,6 @@ jobs:
           go-version: "1.24"
           cache: true
 
-      - uses: sigstore/cosign-installer@v3 # installs cosign
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -80,6 +78,8 @@ jobs:
           subject-name: ghcr.io/${{ github.repository }} # Use repository and ref_name
           subject-digest: ${{ steps.build-push.outputs.digest }} # Use digest from build-push step
           push-to-registry: true
+
+      - uses: anchore/sbom-action/download-syft@v0.18.0 # installs syft
 
       - name: Run GoReleaser (Checksum, SBOM, Sign Checksum)
         uses: goreleaser/goreleaser-action@v6
