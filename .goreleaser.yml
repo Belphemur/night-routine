@@ -19,55 +19,9 @@ builds:
       - -X main.commit={{.Commit}}
       - -X main.date={{.Date}}
 
-dockers:
-  - image_templates:
-      - "ghcr.io/belphemur/night-routine:{{ .Version }}-amd64"
-      - "ghcr.io/belphemur/night-routine:latest-amd64"
-    use: buildx
-    dockerfile: build/Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--cache-from=type=gha,scope={{.Env.GITHUB_REF}}"
-      - "--cache-to=type=gha,mode=max,scope={{.Env.GITHUB_REF}}"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title=night-routine"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-    goarch: amd64
-    goos: linux
-    extra_files:
-      - configs/routine.toml
-
-  - image_templates:
-      - "ghcr.io/belphemur/night-routine:{{ .Version }}-arm64"
-      - "ghcr.io/belphemur/night-routine:latest-arm64"
-    use: buildx
-    dockerfile: build/Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--cache-from=type=gha,scope={{.Env.GITHUB_REF}}"
-      - "--cache-to=type=gha,mode=max,scope={{.Env.GITHUB_REF}}"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title=night-routine"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-    goarch: arm64
-    goos: linux
-    extra_files:
-      - configs/routine.toml
-
-docker_manifests:
-  - name_template: ghcr.io/belphemur/night-routine:{{ .Version }}
-    image_templates:
-      - ghcr.io/belphemur/night-routine:{{ .Version }}-amd64
-      - ghcr.io/belphemur/night-routine:{{ .Version }}-arm64
-  - name_template: ghcr.io/belphemur/night-routine:latest
-    image_templates:
-      - ghcr.io/belphemur/night-routine:latest-amd64
-      - ghcr.io/belphemur/night-routine:latest-arm64
+# Docker builds are now handled by GitHub Actions
 
 # signs the checksum file
-# all files (including the sboms) are included in the checksum, so we don't need to sign each one if we don't want to
 # https://goreleaser.com/customization/sign
 signs:
   - cmd: cosign
@@ -82,19 +36,6 @@ signs:
       - "--yes" # needed on cosign 2.0.0+
     artifacts: checksum
     output: true
-
-# signs our docker image
-# https://goreleaser.com/customization/docker_sign
-docker_signs:
-  - cmd: cosign
-    env:
-      - COSIGN_EXPERIMENTAL=1
-    artifacts: images
-    output: true
-    args:
-      - "sign"
-      - "${artifact}"
-      - "--yes" # needed on cosign 2.0.0+
 
 # Use built-in Syft integration for SBOM generation
 sboms:

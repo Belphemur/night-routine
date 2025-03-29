@@ -27,7 +27,6 @@ jobs:
           cache: true
 
       - uses: sigstore/cosign-installer@v3 # installs cosign
-      - uses: anchore/sbom-action/download-syft@v0.18.0 # installs syft
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -44,31 +43,58 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run GoReleaser
-        id: goreleaser
-        uses: goreleaser/goreleaser-action@v6
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          images: ghcr.io/${{ github.repository }} # Use github.repository for image name
+          tags: |
+            type=semver,pattern={{version}} # e.g., v1.0.0
+            type=semver,pattern={{major}}.{{minor}} # e.g., v1.0
+            type=raw,value=latest,enable={{is_default_branch}} # latest tag on default branch
 
-      - name: Export Digest
-        id: digest
-        run: |
-          mkdir -p /tmp/digests
-          # Extract digest for the multi-arch manifest
-          MANIFEST_TAG="ghcr.io/belphemur/night-routine:${{ github.ref_name }}" # Use github.ref_name for version
-          echo "Inspecting manifest: $MANIFEST_TAG"
-          DIGEST=$(docker buildx imagetools inspect $MANIFEST_TAG --format "{{json .Manifest.Digest}}" | xargs)
-          echo "Found digest: $DIGEST"
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "${{ github.ref_name }}@sha256:$DIGEST" > "/tmp/digests/${{ github.ref_name }}" # Use github.ref_name for version
+      - name: Build and push Docker image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./build/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: | # Pass build args to Dockerfile
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+            DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
       - name: Attest
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: "ghcr.io/belphemur/night-routine:${{ github.ref_name }}" # Use github.ref_name for version
-          subject-digest: ${{ steps.digest.outputs.digest }}
+          subject-name: ghcr.io/${{ github.repository }}:${{ github.ref_name }} # Use repository and ref_name
+          subject-digest: ${{ steps.build-push.outputs.digest }} # Use digest from build-push step
           push-to-registry: true
+
+      - name: Sign the published Docker image
+        env:
+          COSIGN_EXPERIMENTAL: "1" # Enable keyless signing
+        run: |
+          IMAGE_DIGEST=$(echo '${{ steps.build-push.outputs.digest }}' | sed 's/sha256://')
+          IMAGE_URI="ghcr.io/${{ github.repository }}@sha256:$IMAGE_DIGEST"
+          echo "Signing $IMAGE_URI"
+          cosign sign --yes "$IMAGE_URI"
+
+      - name: Run GoReleaser (Checksum, SBOM, Sign Checksum)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          # Skip Docker build/push and GitHub release publication
+          # It will still build binary (needed for archive), archive, checksum, sbom, sign, publish (checksum)
+          args: release --clean --skip=docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # COSIGN_EXPERIMENTAL is needed for GoReleaser's 'signs' section too
+          COSIGN_EXPERIMENTAL: "1"

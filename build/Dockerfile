@@ -6,6 +6,11 @@ ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 
+# Add ARGs for build flags
+ARG VERSION="unknown"
+ARG COMMIT="unknown"
+ARG DATE="unknown"
+
 WORKDIR /workspace
 
 # Install build dependencies
@@ -25,7 +30,9 @@ COPY . .
 
 # Build with appropriate flags for the target architecture
 RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -v -o night-routine ./cmd/night-routine
+    go build -v -o night-routine \
+    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    ./cmd/night-routine
 
 # Runtime stage
 FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot
