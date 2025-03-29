@@ -57,7 +57,7 @@ func (h *OAuthHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.logger.With().Str("handler", "handleAuth").Logger()
 	handlerLogger.Info().Msg("Initiating OAuth flow")
 	// Consider adding state generation and validation for security
-	state := "pseudo-random-state" // Replace with actual random state generation
+	state := "pseudo-random-state"                                                          // Replace with actual random state generation
 	url := h.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce) // Force approval prompt
 	handlerLogger.Debug().Str("redirect_url", url).Msg("Redirecting user to Google for authentication")
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
