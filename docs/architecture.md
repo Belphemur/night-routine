@@ -9,6 +9,7 @@ graph TD
     A --> D[Calendar Service]
     A --> E[Fairness Tracker]
     A --> W[Web UI]
+    A --> WH[Webhook Handler] // Added Webhook Handler
     A --> DB[Database Manager]
 
     B --> F[routine.toml]
@@ -18,6 +19,8 @@ graph TD
     E --> I[State Storage]
     W --> J[OAuth Handler]
     W --> K[Calendar Selection]
+    WH --> DB             // Webhook updates assignments
+    WH --> C              // Webhook might influence scheduler
     DB --> MG[Database Migrations]
 
     J --> I
@@ -147,6 +150,41 @@ sequenceDiagram
   - Consecutive assignments
   - Total count per parent
 - Uses assignment data for scheduling decisions
+
+### 2.7 Webhook Handler (Google Calendar Integration)
+
+The application implements a webhook handler at `/api/webhook/calendar` specifically designed to process Google Calendar push notifications. This allows the system to react dynamically to manual changes made directly in the shared Google Calendar.
+
+**Workflow:**
+
+1.  **Notification Reception:** Google Calendar sends a push notification to the endpoint when a change occurs in the subscribed calendar.
+2.  **Authentication & Validation:**
+    - The handler verifies the `X-Goog-Channel-ID` and `X-Goog-Resource-ID` headers against the stored notification channel details (retrieved from the `notification_channels` table in SQLite). This ensures the notification is legitimate and originates from the expected Google Calendar subscription.
+    - If the channel ID or resource ID doesn't match, the request is rejected (HTTP 400).
+    - It checks the `X-Goog-Resource-State` header. If it's `sync`, it's an initial synchronization message, and the handler simply acknowledges it (HTTP 200) without further processing.
+3.  **Channel Renewal Check:** The handler checks the expiration time of the notification channel. If it's nearing expiration (e.g., within 7 days), it proactively attempts to renew the subscription with Google Calendar using the stored refresh token and calendar ID.
+4.  **Fetch Updated Events:** For actual change notifications (`X-Goog-Resource-State` is not `sync`), the handler uses the Google Calendar API to fetch events that have been updated recently (e.g., within the last 30 seconds). It uses the `updatedMin` parameter for efficiency.
+5.  **Event Processing Loop:**
+    - For each updated event retrieved:
+      - **Ownership Check:** It verifies the event belongs to this application by checking for a specific private extended property (e.g., `private["app"] == "night-routine"`). Events without this property are ignored.
+      - **Extract Parent:** It parses the event summary (expected format: `"[ParentName] 🌃👶Routine"`) to extract the assigned parent's name.
+      - **Find Local Assignment:** It queries the `assignments` table using the `google_calendar_event_id` to find the corresponding local record.
+      - **Change Detection:** It compares the extracted parent name with the parent name stored in the local assignment record.
+      - **Date Check:** It ensures the assignment date is not in the past. Overrides for past dates are rejected.
+      - **Update Local Assignment:** If the parent name has changed and the assignment is for today or the future, it updates the `parent_name` and sets the `is_override` flag to `true` in the `assignments` table for that record.
+6.  **Trigger Schedule Recalculation:** If any local assignment was updated due to an override, the handler triggers the `Scheduler` component.
+    - The scheduler regenerates the schedule starting from the date of the earliest overridden assignment up to the previously calculated end date.
+    - This recalculation respects the new override(s) and applies fairness rules to the subsequent, non-overridden days.
+7.  **Sync Recalculated Schedule:** The newly generated portion of the schedule is synced back to Google Calendar by the `CalendarService`, updating or creating events as necessary.
+8.  **Acknowledge Notification:** Finally, the handler responds to the original Google Calendar push notification with an HTTP 200 OK status.
+
+**Key Interactions:**
+
+- **Database Manager:** Reads notification channel details, reads/writes assignment records.
+- **Token Manager:** Obtains a valid OAuth2 token to interact with the Google Calendar API.
+- **Calendar Service:** Renews notification channels, fetches updated events, syncs recalculated schedule.
+- **Scheduler:** Retrieves assignments by event ID, updates assignments, triggers schedule regeneration.
+- **Config Manager:** Provides Google API credentials.
 
 ## 3. Implementation Plan
 

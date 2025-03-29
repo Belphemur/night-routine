@@ -8,6 +8,7 @@ A Go application that manages night routine scheduling between two parents, with
 - Google Calendar integration with OAuth2
 - Configurable parent availability
 - Automated scheduling with daily/weekly/monthly updates
+- Webhook endpoint for manual assignment overrides (e.g., via Google Calendar updates)
 - Persistent storage using SQLite:
   - Assignment history and fairness tracking
   - OAuth2 tokens and refresh tokens
@@ -71,6 +72,26 @@ look_ahead_days = 30        # How many days to schedule in advance
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
 ```
+
+## Override Night Routine (via Google Calendar Event Title)
+
+You can manually override a scheduled night routine assignment directly in Google Calendar **for events scheduled today or in the future**. Overrides for past events will be ignored.
+
+**How it works:**
+
+1.  Find the specific future or current night routine event in your Google Calendar (e.g., `"[ParentA] 🌃👶Routine"`).
+2.  Edit the event title and change the parent's name within the square brackets (e.g., change it to `"[ParentB] 🌃👶Routine"`).
+3.  Save the event change in Google Calendar.
+
+Google Calendar will send a notification to the application's webhook endpoint (`/api/webhook/calendar`). The application will then:
+
+- Verify the notification.
+- Detect the parent name change in the event title.
+- Update its internal database record for that specific date to reflect the override (only if the date is today or in the future).
+- Recalculate subsequent future assignments if needed to maintain fairness based on this manual change.
+- Sync any recalculated assignments back to Google Calendar.
+
+This keeps the application's schedule and fairness tracking accurate even with manual adjustments. For a detailed technical explanation, see the Webhook Handler section in `docs/architecture.md`.
 
 ## Google Calendar Setup
 
