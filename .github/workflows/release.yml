@@ -81,14 +81,6 @@ jobs:
           subject-digest: ${{ steps.build-push.outputs.digest }} # Use digest from build-push step
           push-to-registry: true
 
-      - name: Sign the published Docker image
-        env:
-          COSIGN_EXPERIMENTAL: "1" # Enable keyless signing
-        run: |
-          IMAGE_URI="${{ steps.meta.outputs.tags }}@${{ steps.build-push.outputs.digest }}"
-          echo "Signing $IMAGE_URI"
-          cosign sign --yes "$IMAGE_URI"
-
       - name: Run GoReleaser (Checksum, SBOM, Sign Checksum)
         uses: goreleaser/goreleaser-action@v6
         with:
