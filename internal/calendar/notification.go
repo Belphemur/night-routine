@@ -3,6 +3,7 @@ package calendar
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
@@ -55,12 +56,40 @@ func (s *Service) SetupNotificationChannel(ctx context.Context) error {
 		return fmt.Errorf("failed to get active notification channels: %w", err)
 	}
 
-	// If we have an active channel for this calendar, stop here
+	// If we have an active channel for this calendar, verify it with Google
 	for _, channel := range activeChannels {
 		if channel.CalendarID == s.calendarID {
-			logger.Info().Str("channel_id", channel.ID).Time("expiration", channel.Expiration).Msg("Active notification channel already exists for this calendar")
-			// We already have an active channel for this calendar
-			return nil
+			channelLogger := logger.With().
+				Str("channel_id", channel.ID).
+				Str("resource_id", channel.ResourceID).
+				Time("expiration", channel.Expiration).
+				Logger()
+
+			channelLogger.Info().Msg("Found potentially active notification channel, verifying with Google Calendar...")
+
+			// Verify the channel is actually active with Google
+			isActive, verifyErr := s.VerifyNotificationChannel(ctx, channel.ID, channel.ResourceID)
+
+			if verifyErr != nil {
+				channelLogger.Warn().Err(verifyErr).Msg("Failed to verify channel status with Google Calendar")
+				// Continue to create a new channel when verification fails
+			} else if isActive {
+				channelLogger.Info().Msg("Verified active notification channel with Google Calendar")
+				// We have an active channel that Google confirms is working
+				return nil
+			} else {
+				channelLogger.Warn().Msg("Channel exists in our DB but is not active with Google Calendar, will create a new one")
+
+				// Stop and delete the inactive channel
+				channelLogger.Debug().Msg("Removing inactive channel from database")
+				if err := s.tokenStore.DeleteNotificationChannel(channel.ID); err != nil {
+					channelLogger.Warn().Err(err).Msg("Failed to delete inactive channel from database")
+					// Non-fatal, continue
+				}
+			}
+
+			// Either verification failed or channel is inactive, continue to create a new one
+			break
 		}
 	}
 	logger.Info().Msg("No active notification channel found for this calendar, creating a new one")
@@ -225,4 +254,64 @@ func (s *Service) StopAllNotificationChannels(ctx context.Context) error {
 
 	s.logger.Info().Msg("Successfully stopped all active notification channels")
 	return nil
+}
+
+// VerifyNotificationChannel checks if a notification channel is still active with Google Calendar
+func (s *Service) VerifyNotificationChannel(ctx context.Context, channelID, resourceID string) (bool, error) {
+	logger := s.logger.With().Str("channel_id", channelID).Str("resource_id", resourceID).Logger()
+	logger.Debug().Msg("Verifying notification channel with Google Calendar API")
+
+	// Get latest token in case it was refreshed
+	token, err := s.tokenManager.GetValidToken(ctx)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to get valid token for channel verification")
+		return false, fmt.Errorf("failed to get token: %w", err)
+	}
+	if token == nil {
+		logger.Error().Msg("No valid token available for channel verification")
+		return false, fmt.Errorf("no valid token available")
+	}
+
+	// Get channel details using the Google Calendar API
+	// Unfortunately, the API doesn't provide a direct method to check channel status
+	// We need to use an indirect approach - try to list events with the channel's watchFilter
+
+	// Set a unique identifier to add to the request
+	verificationTag := fmt.Sprintf("verify-channel-%d", time.Now().UnixNano())
+
+	// List events with a filter that includes this channel's resource ID
+	// We include a unique tag to make this a unique request
+	// We limit to 1 event just to minimize data transfer
+	listCall := s.srv.Events.List(s.calendarID).
+		MaxResults(1).
+		ShowDeleted(false).
+		SingleEvents(true)
+
+	// Add resource ID and verification tag as custom headers
+	listCall.Header().Add("X-Goog-Channel-ID", channelID)
+	listCall.Header().Add("X-Goog-Resource-ID", resourceID)
+	listCall.Header().Add("X-Verification-Tag", verificationTag)
+
+	// Execute the request
+	_, err = listCall.Do()
+
+	// If we get a 404 Not Found error with a specific message about the channel,
+	// this indicates the channel is no longer active
+	if err != nil {
+		logger.Warn().Err(err).Msg("Error when verifying channel")
+		// Check error message for indications that the channel doesn't exist
+		errStr := err.Error()
+		if strings.Contains(errStr, "Channel not found") ||
+			strings.Contains(errStr, "Channel ID not found") ||
+			strings.Contains(errStr, "Resource ID not found") {
+			logger.Info().Msg("Channel verification failed - channel not active with Google Calendar")
+			return false, nil
+		}
+		// For other errors, we can't determine the channel state
+		return false, fmt.Errorf("failed to verify channel: %w", err)
+	}
+
+	// If we reach here with no error, the channel is likely active
+	logger.Info().Msg("Channel verification passed - channel appears to be active with Google Calendar")
+	return true, nil
 }
