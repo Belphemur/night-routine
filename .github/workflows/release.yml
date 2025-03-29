@@ -85,7 +85,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "1" # Enable keyless signing
         run: |
-          IMAGE_URI="ghcr.io/${{ github.repository }}@${{ steps.build-push.outputs.digest }}"
+          IMAGE_URI="${{ steps.meta.outputs.tags }}@${{ steps.build-push.outputs.digest }}"
           echo "Signing $IMAGE_URI"
           cosign sign --yes "$IMAGE_URI"
 
