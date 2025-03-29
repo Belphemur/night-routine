@@ -53,6 +53,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}} # e.g., v1.0
             type=raw,value=latest,enable={{is_default_branch}} # latest tag on default branch
 
+      - name: Set build date # Generate date string beforehand
+        id: build_date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         id: build-push
         uses: docker/build-push-action@v6
@@ -68,7 +72,7 @@ jobs:
           build-args: | # Pass build args to Dockerfile
             VERSION=${{ github.ref_name }}
             COMMIT=${{ github.sha }}
-            DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            DATE=${{ steps.build_date.outputs.date }} # Use output from previous step
 
       - name: Attest
         uses: actions/attest-build-provenance@v2
@@ -98,3 +102,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # COSIGN_EXPERIMENTAL is needed for GoReleaser's 'signs' section too
           COSIGN_EXPERIMENTAL: "1"
+          # Pass the build date to GoReleaser
+          BUILD_DATE: ${{ steps.build_date.outputs.date }}

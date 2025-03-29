@@ -17,7 +17,7 @@ builds:
       - -s -w
       - -X main.version={{.Version}}
       - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -X main.date={{ .Env.BUILD_DATE }} # Use env var passed from workflow
 
 # Docker builds are now handled by GitHub Actions
 
