@@ -39,12 +39,6 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.8.1 # Use a specific version
 
-      # Install Skopeo for container image inspection
-      - name: Install Skopeo
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y skopeo
-
       # Install Syft for SBOM generation (though GoReleaser uses its own)
       # Kept as per plan, might be useful for verification/future steps
       - name: Install Syft
@@ -93,15 +87,7 @@ jobs:
           # Wait a moment for Docker registry to fully process the manifest
           sleep 10
 
-          # Get the manifest digest using skopeo which is more reliable for this purpose
-          MANIFEST_DIGEST=$(skopeo inspect docker://${{ steps.image-name.outputs.value }}:${TAG} --raw | sha256sum | cut -d' ' -f1)
-          MANIFEST_DIGEST="sha256:${MANIFEST_DIGEST}"
-
-          # Alternative approach if skopeo fails
-          if [ -z "$MANIFEST_DIGEST" ] || [ "$MANIFEST_DIGEST" = "sha256:" ]; then
-            echo "Skopeo method failed, trying docker inspect method..."
-            MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format '{{.Digest}}')
-          fi
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format '{{.Digest}}' | xargs)
 
           echo "Manifest digest: $MANIFEST_DIGEST"
           echo "manifest_digest=$MANIFEST_DIGEST" >> $GITHUB_OUTPUT
