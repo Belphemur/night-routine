@@ -16,6 +16,8 @@ release:
 # https://goreleaser.com/customization/changelog/
 changelog:
   sort: asc
+  use: github
+  format: "{{.SHA}}: {{.Message}} (@{{.AuthorUsername}})"
   filters:
     exclude:
       - "^docs:"
@@ -105,6 +107,7 @@ dockers:
     use: buildx
     goos: linux
     goarch: amd64
+    dockerfile: build/Dockerfile
     build_flag_templates:
       - "--pull"
       - "--platform=linux/amd64"
@@ -122,6 +125,7 @@ dockers:
     use: buildx
     goos: linux
     goarch: arm64
+    dockerfile: build/Dockerfile
     build_flag_templates:
       - "--pull"
       - "--platform=linux/arm64"
