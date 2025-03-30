@@ -12,6 +12,11 @@ permissions:
   id-token: write # For keyless signing with Cosign/Sigstore
   attestations: write # To write SLSA attestations
 
+# Ensure only one release job runs at a time
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Release
