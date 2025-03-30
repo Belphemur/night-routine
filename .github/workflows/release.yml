@@ -17,6 +17,11 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      # Calculate the Docker image name with proper format for GHCR
+      - name: Set Docker image name
+        id: image-name
+        run: echo "value=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       # Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,17 +87,20 @@ jobs:
           TAG=${GITHUB_REF#refs/tags/}
           echo "Using tag: $TAG"
 
+          # Use the Docker image name
+          echo "Using image: ${{ steps.image-name.outputs.value }}"
+
           # Wait a moment for Docker registry to fully process the manifest
           sleep 10
 
           # Get the manifest digest using skopeo which is more reliable for this purpose
-          MANIFEST_DIGEST=$(skopeo inspect docker://ghcr.io/${{ github.repository }}:${TAG} --raw | sha256sum | cut -d' ' -f1)
+          MANIFEST_DIGEST=$(skopeo inspect docker://${{ steps.image-name.outputs.value }}:${TAG} --raw | sha256sum | cut -d' ' -f1)
           MANIFEST_DIGEST="sha256:${MANIFEST_DIGEST}"
 
           # Alternative approach if skopeo fails
           if [ -z "$MANIFEST_DIGEST" ] || [ "$MANIFEST_DIGEST" = "sha256:" ]; then
             echo "Skopeo method failed, trying docker inspect method..."
-            MANIFEST_DIGEST=$(docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${TAG} --format '{{.Digest}}')
+            MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format '{{.Digest}}')
           fi
 
           echo "Manifest digest: $MANIFEST_DIGEST"
@@ -104,6 +112,6 @@ jobs:
       - name: Attest Build Provenance
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ghcr.io/${{ github.repository }}
+          subject-name: ${{ steps.image-name.outputs.value }}
           subject-digest: ${{ steps.digest.outputs.manifest_digest }}
           push-to-registry: true # Upload attestation to GHCR

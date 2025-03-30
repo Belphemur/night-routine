@@ -134,22 +134,22 @@ func run(ctx context.Context) error {
 	calSvc := calendar.New(cfg, tokenStore, sched, tokenManager)
 	logger.Info().Msg("Calendar service created. Waiting for authentication/initialization...")
 
-	// Initialize OAuth handler
-	oauthHandler, err := handlers.NewOAuthHandler(cfg, tokenStore, tokenManager)
-	if err != nil {
-		wrappedErr := fmt.Errorf("failed to initialize OAuth handler: %w", err)
-		logger.Error().Err(wrappedErr).Msg("OAuth handler initialization failed")
-		return wrappedErr
-	}
-	oauthHandler.RegisterRoutes()
-
-	// Initialize base handler
+	// Initialize base handler first, as other handlers depend on it
 	baseHandler, err := handlers.NewBaseHandler(cfg, tokenStore, tokenManager, tracker)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
 		return wrappedErr
 	}
+
+	// Initialize OAuth handler using the base handler
+	oauthHandler, err := handlers.NewOAuthHandler(baseHandler)
+	if err != nil {
+		wrappedErr := fmt.Errorf("failed to initialize OAuth handler: %w", err)
+		logger.Error().Err(wrappedErr).Msg("OAuth handler initialization failed")
+		return wrappedErr
+	}
+	oauthHandler.RegisterRoutes()
 
 	// Initialize home handler
 	homeHandler := handlers.NewHomeHandler(baseHandler)

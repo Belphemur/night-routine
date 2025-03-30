@@ -1,48 +1,27 @@
 package handlers
 
 import (
-	"html/template"
-	"net/http"
-
-	"github.com/belphemur/night-routine/internal/config"
-	"github.com/belphemur/night-routine/internal/database"
-	"github.com/belphemur/night-routine/internal/logging"
-	"github.com/belphemur/night-routine/internal/token"
-	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
+	"net/http"
 )
 
 // OAuthHandler manages OAuth2 authentication and token storage
 type OAuthHandler struct {
+	*BaseHandler // Embed BaseHandler
 	OAuthConfig  *oauth2.Config
-	Templates    *template.Template // Keep templates if needed specifically here, otherwise remove if BaseHandler is used
-	TokenStore   *database.TokenStore
-	TokenManager *token.TokenManager
-	Config       *config.Config
-	logger       zerolog.Logger
 }
 
-// NewOAuthHandler creates a new OAuth handler
-func NewOAuthHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager) (*OAuthHandler, error) {
-	logger := logging.GetLogger("oauth-handler")
+// NewOAuthHandler creates a new OAuth handler using the BaseHandler
+func NewOAuthHandler(baseHandler *BaseHandler) (*OAuthHandler, error) {
+	// Logger is inherited from BaseHandler
+	baseHandler.logger.Debug().Msg("Initializing OAuth handler")
 
-	// Parse templates here instead of init()
-	logger.Debug().Msg("Parsing templates for OAuth handler")
-	tmpl, err := template.New("").ParseGlob("internal/handlers/templates/*.html")
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to parse templates")
-		// Return error instead of Fatalf
-		return nil, err
-	}
-	logger.Debug().Msg("Templates parsed successfully")
+	// OAuthConfig is derived from the Config within BaseHandler
+	oauthConfig := baseHandler.Config.OAuth
 
 	return &OAuthHandler{
-		OAuthConfig:  cfg.OAuth,
-		Templates:    tmpl, // Assign parsed templates
-		TokenStore:   tokenStore,
-		TokenManager: tokenManager,
-		Config:       cfg,
-		logger:       logger,
+		BaseHandler: baseHandler,
+		OAuthConfig: oauthConfig,
 	}, nil
 }
 
@@ -54,10 +33,12 @@ func (h *OAuthHandler) RegisterRoutes() {
 
 // handleAuth initiates the OAuth flow
 func (h *OAuthHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
+	// Use logger from embedded BaseHandler
 	handlerLogger := h.logger.With().Str("handler", "handleAuth").Logger()
 	handlerLogger.Info().Msg("Initiating OAuth flow")
 	// Consider adding state generation and validation for security
-	state := "pseudo-random-state"                                                          // Replace with actual random state generation
+	state := "pseudo-random-state" // Replace with actual random state generation
+	// Use OAuthConfig from the struct
 	url := h.OAuthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.ApprovalForce) // Force approval prompt
 	handlerLogger.Debug().Str("redirect_url", url).Msg("Redirecting user to Google for authentication")
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
@@ -65,6 +46,7 @@ func (h *OAuthHandler) handleAuth(w http.ResponseWriter, r *http.Request) {
 
 // handleCallback processes the OAuth callback
 func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
+	// Use logger from embedded BaseHandler
 	handlerLogger := h.logger.With().Str("handler", "handleCallback").Logger()
 	handlerLogger.Info().Msg("Handling OAuth callback")
 
@@ -85,6 +67,7 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	handlerLogger.Debug().Msg("Authorization code received")
 
 	handlerLogger.Debug().Msg("Exchanging authorization code for token")
+	// Use OAuthConfig from the struct
 	token, err := h.OAuthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Token exchange failed")
@@ -93,7 +76,7 @@ func (h *OAuthHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	handlerLogger.Info().Msg("Token exchange successful")
 
-	// Use TokenManager's SaveToken method which emits a signal, passing the request context
+	// Use TokenManager from embedded BaseHandler
 	handlerLogger.Debug().Msg("Saving token using TokenManager")
 	if err := h.TokenManager.SaveToken(r.Context(), token); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save token")
