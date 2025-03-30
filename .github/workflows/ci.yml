@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Ensure only one CI workflow runs at a time per ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test
