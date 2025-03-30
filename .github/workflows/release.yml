@@ -73,31 +73,29 @@ jobs:
 
       # --- Post-GoReleaser Steps for Attestation ---
 
-      # Get the digest of the Docker manifest list created by GoReleaser
-      - name: Get Manifest Digest
-        id: digest
+      - name: Extract Manifest Digests
+        id: digests
         run: |
-          # Extract the latest tag from git
-          TAG=${{fromJSON(steps.goreleaser.outputs.metadata).tag}}
-          echo "Using tag with v prefix: $TAG"
+          # Get version from metadata
+          VERSION=$(jq -r '.version' dist/metadata.json)
 
-          # Remove the 'v' prefix if present
-          TAG=$(echo "$TAG" | sed 's/^v//')
-          echo "Using tag without v prefix: $TAG"
+          # Get manifest digests
+          VERSION_MANIFEST_DIGEST=$(jq -r --arg version "ghcr.io/belphemur/night-routine:$VERSION" '.docker_manifests[] | select(.name == $version) | .digest' dist/artifacts.json)
+          LATEST_MANIFEST_DIGEST=$(jq -r '.docker_manifests[] | select(.name == "ghcr.io/belphemur/night-routine:latest") | .digest' dist/artifacts.json)
 
-          # Use the Docker image name
-          echo "Using image: ${{ steps.image-name.outputs.value }}"
+          # Output to environment and summary
+          echo "version_manifest_digest=$VERSION_MANIFEST_DIGEST" >> $GITHUB_OUTPUT
+          echo "manifest_digest=$LATEST_MANIFEST_DIGEST" >> $GITHUB_OUTPUT
 
-          # Get the manifest digest with sha256 prefix
-          MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format "{{.Manifest.Digest}}" | xargs)
-
-          echo "Final manifest digest: $MANIFEST_DIGEST"
-          echo "manifest_digest=$MANIFEST_DIGEST" >> $GITHUB_OUTPUT
+          # Add to step summary
+          echo "## Docker Image Digests" >> $GITHUB_STEP_SUMMARY
+          echo "- Version ($VERSION): \`$VERSION_MANIFEST_DIGEST\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Latest: \`$LATEST_MANIFEST_DIGEST\`" >> $GITHUB_STEP_SUMMARY
 
       # Generate SLSA provenance attestation for the Docker manifest list
       - name: Attest Build Provenance
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ steps.image-name.outputs.value }}
-          subject-digest: ${{ steps.digest.outputs.manifest_digest }}
+          subject-digest: ${{ steps.digests.outputs.manifest_digest }}
           push-to-registry: true # Upload attestation to GHCR

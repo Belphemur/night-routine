@@ -8,6 +8,7 @@ release:
   github:
     owner: belphemur
     name: night-routine
+  include_meta: true
   # draft: false # Default is false
   # prerelease: auto # Default is auto
   # mode: replace # Default is append
