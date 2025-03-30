@@ -13,7 +13,7 @@ RUN apk add --no-cache ca-certificates
 # add new user
 RUN adduser -D $USER
 
-# Copy binary from builder stage
+# Copy pre-built binary
 COPY night-routine /app/night-routine
 
 # Copy default configuration
