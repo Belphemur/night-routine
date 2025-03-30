@@ -1,44 +1,19 @@
+# .goreleaser.yml
 version: 2
+project_name: night-routine
 
-before:
-  hooks:
-    - go mod tidy
+# Configures the release process on GitHub
+# https://goreleaser.com/customization/release/
+release:
+  github:
+    owner: belphemur
+    name: night-routine
+  # draft: false # Default is false
+  # prerelease: auto # Default is auto
+  # mode: replace # Default is append
 
-builds:
-  - id: night-routine
-    main: ./cmd/night-routine
-    env:
-      - CGO_ENABLED=1
-    goos:
-      - linux
-    goarch:
-      - amd64 # Keep only amd64
-    ldflags:
-      - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{ .Env.BUILD_DATE }} # Use env var passed from workflow
-
-# Docker builds are now handled by GitHub Actions
-
-# Use built-in Syft integration for SBOM generation
-sboms:
-  - artifacts: archive # Generate SBOM for the binary archive
-    # GoReleaser defaults to CycloneDX JSON format, which is good.
-
-archives:
-  - name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-    format_overrides:
-      - goos: windows
-
-checksum:
-  name_template: "checksums.txt"
-
+# Configures the changelog generation
+# https://goreleaser.com/customization/changelog/
 changelog:
   sort: asc
   filters:
@@ -46,8 +21,156 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^chore:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Performance"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
 
-release:
-  draft: false
-  prerelease: auto
-  mode: replace
+# Hooks to run before the build process starts
+# https://goreleaser.com/customization/hooks/
+before:
+  hooks:
+    - go mod tidy
+    # - go generate ./... # Add if you use go generate
+
+# Configures the Go build process
+# https://goreleaser.com/customization/build/
+builds:
+  - id: night-routine
+    main: ./cmd/night-routine
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    # ensures mod timestamp to be the commit timestamp
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      # trims path
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{ .CommitDate }} # Use CommitDate from Git
+    env:
+      - CGO_ENABLED=0 # Disable CGO
+
+# Configures the binary archive generation
+# https://goreleaser.com/customization/archive/
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
+# Configures the checksum file generation
+# https://goreleaser.com/customization/checksum/
+checksum:
+  name_template: "checksums.txt"
+
+# Creates a source code archive (tar.gz and zip)
+# https://goreleaser.com/customization/source/
+source:
+  enabled: true
+
+# Configures Go Modules settings
+# https://goreleaser.com/customization/gomod/
+gomod:
+  # Uses the Go module proxy to download dependencies.
+  proxy: true
+
+# Creates SBOMs (Software Bill of Materials)
+# https://goreleaser.com/customization/sbom/
+sboms:
+  - id: archive # Default ID for archive SBOMs
+    artifacts: archive # Generate SBOMs for binary archives using Syft
+  - id: source # Unique ID for source SBOM
+    artifacts: source # Generate SBOM for the source code archive
+
+# Creates Docker images and pushes them to registries
+# https://goreleaser.com/customization/docker/
+dockers:
+  - image_templates:
+      - "ghcr.io/belphemur/night-routine:{{ .Version }}-amd64"
+      - "ghcr.io/belphemur/night-routine:latest-amd64"
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - configs/routine.toml # Include config file in image
+
+  - image_templates:
+      - "ghcr.io/belphemur/night-routine:{{ .Version }}-arm64"
+      - "ghcr.io/belphemur/night-routine:latest-arm64"
+    use: buildx
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - configs/routine.toml # Include config file in image
+
+# Creates Docker manifest lists (multi-arch images)
+# https://goreleaser.com/customization/docker_manifest/
+docker_manifests:
+  - name_template: "ghcr.io/belphemur/night-routine:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/belphemur/night-routine:{{ .Version }}-amd64"
+      - "ghcr.io/belphemur/night-routine:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/belphemur/night-routine:latest"
+    image_templates:
+      - "ghcr.io/belphemur/night-routine:latest-amd64"
+      - "ghcr.io/belphemur/night-routine:latest-arm64"
+
+# Signs artifacts using Cosign
+# https://goreleaser.com/customization/sign/
+signs:
+  # Signs the checksum file using keyless signing
+  - cmd: cosign
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    certificate: "${artifact}.pem" # Output certificate to standard artifact location
+    args:
+      - "sign-blob"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}" # The checksum file
+      - "--yes" # Needed for cosign 2.0+ non-interactive signing
+    artifacts: checksum # Sign only the checksum file
+    output: true # Attach signature and certificate to the release
+
+# Signs Docker images/manifests using Cosign
+# https://goreleaser.com/customization/docker_sign/
+docker_signs:
+  - cmd: cosign
+    env:
+      - COSIGN_EXPERIMENTAL=1
+    artifacts: images # Sign Docker images and manifests
+    output: true # Push signatures to the registry
+    args:
+      - "sign"
+      - "${artifact}" # The image/manifest name
+      - "--yes" # Needed for cosign 2.0+ non-interactive signing

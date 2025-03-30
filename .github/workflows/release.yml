@@ -5,93 +5,84 @@ on:
     tags:
       - "v*"
 
+# Permissions required for the workflow steps
 permissions:
-  contents: write
-  packages: write
-  id-token: write # Required for attestations
-  attestations: write # Required for attestations
+  contents: write # To create releases and upload artifacts
+  packages: write # To push Docker images to GHCR
+  id-token: write # For keyless signing with Cosign/Sigstore
+  attestations: write # To write SLSA attestations
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Fetch all history for tags and commit messages
 
+      # Set up Go environment
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.24" # Keep aligned with go.mod
           cache: true
 
+      # Install Cosign for signing artifacts
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.8.1 # Use a specific version
+
+      # Install Syft for SBOM generation (though GoReleaser uses its own)
+      # Kept as per plan, might be useful for verification/future steps
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0.18.0
+
+      # Set up QEMU for multi-platform builds (used by GoReleaser's Docker buildx)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
-
-      - name: Docker Login
+      # Log in to GitHub Container Registry (GHCR)
+      # GoReleaser needs this to push Docker images and signatures
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }} # More robust than github.actor
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }} # Use github.repository for image name
-          tags: |
-            type=semver,pattern={{version}} # e.g., v1.0.0
-            type=semver,pattern={{major}}.{{minor}} # e.g., v1.0
-            type=raw,value=latest,enable={{is_default_branch}} # latest tag on default branch
-
-      - name: Set build date # Generate date string beforehand
-        id: build_date
-        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
-        id: build-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./build/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: | # Pass build args to Dockerfile
-            VERSION=${{ github.ref_name }}
-            COMMIT=${{ github.sha }}
-            DATE=${{ steps.build_date.outputs.date }}
-
-      - name: Attest
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ghcr.io/${{ github.repository }} # Use repository and ref_name
-          subject-digest: ${{ steps.build-push.outputs.digest }} # Use digest from build-push step
-          push-to-registry: true
-
-      - uses: anchore/sbom-action/download-syft@v0.18.0 # installs syft
-
-      - name: Run GoReleaser (Checksum, SBOM, Sign Checksum)
+      # Run GoReleaser
+      # This handles building binaries, creating archives, SBOMs, Docker images,
+      # pushing Docker images/manifests, signing checksums/images, and creating the GitHub release.
+      - name: Run GoReleaser
+        id: goreleaser # Add ID to reference outputs
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: goreleaser
           version: latest
-          # Skip Docker build/push and GitHub release publication
-          # It will still build binary (needed for archive), archive, checksum, sbom, sign, publish (checksum)
-          args: release --clean --skip=docker
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # COSIGN_EXPERIMENTAL is needed for GoReleaser's 'signs' section too
-          COSIGN_EXPERIMENTAL: "1"
-          # Pass the build date to GoReleaser
-          BUILD_DATE: ${{ steps.build_date.outputs.date }}
+          # COSIGN_EXPERIMENTAL: "1" # Set for keyless signing (needed by GoReleaser's sign sections)
+          # Note: If cosign v2+, COSIGN_EXPERIMENTAL might not be needed, but doesn't hurt.
+
+      # --- Post-GoReleaser Steps for Attestation ---
+
+      # Get the digest of the Docker manifest list created by GoReleaser
+      - name: Get Manifest Digest
+        id: digest
+        run: |
+          # GoReleaser pushes the manifest list, we inspect it to get the digest
+          # Use fromJSON to parse the metadata output from the goreleaser step
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ fromJSON(steps.goreleaser.outputs.metadata).tag }} --format '{{json .Manifest.Digest}}' | jq -r .)
+          echo "manifest_digest=$MANIFEST_DIGEST" >> $GITHUB_OUTPUT
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled # Might be needed for imagetools
+
+      # Generate SLSA provenance attestation for the Docker manifest list
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}:${{ fromJSON(steps.goreleaser.outputs.metadata).tag }}
+          subject-digest: ${{ steps.digest.outputs.manifest_digest }}
+          push-to-registry: true # Upload attestation to GHCR
