@@ -88,21 +88,11 @@ jobs:
           # Use the Docker image name
           echo "Using image: ${{ steps.image-name.outputs.value }}"
 
-          # Wait a moment for Docker registry to fully process the manifest
-          sleep 10
-
           # Get the manifest digest with sha256 prefix
-          MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format "{{.Manifest.Digest}}")
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format "{{.Manifest.Digest}}" | xargs)
 
-          # Ensure digest has sha256: prefix
-          if [[ $MANIFEST_DIGEST != sha256:* ]]; then
-            MANIFEST_DIGEST="sha256:$MANIFEST_DIGEST"
-          fi
-
-          echo "Final manifest digest (with prefix): $MANIFEST_DIGEST"
+          echo "Final manifest digest: $MANIFEST_DIGEST"
           echo "manifest_digest=$MANIFEST_DIGEST" >> $GITHUB_OUTPUT
-        env:
-          DOCKER_CLI_EXPERIMENTAL: enabled # Needed for imagetools
 
       # Generate SLSA provenance attestation for the Docker manifest list
       - name: Attest Build Provenance
