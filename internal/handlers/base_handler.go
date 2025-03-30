@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"embed"
 	"html/template"
 	"net/http"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/belphemur/night-routine/internal/token"
 	"github.com/rs/zerolog"
 )
+
+//go:embed templates/*.html
+var templateFS embed.FS
 
 // BaseHandler contains common handler functionality
 type BaseHandler struct {
@@ -26,7 +30,7 @@ type BaseHandler struct {
 func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker *fairness.Tracker) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
-	tmpl, err := template.New("").ParseGlob("internal/handlers/templates/*.html")
+	tmpl, err := template.New("").ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse templates")
 		return nil, err
