@@ -73,29 +73,19 @@ jobs:
 
       # --- Post-GoReleaser Steps for Attestation ---
 
-      - name: Extract Manifest Digests
+      - name: Export digest
         id: digests
         run: |
-          # Get version from metadata
-          VERSION=$(jq -r '.version' dist/metadata.json)
-
-          # Get manifest digests
-          VERSION_MANIFEST_DIGEST=$(jq -r --arg version "ghcr.io/belphemur/night-routine:$VERSION" '.docker_manifests[] | select(.name == $version) | .digest' dist/artifacts.json)
-          LATEST_MANIFEST_DIGEST=$(jq -r '.docker_manifests[] | select(.name == "ghcr.io/belphemur/night-routine:latest") | .digest' dist/artifacts.json)
-
-          # Output to environment and summary
-          echo "version_manifest_digest=$VERSION_MANIFEST_DIGEST" >> $GITHUB_OUTPUT
-          echo "manifest_digest=$LATEST_MANIFEST_DIGEST" >> $GITHUB_OUTPUT
-
-          # Add to step summary
-          echo "## Docker Image Digests" >> $GITHUB_STEP_SUMMARY
-          echo "- Version ($VERSION): \`$VERSION_MANIFEST_DIGEST\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Latest: \`$LATEST_MANIFEST_DIGEST\`" >> $GITHUB_STEP_SUMMARY
+          DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:latest --format "{{json .Manifest.Digest}}" | xargs)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "## Image Digest Information" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`${{ steps.image-name.outputs.value }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Digest: \`$DIGEST\`" >> $GITHUB_STEP_SUMMARY
 
       # Generate SLSA provenance attestation for the Docker manifest list
       - name: Attest Build Provenance
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ steps.image-name.outputs.value }}
-          subject-digest: ${{ steps.digests.outputs.manifest_digest }}
+          subject-digest: ${{ steps.digests.outputs.digest }}
           push-to-registry: true # Upload attestation to GHCR
