@@ -78,8 +78,12 @@ jobs:
         id: digest
         run: |
           # Extract the latest tag from git
-          TAG=${GITHUB_REF#refs/tags/}
-          echo "Using tag: $TAG"
+          TAG=${{fromJSON(steps.goreleaser.outputs.metadata).tag}}
+          echo "Using tag with v prefix: $TAG"
+
+          # Remove the 'v' prefix if present
+          TAG=$(echo "$TAG" | sed 's/^v//')
+          echo "Using tag without v prefix: $TAG"
 
           # Use the Docker image name
           echo "Using image: ${{ steps.image-name.outputs.value }}"
@@ -87,9 +91,15 @@ jobs:
           # Wait a moment for Docker registry to fully process the manifest
           sleep 10
 
-          MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format "{{json .Manifest.Digest}}"  | xargs)
+          # Get the manifest digest with sha256 prefix
+          MANIFEST_DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:${TAG} --format "{{.Manifest.Digest}}")
 
-          echo "Manifest digest: $MANIFEST_DIGEST"
+          # Ensure digest has sha256: prefix
+          if [[ $MANIFEST_DIGEST != sha256:* ]]; then
+            MANIFEST_DIGEST="sha256:$MANIFEST_DIGEST"
+          fi
+
+          echo "Final manifest digest (with prefix): $MANIFEST_DIGEST"
           echo "manifest_digest=$MANIFEST_DIGEST" >> $GITHUB_OUTPUT
         env:
           DOCKER_CLI_EXPERIMENTAL: enabled # Needed for imagetools
