@@ -16,8 +16,7 @@ type OAuthHandler struct {
 // NewOAuthHandler creates a new OAuth handler using the BaseHandler
 func NewOAuthHandler(baseHandler *BaseHandler) (*OAuthHandler, error) {
 	// Logger is inherited from BaseHandler
-	logger := logging.GetLogger("oauth-handler") // Keep specific logger instance if needed, or use baseHandler.logger
-	logger.Debug().Msg("Initializing OAuth handler")
+	baseHandler.logger.Debug().Msg("Initializing OAuth handler")
 
 	// OAuthConfig is derived from the Config within BaseHandler
 	oauthConfig := baseHandler.Config.OAuth
@@ -25,8 +24,6 @@ func NewOAuthHandler(baseHandler *BaseHandler) (*OAuthHandler, error) {
 	return &OAuthHandler{
 		BaseHandler: baseHandler,
 		OAuthConfig: oauthConfig,
-		// Note: logger field is removed, using the one from BaseHandler implicitly
-		//       or explicitly via h.logger if needed within methods.
 	}, nil
 }
 
