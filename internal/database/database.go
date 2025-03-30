@@ -7,10 +7,10 @@ import (
 	"io/fs"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver" // Register ncruces sqlite3 driver
 
+	"github.com/belphemur/night-routine/internal/database/sqlite3"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/rs/zerolog"
 )

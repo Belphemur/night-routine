@@ -1,22 +1,3 @@
-# Build stage
-FROM golang:1-alpine AS builder
-
-# Add ARGs for build flags
-ARG VERSION="unknown"
-ARG COMMIT="unknown"
-ARG DATE="unknown"
-
-WORKDIR /workspace
-
-# Install build dependencies
-RUN apk add --no-cache build-base
-
-# Build with appropriate flags for the target architecture
-RUN --mount=type=bind,target=/workspace CGO_ENABLED=1 \
-    go build -v -o /build/night-routine \
-    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
-    ./cmd/night-routine
-
 # Runtime stage
 FROM alpine:latest
 
@@ -34,7 +15,7 @@ RUN adduser -D $USER
 
 
 # Copy binary from builder stage
-COPY --from=builder /build/night-routine .
+COPY night-routine /app/
 
 # Copy default configuration
 COPY configs/routine.toml /app/config/routine.toml
