@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"net/http"
-
-	"github.com/belphemur/night-routine/internal/logging"
 	"golang.org/x/oauth2"
+	"net/http"
 )
 
 // OAuthHandler manages OAuth2 authentication and token storage
