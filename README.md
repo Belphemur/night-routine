@@ -2,6 +2,14 @@
 
 A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation.
 
+## Screenshots
+
+![Setup Screen](docs/screenshots/Setup.png)
+_Initial setup screen where you connect to Google Calendar_
+
+![Calendar Selection](docs/screenshots/Calendar_Selection.png)
+_Select which calendar to use for night routine events_
+
 ## Quick Start with Docker
 
 Pre-built multi-architecture Docker images (supporting both amd64 and arm64) are available in the GitHub Container Registry:
@@ -68,7 +76,6 @@ This will create the necessary directories for configuration and data persistenc
   - Selected Google Calendar ID
 - Docker containerization
 - Multi-architecture support (amd64, arm64)
-
 
 ## First-Time Setup
 
@@ -179,7 +186,6 @@ data/
     ├── calendar_settings   # Selected calendar configuration
     └── notification_channels # Google Calendar webhook channels
 ```
-
 
 ### Running Tests
 
