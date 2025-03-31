@@ -29,16 +29,14 @@ Available tags:
 
 - `latest`: Most recent release
 - `vX.Y.Z` (e.g., `v1.0.0`): Specific versions
-- `vX.Y` (e.g., `v1.0`): Latest in a minor version series
 
 ## Quick Start with Docker Compose
 
 For easier self-hosting, you can use the provided `docker-compose.yml` file:
 
 ```bash
-# Clone the repository
-git clone https://github.com/belphemur/night-routine.git
-cd night-routine
+# Downlaod file
+https://github.com/Belphemur/night-routine/blob/main/docker-compose.yml
 
 # Create the config directory
 mkdir -p config
@@ -82,27 +80,16 @@ This will create the necessary directories for configuration and data persistenc
 
 Note: Authentication tokens and calendar selection are stored in the SQLite database and persist between restarts. You only need to authenticate once unless you revoke access or delete the database
 
-## Prerequisites
-
-- Go 1.24 or later
-- SQLite3
-- Google Calendar API credentials
-- Docker (optional)
-
-## Storage
-
-The application uses SQLite for persistent storage:
-
-```
-data/
-└── state.db  # SQLite database containing:
-    ├── assignments         # Night routine assignments
-    ├── oauth_tokens        # Google OAuth2 tokens
-    ├── calendar_settings   # Selected calendar configuration
-    └── notification_channels # Google Calendar webhook channels
-```
-
 ## Configuration
+
+### Google Calendar Setup
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google Calendar API
+4. Create OAuth 2.0 credentials
+5. Note your Client ID and Client Secret
+6. Set up environment variables with the credentials
 
 ### Environment Variables
 
@@ -171,41 +158,28 @@ Google Calendar will send a notification to the application's webhook endpoint (
 
 This keeps the application's schedule and fairness tracking accurate even with manual adjustments. For a detailed technical explanation, see the Webhook Handler section in `docs/architecture.md`.
 
-## Google Calendar Setup
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google Calendar API
-4. Create OAuth 2.0 credentials
-5. Note your Client ID and Client Secret
-6. Set up environment variables with the credentials
-
-## Building
-
-### Local Build
-
-```bash
-go build -v ./cmd/night-routine
-```
-
-## Running
-
-### Local Run
-
-```bash
-# Set environment variables
-export GOOGLE_OAUTH_CLIENT_ID=your-client-id
-export GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
-export PORT=8080
-export CONFIG_FILE=configs/routine.toml
-# export ENV=production # Uncomment for JSON logging
-
-# Run the application
-./night-routine
-```
-
-
 ## Development
+
+### Prerequisites
+
+- Go 1.24 or later
+- SQLite3
+- Google Calendar API credentials
+- Docker (optional)
+
+### Storage
+
+The application uses SQLite for persistent storage:
+
+```
+data/
+└── state.db  # SQLite database containing:
+    ├── assignments         # Night routine assignments
+    ├── oauth_tokens        # Google OAuth2 tokens
+    ├── calendar_settings   # Selected calendar configuration
+    └── notification_channels # Google Calendar webhook channels
+```
+
 
 ### Running Tests
 
