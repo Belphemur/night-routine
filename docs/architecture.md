@@ -9,9 +9,9 @@ graph TD
     A --> D[Calendar Service]
     A --> E[Fairness Tracker]
     A --> W[Web UI]
-    A --> WH[Webhook Handler] // Added Webhook Handler
+    A --> WH[Webhook Handler]
     A --> DB[Database Manager]
-    A --> LG[Logging Service] // Added Logging Service
+    A --> LG[Logging Service]
 
     B --> F[routine.toml]
     B --> M[Environment Variables]
@@ -20,8 +20,8 @@ graph TD
     E --> I[State Storage]
     W --> J[OAuth Handler]
     W --> K[Calendar Selection]
-    WH --> DB             // Webhook updates assignments
-    WH --> C              // Webhook might influence scheduler
+    WH --> DB           
+    WH --> C
     DB --> MG[Database Migrations]
     LG --> ZL[Zerolog Library]
 
