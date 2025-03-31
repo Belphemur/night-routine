@@ -31,7 +31,7 @@ jobs:
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
 
       - name: Run tests
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
