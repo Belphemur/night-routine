@@ -23,6 +23,8 @@ docker run \
   ghcr.io/belphemur/night-routine:latest
 ```
 
+_Note: These images are signed using Sigstore Cosign and include SBOM attestations for enhanced security._
+
 Available tags:
 
 - `latest`: Most recent release
@@ -68,6 +70,17 @@ This will create the necessary directories for configuration and data persistenc
   - Selected Google Calendar ID
 - Docker containerization
 - Multi-architecture support (amd64, arm64)
+
+
+## First-Time Setup
+
+1. Start the application
+2. Visit http://localhost:8080 (or your configured `APP_URL`)
+3. Click "Connect Google Calendar" to start OAuth flow
+4. Select which calendar to use for night routine events
+5. The scheduler will now automatically create events
+
+Note: Authentication tokens and calendar selection are stored in the SQLite database and persist between restarts. You only need to authenticate once unless you revoke access or delete the database
 
 ## Prerequisites
 
@@ -175,12 +188,6 @@ This keeps the application's schedule and fairness tracking accurate even with m
 go build -v ./cmd/night-routine
 ```
 
-### Docker Build
-
-```bash
-docker build -t night-routine:latest .
-```
-
 ## Running
 
 ### Local Run
@@ -197,65 +204,6 @@ export CONFIG_FILE=configs/routine.toml
 ./night-routine
 ```
 
-### Docker Run
-
-```bash
-docker run \
-  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
-  -e PORT=8080 \
-  -e CONFIG_FILE=/etc/night-routine/routine.toml \
-  -e APP_URL=http://your-public-url:8080 \ # Needs to be publicly accessible for webhooks
-  # -e ENV=production \ # Uncomment for JSON logging
-  -v /path/to/configs:/etc/night-routine \
-  -v /path/to/data:/app/data \ # Mount data directory inside container
-  -p 8080:8080 \
-  night-routine:latest
-```
-
-### Using Pre-built Docker Images from GitHub Container Registry
-
-Pre-built multi-architecture Docker images (supporting both amd64 and arm64) are available in the GitHub Container Registry. These are automatically built and published when a new release tag is pushed.
-
-```bash
-# Pull the latest release
-docker pull ghcr.io/$(echo $GITHUB_REPOSITORY || echo "belphemur/night-routine"):latest
-
-# Or pull a specific version
-docker pull ghcr.io/$(echo $GITHUB_REPOSITORY || echo "belphemur/night-routine"):v1.0.0
-
-# Run the container
-docker run \
-  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
-  -e PORT=8080 \
-  -e CONFIG_FILE=/app/config/routine.toml \
-  -e APP_URL=http://your-public-url:8080 \
-  -v /path/to/config:/app/config \
-  -v /path/to/data:/app/data \
-  -p 8080:8080 \
-  ghcr.io/belphemur/night-routine:latest
-```
-
-When running the container, replace `belphemur/night-routine` with your actual GitHub repository path.
-
-Available image tags:
-
-- `latest`: The most recent release
-- `vX.Y.Z` (e.g., `v1.0.0`): Specific version releases
-- `vX.Y` (e.g., `v1.0`): Latest release in a minor version series
-
-_Note: These images are signed using Sigstore Cosign and include SBOM attestations for enhanced security._
-
-## First-Time Setup
-
-1. Start the application
-2. Visit http://localhost:8080 (or your configured `APP_URL`)
-3. Click "Connect Google Calendar" to start OAuth flow
-4. Select which calendar to use for night routine events
-5. The scheduler will now automatically create events
-
-Note: Authentication tokens and calendar selection are stored in the SQLite database and persist between restarts. You only need to authenticate once unless you revoke access or delete the database.
 
 ## Development
 
