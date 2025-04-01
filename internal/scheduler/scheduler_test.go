@@ -30,7 +30,11 @@ func createTestConfig() *config.Config {
 // TestGenerateSchedule tests the GenerateSchedule function
 func TestGenerateSchedule(t *testing.T) {
 	cfg := createTestConfig()
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	// Test period: 7 days starting from a Sunday
@@ -51,7 +55,11 @@ func TestGenerateSchedule(t *testing.T) {
 // TestGenerateScheduleWithPriorAssignments tests the scheduler with prior assignments
 func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	cfg := createTestConfig()
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	// Use fixed dates instead of time.Now() to make the test deterministic
@@ -62,7 +70,7 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	dayAfter := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC)  // Thursday - Bob unavailable
 
 	// Add some prior assignments (Alice did the day before, Bob did yesterday)
-	_, err := tracker.RecordAssignment("Alice", dayBefore)
+	_, err = tracker.RecordAssignment("Alice", dayBefore)
 	assert.NoError(t, err)
 	// On Monday, Alice is unavailable, so Bob would be assigned
 	_, err = tracker.RecordAssignment("Bob", yesterday)
@@ -86,7 +94,11 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 // TestDetermineAssignmentForDate tests the determineParentForDate function
 func TestDetermineAssignmentForDate(t *testing.T) {
 	cfg := createTestConfig()
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	// Test unavailability
@@ -114,7 +126,11 @@ func TestDetermineAssignmentForDate(t *testing.T) {
 // TestAssignForDate tests the assignForDate function including recording the assignment
 func TestAssignForDate(t *testing.T) {
 	cfg := createTestConfig()
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	// Test unavailability
@@ -150,7 +166,11 @@ func TestAssignForDate(t *testing.T) {
 // TestDetermineNextParent tests the determineNextParent function
 func TestDetermineNextParent(t *testing.T) {
 	cfg := createTestConfig()
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	// Test with no prior assignments
@@ -205,7 +225,11 @@ func TestBothParentsUnavailable(t *testing.T) {
 	cfg.Availability.ParentAUnavailable = append(cfg.Availability.ParentAUnavailable, "Wednesday")
 	cfg.Availability.ParentBUnavailable = append(cfg.Availability.ParentBUnavailable, "Wednesday")
 
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	wednesday := time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC) // Wednesday
@@ -215,14 +239,18 @@ func TestBothParentsUnavailable(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
 	// Should return an error when both parents are unavailable
-	_, err := scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats)
+	_, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats)
 	assert.Error(t, err)
 }
 
 // TestAlternatingAssignments tests that assignments alternate when everything is balanced
 func TestAlternatingAssignments(t *testing.T) {
 	cfg := createTestConfig()
-	tracker := fairness.NewMockTracker()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
 	scheduler := New(cfg, tracker)
 
 	// Create balanced stats

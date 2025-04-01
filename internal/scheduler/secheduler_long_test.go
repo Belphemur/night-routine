@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Updated test to include expected days for each parent
 func TestAssignForDateLongPeriods(t *testing.T) {
 	testCases := []struct {
 		name                string
@@ -58,8 +57,8 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			parentAUnavailable: []string{"Friday"},
 			parentBUnavailable: []string{},
 			expectedAssignments: map[string]int{
-				"Alice": 15, // Alice should get 15 days
-				"Bob":   15, // Bob should get 15 days
+				"Alice": 15,
+				"Bob":   15,
 			},
 			expectedDays: []string{"Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Alice", "Bob", "Alice"},
 		},
@@ -69,8 +68,8 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			parentAUnavailable: []string{"Friday"},
 			parentBUnavailable: []string{"Wednesday"},
 			expectedAssignments: map[string]int{
-				"Alice": 7, // Alice should get 7 days
-				"Bob":   7, // Bob should get 7 days
+				"Alice": 7,
+				"Bob":   7,
 			},
 			expectedDays: []string{"Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Alice"},
 		},
@@ -80,8 +79,8 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			parentAUnavailable: []string{"Friday"},
 			parentBUnavailable: []string{"Wednesday"},
 			expectedAssignments: map[string]int{
-				"Alice": 15, // Alice should get 15 days
-				"Bob":   15, // Bob should get 15 days
+				"Alice": 15,
+				"Bob":   15,
 			},
 			expectedDays: []string{"Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Alice", "Bob", "Alice", "Alice", "Bob", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Alice", "Bob", "Alice"},
 		},
@@ -91,8 +90,8 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			parentAUnavailable: []string{},
 			parentBUnavailable: []string{"Wednesday", "Friday"},
 			expectedAssignments: map[string]int{
-				"Alice": 15, // Alice should get 15 days
-				"Bob":   15, // Bob should get 15 days
+				"Alice": 15,
+				"Bob":   15,
 			},
 			expectedDays: []string{"Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Bob", "Alice", "Alice", "Bob", "Alice", "Bob", "Bob", "Alice", "Bob"},
 		},
@@ -112,14 +111,13 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 				},
 			}
 
-			// Create mock tracker
-			tracker := fairness.NewMockTracker()
-			scheduler := New(cfg, tracker)
+			// Create real tracker with in-memory database
+			db, cleanup := setupTestDB(t)
+			defer cleanup()
 
-			// Create balanced stats
-			stats := make(map[string]fairness.Stats)
-			stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
-			stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
+			tracker, err := fairness.New(db)
+			assert.NoError(t, err)
+			scheduler := New(cfg, tracker)
 
 			// Start from a Sunday to ensure we cover a full week
 			startDate := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday
@@ -163,7 +161,6 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 }
 
 // TestAssignForDateWithSpecificDays tests the assignForDate function for specific days of the week
-// to verify the correct parent is assigned based on availability
 func TestAssignForDateWithSpecificDays(t *testing.T) {
 	testCases := []struct {
 		name               string
@@ -223,8 +220,12 @@ func TestAssignForDateWithSpecificDays(t *testing.T) {
 				},
 			}
 
-			// Create mock tracker
-			tracker := fairness.NewMockTracker()
+			// Create real tracker with in-memory database
+			db, cleanup := setupTestDB(t)
+			defer cleanup()
+
+			tracker, err := fairness.New(db)
+			assert.NoError(t, err)
 			scheduler := New(cfg, tracker)
 
 			// Assign for the specific date
