@@ -100,7 +100,7 @@ func run(ctx context.Context) error {
 	defer db.Close()
 
 	// Initialize database schema
-	if err := db.InitSchema(); err != nil {
+	if err := db.MigrateDatabase(); err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize database schema: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Database schema initialization failed")
 		return wrappedErr

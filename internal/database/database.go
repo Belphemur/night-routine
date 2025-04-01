@@ -26,10 +26,10 @@ type DB struct {
 }
 
 // New creates a new database connection
-func New(dbPath string) (*DB, error) {
-	logger := logging.GetLogger("database").With().Str("db_path", dbPath).Logger()
+func New(connectionString string) (*DB, error) {
+	logger := logging.GetLogger("database").With().Str("db_path", connectionString).Logger()
 	logger.Info().Msg("Opening database connection")
-	conn, err := sql.Open("sqlite3", dbPath)
+	conn, err := sql.Open("sqlite3", connectionString)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to open database")
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -43,7 +43,7 @@ func New(dbPath string) (*DB, error) {
 	}
 	logger.Info().Msg("Database connection opened successfully")
 
-	return &DB{conn: conn, logger: logger, dbPath: dbPath}, nil
+	return &DB{conn: conn, logger: logger, dbPath: connectionString}, nil
 }
 
 // Close closes the database connection
@@ -127,11 +127,4 @@ func (db *DB) MigrateDatabase() error {
 	}
 
 	return nil
-}
-
-// InitSchema is kept for backward compatibility but delegates to MigrateDatabase
-// Deprecated: Use MigrateDatabase instead
-func (db *DB) InitSchema() error {
-	db.logger.Warn().Msg("InitSchema is deprecated, use MigrateDatabase")
-	return db.MigrateDatabase()
 }
