@@ -44,11 +44,21 @@ jobs:
         with:
           go-version: "${{ env.GO_VERSION }}"
           cache: true
-      - name: Run tests
-        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
 
+      - name: Run tests
+        run: |
+          mkdir -p test-results
+          gotestsum --junitfile test-results/junit.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/junit.xml
       - name: Upload coverage reports to Codecov
-        if: always()
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
