@@ -48,7 +48,7 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time) (*Assignment, 
 			updateLogger.Debug().Str("old_parent", existingAssignment.Parent).Str("new_parent", parent).Msg("Updating existing assignment parent (non-override)")
 			_, err := t.db.Exec(`
 			UPDATE assignments
-			SET parent_name = ?, updated_at = CURRENT_TIMESTAMP, override = ?
+			SET parent_name = ?, override = ?
 			WHERE id = ?
 			`, parent, false, existingAssignment.ID)
 
@@ -105,7 +105,7 @@ func (t *Tracker) RecordAssignmentWithDetails(parent string, date time.Time, ove
 		// Update the assignment
 		_, err := t.db.Exec(`
 		UPDATE assignments
-		SET parent_name = ?, override = ?, google_calendar_event_id = ?, updated_at = CURRENT_TIMESTAMP
+		SET parent_name = ?, override = ?, google_calendar_event_id = ?
 		WHERE id = ?
 		`, parent, override, googleCalendarEventID, existingAssignment.ID)
 
@@ -216,7 +216,7 @@ func (t *Tracker) UpdateAssignmentGoogleCalendarEventID(id int64, googleCalendar
 	updateLogger.Debug().Msg("Updating assignment Google Calendar Event ID")
 	_, err := t.db.Exec(`
 	UPDATE assignments
-	SET google_calendar_event_id = ?, updated_at = CURRENT_TIMESTAMP
+	SET google_calendar_event_id = ?
 	WHERE id = ?
 	`, googleCalendarEventID, id)
 
@@ -235,7 +235,7 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	updateLogger.Debug().Msg("Updating assignment parent and override status")
 	_, err := t.db.Exec(`
 	UPDATE assignments
-	SET parent_name = ?, override = ?, updated_at = CURRENT_TIMESTAMP
+	SET parent_name = ?, override = ?
 	WHERE id = ?
 	`, parent, override, id)
 
