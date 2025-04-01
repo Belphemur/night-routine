@@ -13,8 +13,6 @@ import (
 const (
 	// dateFormat is the format used for dates in the database
 	dateFormat = "2006-01-02"
-	// timeFormat is the format used for timestamps in the database
-	timeFormat = dateFormat + " 15:04:05"
 )
 
 // Tracker maintains the state of night routine assignments
