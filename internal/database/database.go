@@ -25,7 +25,14 @@ type DB struct {
 	dbPath string // Store dbPath for logging
 }
 
-// New creates a new database connection
+// NewWithOptions creates a new database connection with the specified options
+func NewWithOptions(opts SQLiteOptions) (*DB, error) {
+	connStr := opts.buildConnectionString()
+	return New(connStr)
+}
+
+// New creates a new database connection.
+// For more configuration options, use NewWithOptions instead.
 func New(connectionString string) (*DB, error) {
 	logger := logging.GetLogger("database").With().Str("db_path", connectionString).Logger()
 	logger.Info().Msg("Opening database connection")
@@ -46,21 +53,20 @@ func New(connectionString string) (*DB, error) {
 	return &DB{conn: conn, logger: logger, dbPath: connectionString}, nil
 }
 
-// Close closes the database connection
-func (db *DB) Close() error {
-	db.logger.Info().Msg("Closing database connection")
-	err := db.conn.Close()
-	if err != nil {
-		db.logger.Error().Err(err).Msg("Failed to close database connection")
-		return err
-	}
-	db.logger.Info().Msg("Database connection closed successfully")
-	return nil
-}
-
 // Conn returns the underlying database connection
 func (db *DB) Conn() *sql.DB {
 	return db.conn
+}
+
+// Close closes the database connection
+func (db *DB) Close() error {
+	db.logger.Info().Msg("Closing database connection")
+	if err := db.conn.Close(); err != nil {
+		db.logger.Error().Err(err).Msg("Failed to close database connection")
+		return fmt.Errorf("failed to close database connection: %w", err)
+	}
+	db.logger.Info().Msg("Database connection closed successfully")
+	return nil
 }
 
 // MigrateDatabase performs database migrations
