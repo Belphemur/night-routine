@@ -45,7 +45,7 @@ type SQLiteOptions struct {
 
 	// Core Options
 	Mode        string          // ro, rw, rwc, memory
-	UseWAL      bool            // _journal_mode=WAL
+	Journal     JournalMode     // _journal_mode: DELETE, TRUNCATE, PERSIST, MEMORY, WAL, OFF
 	ForeignKeys bool            // _foreign_keys=true
 	BusyTimeout int             // _busy_timeout (milliseconds)
 	CacheSize   int             // _cache_size (in KB, negative for number of pages)
@@ -81,7 +81,7 @@ func NewDefaultOptions(path string) SQLiteOptions {
 	return SQLiteOptions{
 		Path:        path,
 		Mode:        "rwc",
-		UseWAL:      true,
+		Journal:     JournalWAL, // WAL is recommended for better concurrency
 		ForeignKeys: true,
 		BusyTimeout: 5000,
 		CacheSize:   2000,

@@ -90,7 +90,14 @@ func run(ctx context.Context) error {
 	}
 
 	// Initialize database
-	db, err := database.New(cfg.Service.StateFile)
+	db, err := database.NewWithOptions(database.SQLiteOptions{
+		Path:        cfg.Service.StateFile,
+		Journal:     database.JournalWAL,
+		ForeignKeys: true,
+		AutoVacuum:  "incremental",
+		Cache:       "shared",
+		Mode:        "rwc",
+	})
 	if err != nil {
 		// Wrap error for context, logger will handle Err field
 		wrappedErr := fmt.Errorf("failed to initialize database: %w", err)

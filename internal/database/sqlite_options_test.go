@@ -11,7 +11,7 @@ func TestNewDefaultOptions(t *testing.T) {
 
 	assert.Equal(t, "test.db", opts.Path)
 	assert.Equal(t, "rwc", opts.Mode)
-	assert.True(t, opts.UseWAL)
+	assert.Equal(t, JournalWAL, opts.Journal)
 	assert.True(t, opts.ForeignKeys)
 	assert.Equal(t, 5000, opts.BusyTimeout)
 	assert.Equal(t, 2000, opts.CacheSize)
@@ -45,7 +45,7 @@ func TestBuildConnectionString(t *testing.T) {
 			opts: SQLiteOptions{
 				Path:        "full.db",
 				Mode:        "rwc",
-				UseWAL:      true,
+				Journal:     JournalWAL,
 				ForeignKeys: true,
 				BusyTimeout: 10000,
 				CacheSize:   5000,

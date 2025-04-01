@@ -41,7 +41,7 @@ func TestBuildConnectionString_PathHandling(t *testing.T) {
 func TestBuildConnectionString_CoreOptions(t *testing.T) {
 	opts := SQLiteOptions{
 		Path:        "test.db",
-		UseWAL:      true,
+		Journal:     JournalWAL,
 		ForeignKeys: true,
 		BusyTimeout: 5000,
 		CacheSize:   2000,
@@ -130,7 +130,7 @@ func TestBuildConnectionString_EmptyOptions(t *testing.T) {
 func TestBuildConnectionString_ComplexCombination(t *testing.T) {
 	opts := SQLiteOptions{
 		Path:        "complex.db",
-		UseWAL:      true,
+		Journal:     JournalWAL,
 		ForeignKeys: true,
 		BusyTimeout: 10000,
 		LockingMode: LockingExclusive,

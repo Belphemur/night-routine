@@ -11,8 +11,8 @@ func (opts *SQLiteOptions) buildConnectionString() string {
 	params := url.Values{}
 
 	// Core options
-	if opts.UseWAL {
-		params.Set("_journal_mode", string(JournalWAL))
+	if opts.Journal != "" {
+		params.Set("_journal_mode", string(opts.Journal))
 	}
 	if opts.ForeignKeys {
 		params.Set("_foreign_keys", "true")
