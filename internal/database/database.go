@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"embed"
+	"errors" // Import errors package for Join
 	"fmt"
 	"io/fs"
 
@@ -60,123 +61,158 @@ func New(opts SQLiteOptions) (*DB, error) {
 
 // applyPragmas executes PRAGMA commands based on SQLiteOptions after the connection is opened.
 // It iterates through the options and applies the corresponding PRAGMA if the option
-// has a non-default value. It returns an error immediately if any PRAGMA fails.
+// has a non-default value. It attempts to apply all specified PRAGMAs and returns
+// a combined error if one or more PRAGMA applications fail.
+// pragmaConfig defines how a PRAGMA should be handled
+type pragmaConfig struct {
+	name        string                             // Name of the PRAGMA
+	value       interface{}                        // Value to set
+	allowZero   bool                               // Whether zero/false values should be applied
+	formatValue func(v interface{}) (string, bool) // Custom value formatter, returns formatted value and whether to skip
+}
+
 func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error {
-	pragmas := []struct {
-		Name  string
-		Value interface{}
-	}{
-		{"journal_mode", opts.Journal},
-		{"busy_timeout", opts.BusyTimeout},
-		{"foreign_keys", opts.ForeignKeys},
-		{"synchronous", opts.Synchronous},
-		{"cache_size", opts.CacheSize},
-		{"locking_mode", opts.LockingMode},
-		// {"txlock", opts.TxLock}, // Covered by locking_mode generally
-		{"auto_vacuum", opts.AutoVacuum},
-		{"case_sensitive_like", opts.CaseSensitiveLike},
-		{"defer_foreign_keys", opts.DeferForeignKeys},
-		{"ignore_check_constraints", opts.IgnoreCheckConstraints},
-		{"query_only", opts.QueryOnly},
-		{"recursive_triggers", opts.RecursiveTriggers},
-		{"secure_delete", opts.SecureDelete},
-		{"writable_schema", opts.WritableSchema},
-		// Add other PRAGMAs here if needed
+	var errs []error // Slice to collect errors
+
+	// Define formatters for specific types
+	boolFormatter := func(v interface{}) (string, bool) {
+		if b, ok := v.(bool); ok {
+			if b {
+				return "1", false
+			}
+			return "0", false
+		}
+		return "", true
 	}
 
-	for _, p := range pragmas {
-		var sqlValueStr string // Store the value formatted for SQL query
-		skip := false
+	syncFormatter := func(v interface{}) (string, bool) {
+		if mode, ok := v.(SynchronousMode); ok && mode != "" {
+			switch mode {
+			case SynchronousOff:
+				return "0", false
+			case SynchronousNormal:
+				return "1", false
+			case SynchronousFull:
+				return "2", false
+			case SynchronousExtra:
+				return "3", false
+			}
+		}
+		return "", true
+	}
 
-		// Determine the SQL value and whether to skip based on type and value
-		switch v := p.Value.(type) {
+	// Default string formatter for enums that ensures values are uppercase for SQLite
+	enumFormatter := func(v interface{}) (string, bool) {
+		switch val := v.(type) {
 		case JournalMode:
-			if v == "" {
-				skip = true
-			} else {
-				// String enums can usually be embedded directly
-				sqlValueStr = string(v)
-			}
-		case int:
-			// Allow setting 0 explicitly for some pragmas like foreign_keys, busy_timeout
-			if v == 0 && !(p.Name == "foreign_keys" || p.Name == "busy_timeout") {
-				skip = true
-			} else {
-				// Integers can be converted to string
-				sqlValueStr = fmt.Sprintf("%d", v)
-			}
-		case bool:
-			// Apply boolean pragmas only if they are true (or explicitly false for foreign_keys)
-			if !v && p.Name != "foreign_keys" && p.Name != "defer_foreign_keys" {
-				skip = true
-			} else {
-				if v {
-					sqlValueStr = "1"
-				} else {
-					sqlValueStr = "0"
-				}
+			if val != "" {
+				return string(val), false // JournalMode constants are already uppercase
 			}
 		case SynchronousMode:
-			if v == "" {
-				skip = true
-			} else {
-				switch v {
-				case SynchronousOff:
-					sqlValueStr = "0"
-				case SynchronousNormal:
-					sqlValueStr = "1"
-				case SynchronousFull:
-					sqlValueStr = "2"
-				case SynchronousExtra:
-					sqlValueStr = "3"
-				default:
-					logger.Warn().Str("pragma", p.Name).Str("value", string(v)).Msg("Unknown synchronous mode value, skipping PRAGMA.")
-					skip = true
-				}
+			if val != "" {
+				return string(val), false // SynchronousMode constants are already uppercase
 			}
 		case LockingMode:
-			if v == "" {
-				skip = true
-			} else {
-				// String enums can usually be embedded directly
-				sqlValueStr = string(v)
+			if val != "" {
+				return string(val), false // LockingMode constants are already uppercase
+			}
+		case fmt.Stringer:
+			if s := val.String(); s != "" {
+				return s, false
 			}
 		case string:
-			if v == "" {
-				skip = true
-			} else {
-				// Handle potential string values that might need quoting?
-				// For now, assume simple string values like 'FAST' or 'incremental'
-				// If values could contain spaces or special chars, quoting might be needed.
-				// Example: sqlValueStr = "'" + strings.ReplaceAll(v, "'", "''") + "'"
-				sqlValueStr = v // Embed directly for now
+			if val != "" {
+				return val, false
 			}
-		default:
-			logger.Warn().Str("pragma", p.Name).Interface("value", p.Value).Msg("Unsupported PRAGMA type, skipping.")
-			skip = true
 		}
+		return "", true
+	}
 
-		if skip {
-			continue
+	pragmas := []pragmaConfig{
+		{"journal_mode", opts.Journal, false, enumFormatter},
+		{"busy_timeout", opts.BusyTimeout, true, nil},           // Always set busy_timeout
+		{"foreign_keys", opts.ForeignKeys, true, boolFormatter}, // Always set foreign_keys
+		{"synchronous", opts.Synchronous, false, syncFormatter},
+		{"cache_size", opts.CacheSize, false, nil},
+		{"locking_mode", opts.LockingMode, false, enumFormatter},
+		{"auto_vacuum", opts.AutoVacuum, false, nil},
+		{"case_sensitive_like", opts.CaseSensitiveLike, false, boolFormatter},
+		{"defer_foreign_keys", opts.DeferForeignKeys, true, boolFormatter}, // Always set defer_foreign_keys
+		{"ignore_check_constraints", opts.IgnoreCheckConstraints, false, boolFormatter},
+		{"query_only", opts.QueryOnly, false, boolFormatter},
+		{"recursive_triggers", opts.RecursiveTriggers, false, boolFormatter},
+		{"secure_delete", opts.SecureDelete, false, nil},
+		{"writable_schema", opts.WritableSchema, false, boolFormatter},
+	}
+
+	// Format and apply each PRAGMA
+	for _, p := range pragmas {
+		var sqlValueStr string
+
+		switch v := p.value.(type) {
+		case int:
+			if v == 0 && !p.allowZero {
+				continue
+			}
+			sqlValueStr = fmt.Sprintf("%d", v)
+
+		case string:
+			if v == "" {
+				continue
+			}
+			sqlValueStr = v
+
+		default:
+			if p.formatValue != nil {
+				var skipFormat bool
+				sqlValueStr, skipFormat = p.formatValue(p.value)
+				if skipFormat {
+					continue
+				}
+			} else {
+				// For any other type, skip if nil or non-zero check fails
+				if p.value == nil || (!p.allowZero && isZero(p.value)) {
+					continue
+				}
+				sqlValueStr = fmt.Sprint(p.value)
+			}
 		}
 
 		// Build the full query string with the value embedded
-		query := fmt.Sprintf("PRAGMA %s = %s;", p.Name, sqlValueStr)
-		logger.Debug().Str("pragma", p.Name).Str("value", sqlValueStr).Str("query", query).Msg("Applying PRAGMA")
+		query := fmt.Sprintf("PRAGMA %s = %s;", p.name, sqlValueStr)
+		logger.Debug().Str("pragma", p.name).Str("value", sqlValueStr).Str("query", query).Msg("Applying PRAGMA")
 		_, err := conn.Exec(query) // Execute the full query string
 		if err != nil {
 			// Attempt to query the value if setting failed, maybe it's read-only or needs specific context
 			var currentValue interface{}
-			queryErr := conn.QueryRow(fmt.Sprintf("PRAGMA %s;", p.Name)).Scan(&currentValue)
-			logCtx := logger.Error().Err(err).Str("pragma", p.Name).Str("attempted_value", sqlValueStr).Str("query", query)
+			queryErr := conn.QueryRow(fmt.Sprintf("PRAGMA %s;", p.name)).Scan(&currentValue)
+			logCtx := logger.Error().Err(err).Str("pragma", p.name).Str("attempted_value", sqlValueStr).Str("query", query)
 			if queryErr == nil {
 				logCtx = logCtx.Interface("current_value", currentValue)
 			}
 			logCtx.Msg("Failed to apply PRAGMA")
-			return fmt.Errorf("failed to apply PRAGMA %s=%s: %w", p.Name, sqlValueStr, err)
+			// Collect the error instead of returning immediately
+			errs = append(errs, fmt.Errorf("failed to apply PRAGMA %s=%s: %w", p.name, sqlValueStr, err))
 		}
 	}
-	return nil
+	// Return a combined error if any PRAGMAs failed
+	return errors.Join(errs...)
+}
+
+// isZero returns true if the value is the zero value for its type
+func isZero(v interface{}) bool {
+	switch val := v.(type) {
+	case bool:
+		return !val
+	case int:
+		return val == 0
+	case string:
+		return val == ""
+	case fmt.Stringer:
+		return val.String() == ""
+	default:
+		return v == nil
+	}
 }
 
 // Conn returns the underlying database connection
