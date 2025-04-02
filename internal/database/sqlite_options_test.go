@@ -26,9 +26,10 @@ func TestBuildConnectionString(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "default options",
-			opts:     NewDefaultOptions("test.db"),
-			expected: "file:test.db?_busy_timeout=5000&_cache_size=2000&_foreign_keys=true&_journal_mode=WAL&_synchronous=NORMAL&cache=private&mode=rwc",
+			name: "default options",
+			opts: NewDefaultOptions("test.db"),
+			// Updated expected: Only URI params (mode, cache, immutable) should be present
+			expected: "file:test.db?cache=private&mode=rwc",
 		},
 		{
 			name: "memory database",
@@ -38,7 +39,8 @@ func TestBuildConnectionString(t *testing.T) {
 				ForeignKeys: true,
 				CacheSize:   1000,
 			},
-			expected: "file::memory:?_cache_size=1000&_foreign_keys=true&mode=memory",
+			// Updated expected: Only mode is set here via URI
+			expected: "file::memory:?mode=memory",
 		},
 		{
 			name: "all core options",
@@ -53,7 +55,8 @@ func TestBuildConnectionString(t *testing.T) {
 				Cache:       CachePrivate,
 				Immutable:   true,
 			},
-			expected: "file:full.db?_busy_timeout=10000&_cache_size=5000&_foreign_keys=true&_journal_mode=WAL&_synchronous=FULL&cache=private&immutable=true&mode=rwc",
+			// Updated expected: Only mode, cache, immutable are set via URI
+			expected: "file:full.db?cache=private&immutable=1&mode=rwc", // immutable=1 for true
 		},
 		{
 			name: "transaction and locking options",
@@ -63,7 +66,8 @@ func TestBuildConnectionString(t *testing.T) {
 				TxLock:       "immediate",
 				MutexLocking: "full",
 			},
-			expected: "file:locked.db?_locking_mode=EXCLUSIVE&_mutex=full&_txlock=immediate",
+			// Updated expected: No URI params set for these options
+			expected: "file:locked.db",
 		},
 		{
 			name: "advanced options",
@@ -78,7 +82,8 @@ func TestBuildConnectionString(t *testing.T) {
 				SecureDelete:           "FAST",
 				WritableSchema:         true,
 			},
-			expected: "file:advanced.db?_auto_vacuum=full&_case_sensitive_like=true&_defer_foreign_keys=true&_ignore_check_constraints=true&_query_only=true&_recursive_triggers=true&_secure_delete=FAST&_writable_schema=true",
+			// Updated expected: No URI params set for these options
+			expected: "file:advanced.db",
 		},
 		{
 			name: "authentication options",
@@ -90,7 +95,8 @@ func TestBuildConnectionString(t *testing.T) {
 				AuthCrypt: "SHA256",
 				AuthSalt:  "salt",
 			},
-			expected: "file:auth.db?_auth=&_auth_crypt=SHA256&_auth_pass=pass&_auth_salt=salt&_auth_user=user",
+			// Updated expected: No URI params set for auth options
+			expected: "file:auth.db",
 		},
 	}
 

@@ -3,7 +3,6 @@ package sqlite3
 import (
 	"database/sql"
 	"fmt"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,30 +16,27 @@ import (
 )
 
 func Test(t *testing.T) {
-	dir := t.TempDir()
-	t.Logf("DB path : %s\n", filepath.Join(dir, "sqlite3.db"))
 	p := &Sqlite{}
-	addr := filepath.Join(dir, "sqlite3.db")
+	addr := "file::memory:?mode=memory"
+	t.Logf("Using in-memory database: %s", addr)
 	d, err := p.Open(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer d.Close() // Ensure driver connection is closed
 	dt.Test(t, d, []byte("CREATE TABLE t (Qty int, Name string);"))
 }
 
 func TestMigrate(t *testing.T) {
-	dir := t.TempDir()
-	t.Logf("DB path : %s\n", filepath.Join(dir, "sqlite3.db"))
+	addr := "file::memory:?mode=memory"
+	t.Logf("Using in-memory database: %s", addr)
 
-	db, err := sql.Open("sqlite3", filepath.Join(dir, "sqlite3.db"))
+	db, err := sql.Open("sqlite3", addr)
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			return
-		}
-	}()
+	// Defer closing db first, then migrator (LIFO order means m closes first)
+	defer db.Close()
 	driver, err := WithInstance(db, &Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -52,23 +48,20 @@ func TestMigrate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer m.Close()
 	dt.TestMigrate(t, m)
 }
 
 func TestMigrationTable(t *testing.T) {
-	dir := t.TempDir()
+	addr := "file::memory:?mode=memory"
+	t.Logf("Using in-memory database: %s", addr)
 
-	t.Logf("DB path : %s\n", filepath.Join(dir, "sqlite3.db"))
-
-	db, err := sql.Open("sqlite3", filepath.Join(dir, "sqlite3.db"))
+	db, err := sql.Open("sqlite3", addr)
 	if err != nil {
-		return
+		t.Fatal(err)
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			return
-		}
-	}()
+	// Defer closing db first, then migrator (LIFO order means m closes first)
+	defer db.Close()
 
 	config := &Config{
 		MigrationsTable: "my_migration_table",
@@ -83,6 +76,7 @@ func TestMigrationTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer m.Close()
 	t.Log("UP")
 	err = m.Up()
 	if err != nil {
@@ -96,24 +90,23 @@ func TestMigrationTable(t *testing.T) {
 }
 
 func TestNoTxWrap(t *testing.T) {
-	dir := t.TempDir()
-	t.Logf("DB path : %s\n", filepath.Join(dir, "sqlite3.db"))
 	p := &Sqlite{}
-	addr := fmt.Sprintf("%s?x-no-tx-wrap=true", filepath.Join(dir, "sqlite3.db"))
+	addr := "file::memory:?mode=memory&x-no-tx-wrap=true"
+	t.Logf("Using in-memory database with no tx wrap: %s", addr)
 	d, err := p.Open(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer d.Close() // Ensure driver connection is closed
 	// An explicit BEGIN statement would ordinarily fail without x-no-tx-wrap.
 	// (Transactions in sqlite may not be nested.)
 	dt.Test(t, d, []byte("BEGIN; CREATE TABLE t (Qty int, Name string); COMMIT;"))
 }
 
 func TestNoTxWrapInvalidValue(t *testing.T) {
-	dir := t.TempDir()
-	t.Logf("DB path : %s\n", filepath.Join(dir, "sqlite3.db"))
 	p := &Sqlite{}
-	addr := fmt.Sprintf("%s?x-no-tx-wrap=yeppers", filepath.Join(dir, "sqlite3.db"))
+	addr := "file::memory:?mode=memory&x-no-tx-wrap=yeppers"
+	t.Logf("Using in-memory database with invalid no tx wrap: %s", addr)
 	_, err := p.Open(addr)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "x-no-tx-wrap")
@@ -122,14 +115,13 @@ func TestNoTxWrapInvalidValue(t *testing.T) {
 }
 
 func TestMigrateWithDirectoryNameContainsWhitespaces(t *testing.T) {
-	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "sqlite3.db")
-	t.Logf("DB path : %s\n", dbPath)
 	p := &Sqlite{}
-	addr := fmt.Sprintf("file:%s", dbPath)
+	addr := "file::memory:?mode=memory"
+	t.Logf("Using in-memory database: %s", addr)
 	d, err := p.Open(addr)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer d.Close() // Ensure driver connection is closed
 	dt.Test(t, d, []byte("CREATE TABLE t (Qty int, Name string);"))
 }

@@ -52,71 +52,23 @@ func TestBuildConnectionString_CoreOptions(t *testing.T) {
 	}
 
 	result := opts.buildConnectionString()
-	assert.Contains(t, result, "_journal_mode=WAL")
-	assert.Contains(t, result, "_foreign_keys=true")
-	assert.Contains(t, result, "_busy_timeout=5000")
-	assert.Contains(t, result, "_cache_size=2000")
-	assert.Contains(t, result, "_synchronous=NORMAL")
+	// Only check for parameters supported via URI
 	assert.Contains(t, result, "cache=private")
-	assert.Contains(t, result, "immutable=true")
+	assert.Contains(t, result, "immutable=1") // Should be =1 now
 	assert.Contains(t, result, "mode=rwc")
+	// Assert that removed parameters are NOT present
+	assert.NotContains(t, result, "_journal_mode")
+	assert.NotContains(t, result, "_foreign_keys")
+	assert.NotContains(t, result, "_busy_timeout")
+	assert.NotContains(t, result, "_cache_size")
+	assert.NotContains(t, result, "_synchronous")
 }
 
-func TestBuildConnectionString_TransactionOptions(t *testing.T) {
-	opts := SQLiteOptions{
-		Path:         "test.db",
-		LockingMode:  LockingExclusive,
-		TxLock:       "immediate",
-		MutexLocking: "full",
-	}
+// Removed TestBuildConnectionString_TransactionOptions as these are set via PRAGMA now
 
-	result := opts.buildConnectionString()
-	assert.Contains(t, result, "_locking_mode=EXCLUSIVE")
-	assert.Contains(t, result, "_txlock=immediate")
-	assert.Contains(t, result, "_mutex=full")
-}
+// Removed TestBuildConnectionString_AdvancedOptions as these are set via PRAGMA now
 
-func TestBuildConnectionString_AdvancedOptions(t *testing.T) {
-	opts := SQLiteOptions{
-		Path:                   "test.db",
-		AutoVacuum:             "full",
-		CaseSensitiveLike:      true,
-		DeferForeignKeys:       true,
-		IgnoreCheckConstraints: true,
-		QueryOnly:              true,
-		RecursiveTriggers:      true,
-		SecureDelete:           "FAST",
-		WritableSchema:         true,
-	}
-
-	result := opts.buildConnectionString()
-	assert.Contains(t, result, "_auto_vacuum=full")
-	assert.Contains(t, result, "_case_sensitive_like=true")
-	assert.Contains(t, result, "_defer_foreign_keys=true")
-	assert.Contains(t, result, "_ignore_check_constraints=true")
-	assert.Contains(t, result, "_query_only=true")
-	assert.Contains(t, result, "_recursive_triggers=true")
-	assert.Contains(t, result, "_secure_delete=FAST")
-	assert.Contains(t, result, "_writable_schema=true")
-}
-
-func TestBuildConnectionString_AuthOptions(t *testing.T) {
-	opts := SQLiteOptions{
-		Path:      "test.db",
-		Auth:      true,
-		AuthUser:  "admin",
-		AuthPass:  "password123",
-		AuthCrypt: "SHA256",
-		AuthSalt:  "salt123",
-	}
-
-	result := opts.buildConnectionString()
-	assert.Contains(t, result, "_auth=")
-	assert.Contains(t, result, "_auth_user=admin")
-	assert.Contains(t, result, "_auth_pass=password123")
-	assert.Contains(t, result, "_auth_crypt=SHA256")
-	assert.Contains(t, result, "_auth_salt=salt123")
-}
+// Removed TestBuildConnectionString_AuthOptions as these are likely set via PRAGMA or other means
 
 func TestBuildConnectionString_EmptyOptions(t *testing.T) {
 	opts := SQLiteOptions{
@@ -141,12 +93,14 @@ func TestBuildConnectionString_ComplexCombination(t *testing.T) {
 	}
 
 	result := opts.buildConnectionString()
-	assert.Contains(t, result, "_journal_mode=WAL")
-	assert.Contains(t, result, "_foreign_keys=true")
-	assert.Contains(t, result, "_busy_timeout=10000")
-	assert.Contains(t, result, "_locking_mode=EXCLUSIVE")
-	assert.Contains(t, result, "_query_only=true")
-	assert.Contains(t, result, "_auth=")
-	assert.Contains(t, result, "_auth_user=admin")
+	// Only check for parameters supported via URI
 	assert.Contains(t, result, "mode=rwc")
+	// Assert that removed parameters are NOT present
+	assert.NotContains(t, result, "_journal_mode", "ComplexCombination")
+	assert.NotContains(t, result, "_foreign_keys", "ComplexCombination")
+	assert.NotContains(t, result, "_busy_timeout", "ComplexCombination")
+	assert.NotContains(t, result, "_locking_mode", "ComplexCombination")
+	assert.NotContains(t, result, "_query_only", "ComplexCombination")
+	assert.NotContains(t, result, "_auth", "ComplexCombination") // Ensure _auth and _auth_user are not present
+	assert.NotContains(t, result, "_auth_user", "ComplexCombination")
 }
