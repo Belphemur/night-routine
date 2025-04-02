@@ -12,8 +12,17 @@ import (
 
 // setupTestDB creates a new in-memory database for testing
 func setupTestDB(t *testing.T) (*database.DB, func()) {
-	// Create a new in-memory database
-	db, err := database.New("file::memory:?cache=shared&_foreign_keys=on")
+	// Create a new in-memory database with shared cache and foreign keys enabled
+	opts := database.SQLiteOptions{
+		Path:        ":memory:",           // Use ":memory:" for in-memory database path
+		Mode:        "memory",             // Explicitly set mode to memory
+		Cache:       database.CacheShared, // Use shared cache
+		ForeignKeys: true,                 // Enable foreign keys via PRAGMA
+		// Use other defaults from NewDefaultOptions if needed, or keep minimal
+		Journal:     database.JournalMemory, // Memory journal is suitable for in-memory DB
+		BusyTimeout: 5000,                   // Default busy timeout
+	}
+	db, err := database.New(opts)
 	assert.NoError(t, err)
 
 	// Run migrations

@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"embed"
+	"errors" // Import errors package for Join
 	"fmt"
 	"io/fs"
 
@@ -25,32 +26,193 @@ type DB struct {
 	dbPath string // Store dbPath for logging
 }
 
-// NewWithOptions creates a new database connection with the specified options
-func NewWithOptions(opts SQLiteOptions) (*DB, error) {
-	connStr := opts.buildConnectionString()
-	return New(connStr)
-}
+// Removed NewWithOptions as New now directly accepts SQLiteOptions
 
-// New creates a new database connection.
-// For more configuration options, use NewWithOptions instead.
-func New(connectionString string) (*DB, error) {
-	logger := logging.GetLogger("database").With().Str("db_path", connectionString).Logger()
-	logger.Info().Msg("Opening database connection")
-	conn, err := sql.Open("sqlite3", connectionString)
+// New creates a new database connection using the provided options.
+// It configures the connection using both DSN parameters (for supported options like mode, cache, immutable)
+// and explicit PRAGMA commands executed after the connection is established for other settings.
+func New(opts SQLiteOptions) (*DB, error) {
+	// Build connection string with only URI-supported parameters
+	connStr := opts.buildConnectionString()
+	logger := logging.GetLogger("database").With().Str("db_path", opts.Path).Logger() // Use opts.Path for logging
+	logger.Info().Str("connection_string", connStr).Msg("Opening database connection")
+	conn, err := sql.Open("sqlite3", connStr)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to open database")
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Ping the database to ensure connection is valid
-	if err := conn.Ping(); err != nil {
-		logger.Error().Err(err).Msg("Failed to ping database after open")
+	// Apply PRAGMAs not supported by DSN
+	if err = applyPragmas(conn, opts, logger); err != nil {
+		conn.Close()    // Close connection if PRAGMA application fails
+		return nil, err // Return the specific PRAGMA error
+	}
+
+	// Ping the database to ensure connection and PRAGMAs are valid
+	if err = conn.Ping(); err != nil {
+		logger.Error().Err(err).Msg("Failed to ping database after open and applying PRAGMAs")
 		conn.Close() // Close the connection if ping fails
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
-	logger.Info().Msg("Database connection opened successfully")
+	logger.Info().Msg("Database connection opened and configured successfully")
 
-	return &DB{conn: conn, logger: logger, dbPath: connectionString}, nil
+	return &DB{conn: conn, logger: logger, dbPath: opts.Path}, nil // Store opts.Path
+}
+
+// applyPragmas executes PRAGMA commands based on SQLiteOptions after the connection is opened.
+// It iterates through the options and applies the corresponding PRAGMA if the option
+// has a non-default value. It attempts to apply all specified PRAGMAs and returns
+// a combined error if one or more PRAGMA applications fail.
+// pragmaConfig defines how a PRAGMA should be handled
+type pragmaConfig struct {
+	name        string                             // Name of the PRAGMA
+	value       interface{}                        // Value to set
+	allowZero   bool                               // Whether zero/false values should be applied
+	formatValue func(v interface{}) (string, bool) // Custom value formatter, returns formatted value and whether to skip
+}
+
+func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error {
+	var errs []error // Slice to collect errors
+
+	// Define formatters for specific types
+	boolFormatter := func(v interface{}) (string, bool) {
+		if b, ok := v.(bool); ok {
+			if b {
+				return "1", false
+			}
+			return "0", false
+		}
+		return "", true
+	}
+
+	syncFormatter := func(v interface{}) (string, bool) {
+		if mode, ok := v.(SynchronousMode); ok && mode != "" {
+			switch mode {
+			case SynchronousOff:
+				return "0", false
+			case SynchronousNormal:
+				return "1", false
+			case SynchronousFull:
+				return "2", false
+			case SynchronousExtra:
+				return "3", false
+			}
+		}
+		return "", true
+	}
+
+	// Default string formatter for enums that ensures values are uppercase for SQLite
+	enumFormatter := func(v interface{}) (string, bool) {
+		switch val := v.(type) {
+		case JournalMode:
+			if val != "" {
+				return string(val), false // JournalMode constants are already uppercase
+			}
+		case SynchronousMode:
+			if val != "" {
+				return string(val), false // SynchronousMode constants are already uppercase
+			}
+		case LockingMode:
+			if val != "" {
+				return string(val), false // LockingMode constants are already uppercase
+			}
+		case fmt.Stringer:
+			if s := val.String(); s != "" {
+				return s, false
+			}
+		case string:
+			if val != "" {
+				return val, false
+			}
+		}
+		return "", true
+	}
+
+	pragmas := []pragmaConfig{
+		{"journal_mode", opts.Journal, false, enumFormatter},
+		{"busy_timeout", opts.BusyTimeout, true, nil},           // Always set busy_timeout
+		{"foreign_keys", opts.ForeignKeys, true, boolFormatter}, // Always set foreign_keys
+		{"synchronous", opts.Synchronous, false, syncFormatter},
+		{"cache_size", opts.CacheSize, false, nil},
+		{"locking_mode", opts.LockingMode, false, enumFormatter},
+		{"auto_vacuum", opts.AutoVacuum, false, nil},
+		{"case_sensitive_like", opts.CaseSensitiveLike, false, boolFormatter},
+		{"defer_foreign_keys", opts.DeferForeignKeys, true, boolFormatter}, // Always set defer_foreign_keys
+		{"ignore_check_constraints", opts.IgnoreCheckConstraints, false, boolFormatter},
+		{"query_only", opts.QueryOnly, false, boolFormatter},
+		{"recursive_triggers", opts.RecursiveTriggers, false, boolFormatter},
+		{"secure_delete", opts.SecureDelete, false, nil},
+		{"writable_schema", opts.WritableSchema, false, boolFormatter},
+	}
+
+	// Format and apply each PRAGMA
+	for _, p := range pragmas {
+		var sqlValueStr string
+
+		switch v := p.value.(type) {
+		case int:
+			if v == 0 && !p.allowZero {
+				continue
+			}
+			sqlValueStr = fmt.Sprintf("%d", v)
+
+		case string:
+			if v == "" {
+				continue
+			}
+			sqlValueStr = v
+
+		default:
+			if p.formatValue != nil {
+				var skipFormat bool
+				sqlValueStr, skipFormat = p.formatValue(p.value)
+				if skipFormat {
+					continue
+				}
+			} else {
+				// For any other type, skip if nil or non-zero check fails
+				if p.value == nil || (!p.allowZero && isZero(p.value)) {
+					continue
+				}
+				sqlValueStr = fmt.Sprint(p.value)
+			}
+		}
+
+		// Build the full query string with the value embedded
+		query := fmt.Sprintf("PRAGMA %s = %s;", p.name, sqlValueStr)
+		logger.Debug().Str("pragma", p.name).Str("value", sqlValueStr).Str("query", query).Msg("Applying PRAGMA")
+		_, err := conn.Exec(query) // Execute the full query string
+		if err != nil {
+			// Attempt to query the value if setting failed, maybe it's read-only or needs specific context
+			var currentValue interface{}
+			queryErr := conn.QueryRow(fmt.Sprintf("PRAGMA %s;", p.name)).Scan(&currentValue)
+			logCtx := logger.Error().Err(err).Str("pragma", p.name).Str("attempted_value", sqlValueStr).Str("query", query)
+			if queryErr == nil {
+				logCtx = logCtx.Interface("current_value", currentValue)
+			}
+			logCtx.Msg("Failed to apply PRAGMA")
+			// Collect the error instead of returning immediately
+			errs = append(errs, fmt.Errorf("failed to apply PRAGMA %s=%s: %w", p.name, sqlValueStr, err))
+		}
+	}
+	// Return a combined error if any PRAGMAs failed
+	return errors.Join(errs...)
+}
+
+// isZero returns true if the value is the zero value for its type
+func isZero(v interface{}) bool {
+	switch val := v.(type) {
+	case bool:
+		return !val
+	case int:
+		return val == 0
+	case string:
+		return val == ""
+	case fmt.Stringer:
+		return val.String() == ""
+	default:
+		return v == nil
+	}
 }
 
 // Conn returns the underlying database connection

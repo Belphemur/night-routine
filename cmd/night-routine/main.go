@@ -90,14 +90,19 @@ func run(ctx context.Context) error {
 	}
 
 	// Initialize database
-	db, err := database.NewWithOptions(database.SQLiteOptions{
+	// Construct database options from config and desired settings
+	dbOpts := database.SQLiteOptions{
 		Path:        cfg.Service.StateFile,
-		Journal:     database.JournalWAL,
-		ForeignKeys: true,
-		AutoVacuum:  "incremental",
-		Cache:       "shared",
-		Mode:        "rwc",
-	})
+		Mode:        "rwc",                      // Read-Write-Create mode
+		Cache:       database.CacheShared,       // Use shared cache mode
+		Journal:     database.JournalWAL,        // Use WAL journal mode
+		ForeignKeys: true,                       // Enable foreign keys
+		AutoVacuum:  "incremental",              // Use incremental auto-vacuum
+		BusyTimeout: 5000,                       // Default busy timeout (ms)
+		Synchronous: database.SynchronousNormal, // Default synchronous mode
+		// CacheSize: 2000, // Default cache size (KB) - can be added if needed
+	}
+	db, err := database.New(dbOpts) // Use the refactored New function
 	if err != nil {
 		// Wrap error for context, logger will handle Err field
 		wrappedErr := fmt.Errorf("failed to initialize database: %w", err)
