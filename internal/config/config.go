@@ -79,29 +79,30 @@ func Load(path string) (*Config, error) {
 		cfg.App.Port = portNum
 	}
 
-	// Set default URLs if not specified in config
-	if cfg.App.AppUrl == "" {
-		cfg.App.AppUrl = fmt.Sprintf("http://localhost:%d", cfg.App.Port)
-	}
-	if cfg.App.PublicUrl == "" {
-		cfg.App.PublicUrl = cfg.App.AppUrl
-	}
-
-	// Load OAuth config from environment
+	// Load OAuth config essentials from environment (needed for validation)
 	cfg.OAuth = &oauth2.Config{
 		ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-		RedirectURL:  cfg.App.AppUrl + "/oauth/callback",
-		Scopes: []string{
-			calendar.CalendarEventsScope,
-			calendar.CalendarCalendarlistReadonlyScope,
-		},
-		Endpoint: google.Endpoint,
+		// RedirectURL, Scopes, Endpoint will be set after validation and potential AppUrl default
 	}
 
+	// Set default LogLevel before validation if not provided
+	if cfg.Service.LogLevel == "" {
+		cfg.Service.LogLevel = "info"
+	}
+
+	// Validate the configuration loaded so far (including URLs from TOML)
 	if err := validate(&cfg); err != nil {
 		return nil, err
 	}
+
+	// Now set the final OAuth details using the validated AppUrl
+	cfg.OAuth.RedirectURL = cfg.App.AppUrl + "/oauth/callback"
+	cfg.OAuth.Scopes = []string{
+		calendar.CalendarEventsScope,
+		calendar.CalendarCalendarlistReadonlyScope,
+	}
+	cfg.OAuth.Endpoint = google.Endpoint
 
 	return &cfg, nil
 }
