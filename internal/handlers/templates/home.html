@@ -99,6 +99,26 @@
             font-size: 0.9em;
         }
 
+        .calendar td .decision-reason {
+            font-size: 0.8em;
+            font-style: italic;
+            display: block;
+            margin-top: 2px;
+            color: #777;
+            /* Muted color */
+        }
+
+        /* Ensure decision reason inherits parent cell styling for different parent types */
+        .calendar td.ParentA .decision-reason {
+            color: rgba(25, 118, 210, 0.7);
+            /* Muted blue */
+        }
+
+        .calendar td.ParentB .decision-reason {
+            color: rgba(245, 124, 0, 0.7);
+            /* Muted orange */
+        }
+
         .calendar td.ParentA {
             background-color: #e3f2fd;
             /* Light blue background */
@@ -209,6 +229,9 @@
                         <span class="day-number">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>
+                        {{if .Assignment.DecisionReason}}
+                        <span class="decision-reason">{{.Assignment.DecisionReason}}</span>
+                        {{end}}
                         {{end}}
                     </td>
                     {{end}}
