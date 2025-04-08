@@ -30,12 +30,12 @@ func New(db *database.DB) (*Tracker, error) {
 }
 
 // RecordAssignment records a new assignment with all details
-func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool, decisionReason string) (*Assignment, error) {
+func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool, decisionReason DecisionReason) (*Assignment, error) {
 	recordLogger := t.logger.With().
 		Str("date", date.Format(dateFormat)).
 		Str("parent", parent).
 		Bool("override", override).
-		Str("decision_reason", decisionReason).
+		Str("decision_reason", decisionReason.String()).
 		Logger()
 	recordLogger.Debug().Msg("Recording assignment details")
 
@@ -49,7 +49,7 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 		parent_name = excluded.parent_name,
 		override = excluded.override,
 		decision_reason = excluded.decision_reason
-	`, parent, date.Format(dateFormat), override, decisionReason)
+		`, parent, date.Format(dateFormat), override, decisionReason.String())
 
 	if err != nil {
 		recordLogger.Debug().Err(err).Msg("Failed to upsert assignment")
@@ -100,7 +100,7 @@ func (t *Tracker) scanAssignment(scanner interface {
 	}
 
 	if decisionReason.Valid {
-		a.DecisionReason = decisionReason.String
+		a.DecisionReason = DecisionReason(decisionReason.String)
 	}
 
 	date, err := time.Parse(dateFormat, dateStr)
@@ -386,7 +386,7 @@ type Assignment struct {
 	Date                  time.Time
 	Override              bool
 	GoogleCalendarEventID string
-	DecisionReason        string
+	DecisionReason        DecisionReason
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }

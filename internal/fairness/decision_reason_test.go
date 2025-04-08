@@ -19,14 +19,14 @@ func TestDecisionReasonTracking(t *testing.T) {
 	date := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	testCases := []struct {
 		parent         string
-		decisionReason string
+		decisionReason DecisionReason
 	}{
-		{"Alice", "Total Count"},
-		{"Bob", "Recent Count"},
-		{"Alice", "Consecutive Limit"},
-		{"Bob", "Alternating"},
-		{"Alice", "Unavailability"},
-		{"Bob", "Override"},
+		{"Alice", DecisionReasonTotalCount},
+		{"Bob", DecisionReasonRecentCount},
+		{"Alice", DecisionReasonConsecutiveLimit},
+		{"Bob", DecisionReasonAlternating},
+		{"Alice", DecisionReasonUnavailability},
+		{"Bob", DecisionReasonOverride},
 	}
 
 	// Record assignments with different decision reasons
@@ -60,15 +60,15 @@ func TestDecisionReasonWithOverride(t *testing.T) {
 	date := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	// Create initial assignment with a decision reason
-	assignment, err := tracker.RecordAssignment("Alice", date, false, "Total Count")
+	assignment, err := tracker.RecordAssignment("Alice", date, false, DecisionReasonTotalCount)
 	assert.NoError(t, err)
-	assert.Equal(t, "Total Count", assignment.DecisionReason)
+	assert.Equal(t, DecisionReasonTotalCount, assignment.DecisionReason)
 
 	// Override the assignment with a different decision reason
-	updatedAssignment, err := tracker.RecordAssignment("Bob", date, true, "Override")
+	updatedAssignment, err := tracker.RecordAssignment("Bob", date, true, DecisionReasonOverride)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", updatedAssignment.Parent)
-	assert.Equal(t, "Override", updatedAssignment.DecisionReason)
+	assert.Equal(t, DecisionReasonOverride, updatedAssignment.DecisionReason)
 	assert.True(t, updatedAssignment.Override)
 	// Should still be marked as override
 }
@@ -84,7 +84,7 @@ func TestDecisionReasonInRange(t *testing.T) {
 	startDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	// Create a series of assignments with different decision reasons
-	decisionReasons := []string{"Total Count", "Recent Count", "Consecutive Limit", "Alternating", "Unavailability"}
+	decisionReasons := []DecisionReason{DecisionReasonTotalCount, DecisionReasonRecentCount, DecisionReasonConsecutiveLimit, DecisionReasonAlternating, DecisionReasonUnavailability}
 	for i, reason := range decisionReasons {
 		date := startDate.AddDate(0, 0, i)
 		parent := "Alice"
@@ -120,7 +120,7 @@ func TestDecisionReasonWithGoogleCalendarID(t *testing.T) {
 	eventID := "google_event_123"
 
 	// Create assignment with decision reason
-	assignment, err := tracker.RecordAssignment("Alice", date, false, "Total Count")
+	assignment, err := tracker.RecordAssignment("Alice", date, false, DecisionReasonTotalCount)
 	assert.NoError(t, err)
 
 	// Set Google Calendar event ID separately
@@ -131,13 +131,13 @@ func TestDecisionReasonWithGoogleCalendarID(t *testing.T) {
 	assignment, err = tracker.GetAssignmentByID(assignment.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, eventID, assignment.GoogleCalendarEventID)
-	assert.Equal(t, "Total Count", assignment.DecisionReason)
+	assert.Equal(t, DecisionReasonTotalCount, assignment.DecisionReason)
 
 	// Get assignment by Google Calendar event ID
 	retrievedAssignment, err := tracker.GetAssignmentByGoogleCalendarEventID(eventID)
 	assert.NoError(t, err)
 	assert.NotNil(t, retrievedAssignment)
-	assert.Equal(t, "Total Count", retrievedAssignment.DecisionReason)
+	assert.Equal(t, DecisionReasonTotalCount, retrievedAssignment.DecisionReason)
 
 	// Update Google Calendar event ID and verify decision reason is preserved
 	newEventID := "google_event_456"
@@ -147,5 +147,5 @@ func TestDecisionReasonWithGoogleCalendarID(t *testing.T) {
 	updatedAssignment, err := tracker.GetAssignmentByID(assignment.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, newEventID, updatedAssignment.GoogleCalendarEventID)
-	assert.Equal(t, "Total Count", updatedAssignment.DecisionReason)
+	assert.Equal(t, DecisionReasonTotalCount, updatedAssignment.DecisionReason)
 }

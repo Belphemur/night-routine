@@ -30,24 +30,6 @@ func (p ParentType) String() string {
 	}
 }
 
-// DecisionReason represents the reason for a parent assignment decision
-type DecisionReason string
-
-const (
-	// Decision reason constants
-	DecisionReasonUnavailability   DecisionReason = "Unavailability"
-	DecisionReasonTotalCount       DecisionReason = "Total Count"
-	DecisionReasonRecentCount      DecisionReason = "Recent Count"
-	DecisionReasonConsecutiveLimit DecisionReason = "Consecutive Limit"
-	DecisionReasonAlternating      DecisionReason = "Alternating"
-	DecisionReasonOverride         DecisionReason = "Override"
-)
-
-// String returns the string representation of the DecisionReason
-func (d DecisionReason) String() string {
-	return string(d)
-}
-
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
@@ -55,7 +37,7 @@ type Assignment struct {
 	Parent                string
 	ParentType            ParentType
 	GoogleCalendarEventID string
-	DecisionReason        DecisionReason
+	DecisionReason        fairness.DecisionReason
 	UpdatedAt             time.Time
 }
 
@@ -129,7 +111,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 				Parent:                existing.Parent,
 				ParentType:            parentType,
 				GoogleCalendarEventID: existing.GoogleCalendarEventID,
-				DecisionReason:        DecisionReasonOverride,
+				DecisionReason:        fairness.DecisionReasonOverride,
 				UpdatedAt:             existing.UpdatedAt,
 			}
 			schedule = append(schedule, assignment)
@@ -187,7 +169,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 
 	// Record the assignment in the database
 	assignLogger.Debug().Msg("Recording assignment in tracker")
-	trackerAssignment, err := s.tracker.RecordAssignment(parent, date, false, string(decisionReason))
+	trackerAssignment, err := s.tracker.RecordAssignment(parent, date, false, decisionReason)
 	if err != nil {
 		assignLogger.Error().Err(err).Msg("Failed to record assignment")
 		return nil, fmt.Errorf("failed to record assignment: %w", err)
@@ -205,7 +187,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 		Parent:                trackerAssignment.Parent,
 		ParentType:            parentType,
 		GoogleCalendarEventID: trackerAssignment.GoogleCalendarEventID,
-		DecisionReason:        DecisionReason(trackerAssignment.DecisionReason),
+		DecisionReason:        trackerAssignment.DecisionReason,
 		UpdatedAt:             trackerAssignment.UpdatedAt,
 	}, nil
 }
@@ -259,7 +241,7 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 		Parent:                assignment.Parent,
 		ParentType:            parentType,
 		GoogleCalendarEventID: assignment.GoogleCalendarEventID,
-		DecisionReason:        DecisionReason(assignment.DecisionReason),
+		DecisionReason:        assignment.DecisionReason,
 		UpdatedAt:             assignment.UpdatedAt, // Include UpdatedAt
 	}, nil
 }
@@ -284,7 +266,7 @@ func (s *Scheduler) UpdateAssignmentParent(id int64, parent string, override boo
 }
 
 // determineParentForDate determines who should do the night routine on a specific date
-func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, DecisionReason, error) {
+func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason, error) {
 	determineLogger := s.logger.With().Str("date", date.Format("2006-01-02")).Logger()
 	determineLogger.Debug().Msg("Determining parent for date considering unavailability")
 	dayOfWeek := date.Format("Monday")
@@ -307,11 +289,11 @@ func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fa
 	// If one parent is unavailable, assign to the other
 	if parentAUnavailable {
 		determineLogger.Info().Str("assigned_parent", s.config.Parents.ParentB).Msg("Parent A unavailable, assigning Parent B")
-		return s.config.Parents.ParentB, DecisionReasonUnavailability, nil
+		return s.config.Parents.ParentB, fairness.DecisionReasonUnavailability, nil
 	}
 	if parentBUnavailable {
 		determineLogger.Info().Str("assigned_parent", s.config.Parents.ParentA).Msg("Parent B unavailable, assigning Parent A")
-		return s.config.Parents.ParentA, DecisionReasonUnavailability, nil
+		return s.config.Parents.ParentA, fairness.DecisionReasonUnavailability, nil
 	}
 
 	// Determine next parent based on fairness rules
@@ -332,7 +314,7 @@ func contains(slice []string, value string) bool {
 }
 
 // determineNextParent applies fairness rules to select the next parent
-func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, DecisionReason) {
+func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason) {
 	fairnessLogger := s.logger.With().Interface("stats", stats).Logger() // Add stats context
 	fairnessLogger.Debug().Msg("Applying fairness rules to determine next parent")
 
@@ -344,10 +326,10 @@ func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, 
 		// First assignment ever, assign to the parent with fewer total assignments
 		if stats[parentA].TotalAssignments <= stats[parentB].TotalAssignments {
 			fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer/equal total)")
-			return parentA, DecisionReasonTotalCount
+			return parentA, fairness.DecisionReasonTotalCount
 		}
 		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer total)")
-		return parentB, DecisionReasonTotalCount
+		return parentB, fairness.DecisionReasonTotalCount
 	}
 
 	// Prioritize the parent with fewer total assignments
@@ -360,10 +342,10 @@ func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, 
 
 	if statsA.TotalAssignments < statsB.TotalAssignments {
 		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer total)")
-		return parentA, DecisionReasonTotalCount
+		return parentA, fairness.DecisionReasonTotalCount
 	} else if statsB.TotalAssignments < statsA.TotalAssignments {
 		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer total)")
-		return parentB, DecisionReasonTotalCount
+		return parentB, fairness.DecisionReasonTotalCount
 	}
 
 	// If total assignments are equal, prioritize the parent with fewer recent assignments (last 30 days)
@@ -373,10 +355,10 @@ func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, 
 		Msg("Total assignments equal, comparing last 30 days")
 	if statsA.Last30Days < statsB.Last30Days {
 		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer last 30 days)")
-		return parentA, DecisionReasonRecentCount
+		return parentA, fairness.DecisionReasonRecentCount
 	} else if statsB.Last30Days < statsA.Last30Days {
 		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer last 30 days)")
-		return parentB, DecisionReasonRecentCount
+		return parentB, fairness.DecisionReasonRecentCount
 	}
 
 	// Avoid more than two consecutive assignments
@@ -392,18 +374,18 @@ func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, 
 		// Force switch to the other parent
 		if lastParent == parentA {
 			fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (forced switch)")
-			return parentB, DecisionReasonConsecutiveLimit
+			return parentB, fairness.DecisionReasonConsecutiveLimit
 		}
 		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (forced switch)")
-		return parentA, DecisionReasonConsecutiveLimit
+		return parentA, fairness.DecisionReasonConsecutiveLimit
 	}
 
 	// Default to alternating if all else is equal
 	fairnessLogger.Info().Msg("All fairness factors equal or within limits, defaulting to alternating")
 	if lastParent == parentB {
 		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (alternating)")
-		return parentA, DecisionReasonAlternating
+		return parentA, fairness.DecisionReasonAlternating
 	}
 	fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (alternating)")
-	return parentB, DecisionReasonAlternating
+	return parentB, fairness.DecisionReasonAlternating
 }
