@@ -454,7 +454,8 @@ state_file = "relative/path/state.db"
 	if os.PathSeparator == '\\' { // Handle Windows paths
 		absPath = "C:\\absolute\\path\\state.db"
 		// Create the directory structure if it doesn't exist (needed for IsAbs check on Windows sometimes)
-		os.MkdirAll(filepath.Dir(absPath), 0755)
+		err := os.MkdirAll(filepath.Dir(absPath), 0755)
+		require.NoError(t, err, "Failed to create directory structure for absolute path test")
 	}
 
 	// Use standard multi-line TOML for clarity and correctness
