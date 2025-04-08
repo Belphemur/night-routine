@@ -58,6 +58,9 @@ type ServiceConfig struct {
 // Load reads the configuration file and environment variables
 func Load(path string) (*Config, error) {
 	var cfg Config
+	// Set defaults before decoding
+	cfg.Service.ManualSyncOnStartup = true // Default to true
+
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return nil, err
 	}

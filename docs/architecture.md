@@ -59,7 +59,7 @@ look_ahead_days = 30
 [service]
 state_file = "data/state.db"
 log_level = "info" # Logging level
-manual_sync_on_startup = false # Perform sync on startup if token exists
+# manual_sync_on_startup = true # Optional: Perform sync on startup (defaults to true). Set to false to disable.
 ```
 
 ### Environment Variables
@@ -115,12 +115,10 @@ sequenceDiagram
 - OAuth2 authentication flow using environment variables
 - Calendar selection UI
 - Components:
-  - Home page with connection status and **assignment calendar view** (if authenticated).
+  - Home page with connection status
   - OAuth callback handler
   - Calendar selection page
   - Success/error notifications
-  - Uses `internal/viewhelpers` for calendar data structuring.
-  - Home page fetches predicted schedule from `Scheduler`.
 
 ### 2.5 State Storage (SQLite)
 

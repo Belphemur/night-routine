@@ -69,7 +69,7 @@ look_ahead_days = 14
 [service]
 state_file = "data/test.db"
 log_level = "debug"
-manual_sync_on_startup = true # Explicitly set for this test
+manual_sync_on_startup = false # Explicitly set to false to test override
 `
 	configFile := createTempConfigFile(t, validToml)
 	setEnvVars(t, map[string]string{
@@ -96,7 +96,7 @@ manual_sync_on_startup = true # Explicitly set for this test
 	expectedSuffix := filepath.Join("data", "test.db")
 	assert.True(t, strings.HasSuffix(filepath.Clean(cfg.Service.StateFile), expectedSuffix), "Expected StateFile path '%s' to end with '%s'", cfg.Service.StateFile, expectedSuffix)
 	assert.Equal(t, "debug", cfg.Service.LogLevel)
-	assert.True(t, cfg.Service.ManualSyncOnStartup, "ManualSyncOnStartup should be true as set in TOML")
+	assert.False(t, cfg.Service.ManualSyncOnStartup, "ManualSyncOnStartup should be false as set in TOML") // Check override
 
 	require.NotNil(t, cfg.OAuth)
 	assert.Equal(t, "test-client-id", cfg.OAuth.ClientID)
@@ -122,7 +122,7 @@ look_ahead_days = 7
 [service]
 state_file = "state.db"
 # log_level is missing, should default to "info"
-# manual_sync_on_startup is missing, should default to false
+# manual_sync_on_startup is missing, should default to true
 # port is missing, should default to 8888
 `
 	configFile := createTempConfigFile(t, minimalToml)
@@ -136,10 +136,10 @@ state_file = "state.db"
 	require.NotNil(t, cfg)
 
 	// Check defaults for fields NOT provided in TOML
-	assert.Equal(t, 8888, cfg.App.Port)           // Default port
-	assert.Equal(t, "info", cfg.Service.LogLevel) // Default log level
-	assert.False(t, cfg.Service.ManualSyncOnStartup, "ManualSyncOnStartup should default to false")
-	assert.Equal(t, "", cfg.Schedule.CalendarID) // Default calendar ID is empty
+	assert.Equal(t, 8888, cfg.App.Port)                                                           // Default port
+	assert.Equal(t, "info", cfg.Service.LogLevel)                                                 // Default log level
+	assert.True(t, cfg.Service.ManualSyncOnStartup, "ManualSyncOnStartup should default to true") // Check new default
+	assert.Equal(t, "", cfg.Schedule.CalendarID)                                                  // Default calendar ID is empty
 
 	// Check values provided in TOML
 	assert.Equal(t, "http://required-app.com", cfg.App.AppUrl)
@@ -175,7 +175,7 @@ update_frequency = "weekly"
 look_ahead_days = 7
 [service]
 state_file = "state.db"
-manual_sync_on_startup = true # Set in TOML
+# manual_sync_on_startup is missing, should default to true
 `
 	configFile := createTempConfigFile(t, tomlContent)
 	setEnvVars(t, map[string]string{
@@ -191,7 +191,7 @@ manual_sync_on_startup = true # Set in TOML
 	assert.Equal(t, 9999, cfg.App.Port, "Port should be overridden by ENV var")
 	assert.Equal(t, "http://config-app.com", cfg.App.AppUrl) // URLs should come from TOML
 	assert.Equal(t, "http://config-public.com", cfg.App.PublicUrl)
-	assert.True(t, cfg.Service.ManualSyncOnStartup, "ManualSyncOnStartup should be true from TOML (not overridden by env)")
+	assert.True(t, cfg.Service.ManualSyncOnStartup, "ManualSyncOnStartup should be true (default)") // Check default
 	assert.Equal(t, "env-client-id", cfg.OAuth.ClientID)
 	assert.Equal(t, "env-client-secret", cfg.OAuth.ClientSecret)
 	assert.Equal(t, "http://config-app.com/oauth/callback", cfg.OAuth.RedirectURL) // Redirect uses AppUrl from TOML
