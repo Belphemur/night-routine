@@ -97,7 +97,31 @@
 
         .calendar td .assignment {
             font-size: 0.9em;
-            color: #333;
+        }
+
+        .calendar td.ParentA {
+            background-color: #e3f2fd;
+            /* Light blue background */
+            color: #1976d2;
+            /* Darker blue text */
+            border: 1px solid #bbdefb;
+            /* Slightly darker blue border */
+        }
+
+        .calendar td.ParentB {
+            background-color: #fff3e0;
+            /* Light orange background */
+            color: #f57c00;
+            /* Darker orange text */
+            border: 1px solid #ffe0b2;
+            /* Slightly darker orange border */
+        }
+
+        /* Keep the original assignment text visible */
+        .calendar td.ParentA .assignment,
+        .calendar td.ParentB .assignment {
+            color: inherit;
+            /* Use the parent element's color */
         }
 
         .calendar td.padding-day {
@@ -180,7 +204,8 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}}" data-date="{{.Date.Format "2006-01-02"}}">
+                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}} {{if .Assignment}}{{.Assignment.ParentType.String}}{{end}}"
+                        data-date="{{.Date.Format "2006-01-02"}}">
                         <span class="day-number">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>

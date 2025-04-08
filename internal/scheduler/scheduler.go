@@ -10,11 +10,32 @@ import (
 	"github.com/rs/zerolog"                               // Import zerolog
 )
 
+// ParentType represents which parent is assigned
+type ParentType int
+
+const (
+	ParentTypeA ParentType = iota
+	ParentTypeB
+)
+
+// String returns the string representation of the ParentType
+func (p ParentType) String() string {
+	switch p {
+	case ParentTypeA:
+		return "ParentA"
+	case ParentTypeB:
+		return "ParentB"
+	default:
+		return "Unknown"
+	}
+}
+
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
 	Date                  time.Time
 	Parent                string
+	ParentType            ParentType
 	GoogleCalendarEventID string
 	UpdatedAt             time.Time
 }
@@ -79,10 +100,15 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 		if existing, ok := assignmentByDateOverridden[dateStr]; ok {
 			dayLogger.Info().Int64("assignment_id", existing.ID).Str("parent", existing.Parent).Msg("Using existing overridden assignment")
 			// Convert to scheduler assignment
+			parentType := ParentTypeB
+			if existing.Parent == s.config.Parents.ParentA {
+				parentType = ParentTypeA
+			}
 			assignment := &Assignment{
 				ID:                    existing.ID,
 				Date:                  existing.Date,
 				Parent:                existing.Parent,
+				ParentType:            parentType,
 				GoogleCalendarEventID: existing.GoogleCalendarEventID,
 				UpdatedAt:             existing.UpdatedAt,
 			}
@@ -149,10 +175,15 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	assignLogger.Info().Int64("assignment_id", trackerAssignment.ID).Msg("Assignment recorded successfully")
 
 	// Convert to scheduler assignment
+	parentType := ParentTypeB
+	if trackerAssignment.Parent == s.config.Parents.ParentA {
+		parentType = ParentTypeA
+	}
 	return &Assignment{
 		ID:                    trackerAssignment.ID,
 		Date:                  trackerAssignment.Date,
 		Parent:                trackerAssignment.Parent,
+		ParentType:            parentType,
 		GoogleCalendarEventID: trackerAssignment.GoogleCalendarEventID,
 		UpdatedAt:             trackerAssignment.UpdatedAt,
 	}, nil
@@ -197,10 +228,15 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 	}
 
 	getLogger.Info().Int64("assignment_id", assignment.ID).Msg("Found assignment by event ID")
+	parentType := ParentTypeB
+	if assignment.Parent == s.config.Parents.ParentA {
+		parentType = ParentTypeA
+	}
 	return &Assignment{
 		ID:                    assignment.ID,
 		Date:                  assignment.Date,
 		Parent:                assignment.Parent,
+		ParentType:            parentType,
 		GoogleCalendarEventID: assignment.GoogleCalendarEventID,
 		UpdatedAt:             assignment.UpdatedAt, // Include UpdatedAt
 	}, nil
