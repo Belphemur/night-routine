@@ -4,7 +4,7 @@ parent_b = "Taina"   # Second parent name
 
 [availability]
 parent_a_unavailable = ["Wednesday"]  # Days when parent A can't do the routine
-parent_b_unavailable = []     # Days when parent B can't do the routine
+parent_b_unavailable = ["Tuesday", "Thursday"]     # Days when parent B can't do the routine
 
 [schedule]
 update_frequency = "weekly"  # How often to update the calendar
@@ -13,7 +13,7 @@ look_ahead_days = 7        # How many days to schedule in advance
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
 log_level = "info"             # Possible values: trace, debug, info, warn, error, fatal, panic
-# manual_sync_on_startup = true # Optional: Perform a schedule sync immediately on startup if a token exists (defaults to true)
+manual_sync_on_startup = false # Optional: Perform a schedule sync immediately on startup if a token exists (defaults to true)
 
 [app]
 port = 8888  # The port to run the application on

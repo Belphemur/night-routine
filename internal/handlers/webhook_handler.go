@@ -14,8 +14,8 @@ import (
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/logging"
-	"github.com/belphemur/night-routine/internal/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
 	"github.com/rs/zerolog"
 )

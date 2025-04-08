@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 )
 
 // CalendarDay represents a single day cell in the calendar view.

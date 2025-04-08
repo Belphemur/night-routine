@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/viewhelpers"
-	"github.com/rs/zerolog" // Import zerolog for logger type hint
+	"github.com/rs/zerolog"
 )
 
 // HomeHandler manages home page functionality

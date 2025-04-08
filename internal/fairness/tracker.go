@@ -29,64 +29,14 @@ func New(db *database.DB) (*Tracker, error) {
 	}, nil
 }
 
-// RecordAssignment records a new assignment in the state database
-// This is a simplified version, prefer RecordAssignmentWithDetails for full control
-func (t *Tracker) RecordAssignment(parent string, date time.Time) (*Assignment, error) {
-	t.logger.Debug().Msg("RecordAssignment called (simplified version)")
-	// Check if there's already an assignment for this date
-	existingAssignment, err := t.GetAssignmentByDate(date)
-	if err != nil {
-		// Error already logged in GetAssignmentByDate
-		return nil, fmt.Errorf("failed to check existing assignment: %w", err)
-	}
-
-	// If there's already an assignment, update it only if parent changes
-	if existingAssignment != nil {
-		updateLogger := t.logger.With().Int64("assignment_id", existingAssignment.ID).Str("date", date.Format(dateFormat)).Logger()
-		// Only update if the parent has changed and it wasn't an override
-		if existingAssignment.Parent != parent && !existingAssignment.Override {
-			updateLogger.Debug().Str("old_parent", existingAssignment.Parent).Str("new_parent", parent).Msg("Updating existing assignment parent (non-override)")
-			_, err := t.db.Exec(`
-			UPDATE assignments
-			SET parent_name = ?, override = ?
-			WHERE id = ?
-			`, parent, false, existingAssignment.ID)
-
-			if err != nil {
-				updateLogger.Debug().Err(err).Msg("Failed to update assignment")
-				return nil, fmt.Errorf("failed to update assignment: %w", err)
-			}
-			updateLogger.Debug().Msg("Assignment updated successfully")
-			// Refresh the assignment
-			return t.GetAssignmentByID(existingAssignment.ID)
-		} else if existingAssignment.Override {
-			updateLogger.Debug().Str("existing_parent", existingAssignment.Parent).Msg("Existing assignment is an override, not changing parent")
-			return existingAssignment, nil
-		} else {
-			updateLogger.Debug().Str("parent", existingAssignment.Parent).Msg("Parent has not changed, returning existing assignment")
-			return existingAssignment, nil
-		}
-	}
-
-	// No existing assignment, create a new one with default details
-	t.logger.Debug().Str("date", date.Format(dateFormat)).Str("parent", parent).Msg("No existing assignment found, creating new one")
-	return t.RecordAssignmentWithDetails(parent, date, false, "")
-}
-
-// RecordAssignmentWithOverride records a new assignment with override flag
-// Deprecated: Use RecordAssignmentWithDetails instead
-func (t *Tracker) RecordAssignmentWithOverride(parent string, date time.Time, override bool) (*Assignment, error) {
-	t.logger.Debug().Msg("RecordAssignmentWithOverride called (deprecated)")
-	return t.RecordAssignmentWithDetails(parent, date, override, "")
-}
-
-// RecordAssignmentWithDetails records an assignment with all available details, handling insert or update.
-func (t *Tracker) RecordAssignmentWithDetails(parent string, date time.Time, override bool, googleCalendarEventID string) (*Assignment, error) {
+// RecordAssignment records a new assignment with all details
+func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool, googleCalendarEventID string, decisionReason string) (*Assignment, error) {
 	recordLogger := t.logger.With().
 		Str("date", date.Format(dateFormat)).
 		Str("parent", parent).
 		Bool("override", override).
 		Str("event_id", googleCalendarEventID).
+		Str("decision_reason", decisionReason).
 		Logger()
 	recordLogger.Debug().Msg("Recording assignment details")
 
@@ -102,28 +52,38 @@ func (t *Tracker) RecordAssignmentWithDetails(parent string, date time.Time, ove
 	if existingAssignment != nil {
 		recordLogger = recordLogger.With().Int64("assignment_id", existingAssignment.ID).Logger()
 		recordLogger.Debug().Msg("Existing assignment found, updating details")
-		// Update the assignment
-		_, err := t.db.Exec(`
-		UPDATE assignments
-		SET parent_name = ?, override = ?, google_calendar_event_id = ?
-		WHERE id = ?
-		`, parent, override, googleCalendarEventID, existingAssignment.ID)
 
-		if err != nil {
-			recordLogger.Debug().Err(err).Msg("Failed to update assignment")
-			return nil, fmt.Errorf("failed to update assignment: %w", err)
+		// Only update if the parent has changed and it wasn't an override
+		if existingAssignment.Parent != parent && !existingAssignment.Override {
+			recordLogger.Debug().Str("old_parent", existingAssignment.Parent).Str("new_parent", parent).Msg("Updating existing assignment parent (non-override)")
+			_, err := t.db.Exec(`
+			UPDATE assignments
+			SET parent_name = ?, override = ?, google_calendar_event_id = ?, decision_reason = ?
+			WHERE id = ?
+			`, parent, override, googleCalendarEventID, decisionReason, existingAssignment.ID)
+
+			if err != nil {
+				recordLogger.Debug().Err(err).Msg("Failed to update assignment")
+				return nil, fmt.Errorf("failed to update assignment: %w", err)
+			}
+			recordLogger.Debug().Msg("Assignment updated successfully")
+			// Refresh the assignment
+			return t.GetAssignmentByID(existingAssignment.ID)
+		} else if existingAssignment.Override {
+			recordLogger.Debug().Str("existing_parent", existingAssignment.Parent).Msg("Existing assignment is an override, not changing parent")
+			return existingAssignment, nil
+		} else {
+			recordLogger.Debug().Str("parent", existingAssignment.Parent).Msg("Parent has not changed, returning existing assignment")
+			return existingAssignment, nil
 		}
-		recordLogger.Debug().Msg("Assignment updated successfully")
-		// Refresh the assignment
-		return t.GetAssignmentByID(existingAssignment.ID)
 	}
 
 	// No existing assignment, create a new one
 	recordLogger.Debug().Msg("No existing assignment found, creating new one")
 	result, err := t.db.Exec(`
-	INSERT INTO assignments (parent_name, assignment_date, override, google_calendar_event_id)
-	VALUES (?, ?, ?, ?)
-	`, parent, date.Format(dateFormat), override, googleCalendarEventID)
+	INSERT INTO assignments (parent_name, assignment_date, override, google_calendar_event_id, decision_reason)
+	VALUES (?, ?, ?, ?, ?)
+	`, parent, date.Format(dateFormat), override, googleCalendarEventID, decisionReason)
 
 	if err != nil {
 		recordLogger.Debug().Err(err).Msg("Failed to insert new assignment")
@@ -149,6 +109,8 @@ func (t *Tracker) RecordAssignmentWithDetails(parent string, date time.Time, ove
 	return assignment, nil
 }
 
+// No deprecated methods here - we've consolidated to a single RecordAssignment method
+
 // scanAssignment scans a row into an Assignment struct
 func (t *Tracker) scanAssignment(scanner interface {
 	Scan(dest ...interface{}) error
@@ -157,6 +119,7 @@ func (t *Tracker) scanAssignment(scanner interface {
 	var dateStr string
 	var createdAt, updatedAt time.Time
 	var googleEventID sql.NullString
+	var decisionReason sql.NullString // New field
 
 	err := scanner.Scan(
 		&a.ID,
@@ -164,6 +127,7 @@ func (t *Tracker) scanAssignment(scanner interface {
 		&dateStr,
 		&a.Override,
 		&googleEventID,
+		&decisionReason, // New field
 		&createdAt,
 		&updatedAt,
 	)
@@ -176,6 +140,10 @@ func (t *Tracker) scanAssignment(scanner interface {
 
 	if googleEventID.Valid {
 		a.GoogleCalendarEventID = googleEventID.String
+	}
+
+	if decisionReason.Valid {
+		a.DecisionReason = decisionReason.String
 	}
 
 	date, err := time.Parse(dateFormat, dateStr)
@@ -195,7 +163,7 @@ func (t *Tracker) GetAssignmentByID(id int64) (*Assignment, error) {
 	getLogger := t.logger.With().Int64("assignment_id", id).Logger()
 	getLogger.Debug().Msg("Getting assignment by ID")
 	row := t.db.QueryRow(`
-		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
+		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 		FROM assignments
 		WHERE id = ?
 	`, id)
@@ -254,7 +222,7 @@ func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment
 	getLogger.Debug().Msg("Getting last assignments until date")
 	untilStr := until.Format(dateFormat)
 	rows, err := t.db.Query(`
-SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
+SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 FROM assignments
 WHERE assignment_date < ?
 ORDER BY assignment_date DESC
@@ -290,7 +258,7 @@ func (t *Tracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 	getLogger.Debug().Msg("Getting assignment by date")
 	dateStr := date.Format(dateFormat)
 	row := t.db.QueryRow(`
-		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
+		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 		FROM assignments
 		WHERE assignment_date = ?
 		ORDER BY id DESC
@@ -321,7 +289,7 @@ func (t *Tracker) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignm
 	}
 
 	row := t.db.QueryRow(`
-		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
+		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 		FROM assignments
 		WHERE google_calendar_event_id = ?
 	`, eventID)
@@ -351,7 +319,7 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 	endStr := end.Format(dateFormat)
 
 	rows, err := t.db.Query(`
-	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, created_at, updated_at
+	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 	FROM assignments
 	WHERE assignment_date >= ? AND assignment_date <= ?
 	ORDER BY assignment_date ASC
@@ -461,6 +429,7 @@ type Assignment struct {
 	Date                  time.Time
 	Override              bool
 	GoogleCalendarEventID string
+	DecisionReason        string
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
