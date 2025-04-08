@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -132,9 +133,15 @@ func validate(cfg *Config) error {
 	if cfg.App.AppUrl == "" {
 		return fmt.Errorf("app_url is required in [app] configuration")
 	}
+	if _, err := url.ParseRequestURI(cfg.App.AppUrl); err != nil {
+		return fmt.Errorf("invalid app_url '%s': %w", cfg.App.AppUrl, err)
+	}
 
 	if cfg.App.PublicUrl == "" {
 		return fmt.Errorf("public_url is required in [app] configuration")
+	}
+	if _, err := url.ParseRequestURI(cfg.App.PublicUrl); err != nil {
+		return fmt.Errorf("invalid public_url '%s': %w", cfg.App.PublicUrl, err)
 	}
 
 	// Validate OAuth configuration
