@@ -164,7 +164,7 @@ func run(ctx context.Context) error {
 	oauthHandler.RegisterRoutes()
 
 	// Initialize home handler
-	homeHandler := handlers.NewHomeHandler(baseHandler)
+	homeHandler := handlers.NewHomeHandler(baseHandler, sched)
 	homeHandler.RegisterRoutes()
 
 	// Initialize calendar handler with the calendar manager
