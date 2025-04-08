@@ -4,7 +4,7 @@ parent_b = "Taina"   # Second parent name
 
 [availability]
 parent_a_unavailable = ["Wednesday"]  # Days when parent A can't do the routine
-parent_b_unavailable = []     # Days when parent B can't do the routine
+parent_b_unavailable = ["Tuesday", "Thursday"]     # Days when parent B can't do the routine
 
 [schedule]
 update_frequency = "weekly"  # How often to update the calendar
