@@ -180,7 +180,7 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}}" data-date="{{.Date.Format " 2006-01-02"}}">
+                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}}" data-date="{{.Date.Format "2006-01-02"}}">
                         <span class="day-number">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>
