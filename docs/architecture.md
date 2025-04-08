@@ -12,7 +12,7 @@ graph TD
     A --> WH[Webhook Handler]
     A --> DB[Database Manager]
     A --> LG[Logging Service]
-
+    W --> VH[View Helpers]
     B --> F[routine.toml]
     B --> M[Environment Variables]
     C --> G[Schedule Generator]
@@ -20,10 +20,13 @@ graph TD
     E --> I[State Storage]
     W --> J[OAuth Handler]
     W --> K[Calendar Selection]
-    WH --> DB           
+    W --> HC[Home Handler]
+    WH --> DB
     WH --> C
     DB --> MG[Database Migrations]
     LG --> ZL[Zerolog Library]
+    HC --> VH
+    HC --> C
 
     J --> I
     K --> I
@@ -111,10 +114,12 @@ sequenceDiagram
 - OAuth2 authentication flow using environment variables
 - Calendar selection UI
 - Components:
-  - Home page with connection status
+  - Home page with connection status and **assignment calendar view** (if authenticated).
   - OAuth callback handler
   - Calendar selection page
   - Success/error notifications
+  - Uses `internal/viewhelpers` for calendar data structuring.
+  - Home page fetches predicted schedule from `Scheduler`.
 
 ### 2.5 State Storage (SQLite)
 
