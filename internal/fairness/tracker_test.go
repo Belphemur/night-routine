@@ -241,11 +241,11 @@ func TestGoogleCalendarIntegration(t *testing.T) {
 	// Create assignment
 	assignment, err := tracker.RecordAssignment("Alice", date, false, "Override")
 	assert.NoError(t, err)
-	
+
 	// Update with Google Calendar event ID
 	err = tracker.UpdateAssignmentGoogleCalendarEventID(assignment.ID, eventID)
 	assert.NoError(t, err)
-	
+
 	// Retrieve updated assignment
 	assignment, err = tracker.GetAssignmentByID(assignment.ID)
 	assert.NoError(t, err)
