@@ -15,8 +15,8 @@ import (
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/belphemur/night-routine/internal/handlers"
-	"github.com/belphemur/night-routine/internal/logging" // Import the new logging package
-	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/logging"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	appSignals "github.com/belphemur/night-routine/internal/signals"
 	"github.com/belphemur/night-routine/internal/token"
 )

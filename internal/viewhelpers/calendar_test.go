@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/stretchr/testify/assert"
 )
 

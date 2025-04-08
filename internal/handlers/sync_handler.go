@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/belphemur/night-routine/internal/calendar"
-	"github.com/belphemur/night-routine/internal/scheduler"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
 )
 
