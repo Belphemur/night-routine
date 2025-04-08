@@ -46,7 +46,7 @@ func TestRecordAssignment(t *testing.T) {
 
 	// Test recording a new assignment
 	date := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	assignment, err := tracker.RecordAssignment("Alice", date)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, "", "Total Count")
 	assert.NoError(t, err)
 	assert.NotNil(t, assignment)
 	assert.Equal(t, "Alice", assignment.Parent)
@@ -54,7 +54,7 @@ func TestRecordAssignment(t *testing.T) {
 	assert.False(t, assignment.Override)
 
 	// Test recording another assignment for the same date (should update)
-	assignment2, err := tracker.RecordAssignment("Bob", date)
+	assignment2, err := tracker.RecordAssignment("Bob", date, false, "", "Alternating")
 	assert.NoError(t, err)
 	assert.NotNil(t, assignment2)
 	assert.Equal(t, "Bob", assignment2.Parent)
@@ -79,7 +79,7 @@ func TestGetLastAssignmentsUntil(t *testing.T) {
 	parents := []string{"Alice", "Bob", "Alice"}
 
 	for i, date := range dates {
-		_, err := tracker.RecordAssignment(parents[i], date)
+		_, err := tracker.RecordAssignment(parents[i], date, false, "", "Alternating")
 		assert.NoError(t, err)
 	}
 
@@ -115,7 +115,7 @@ func TestGetParentStatsUntil(t *testing.T) {
 	}
 
 	for _, a := range assignments {
-		_, err := tracker.RecordAssignment(a.parent, a.date)
+		_, err := tracker.RecordAssignment(a.parent, a.date, false, "", "Total Count")
 		assert.NoError(t, err)
 	}
 
@@ -150,7 +150,7 @@ func TestGetAssignmentByDate(t *testing.T) {
 	assert.Nil(t, assignment)
 
 	// Create an assignment
-	created, err := tracker.RecordAssignment("Alice", date)
+	created, err := tracker.RecordAssignment("Alice", date, false, "", "Total Count")
 	assert.NoError(t, err)
 
 	// Get the assignment
@@ -172,7 +172,7 @@ func TestAssignmentWithOverride(t *testing.T) {
 	date := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	// Create initial assignment
-	assignment, err := tracker.RecordAssignment("Alice", date)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, "", "Total Count")
 	assert.NoError(t, err)
 	assert.False(t, assignment.Override)
 
@@ -187,7 +187,7 @@ func TestAssignmentWithOverride(t *testing.T) {
 	assert.Equal(t, "Bob", updated.Parent)
 
 	// Try to update via normal assignment (should not change due to override)
-	assignment, err = tracker.RecordAssignment("Alice", date)
+	assignment, err = tracker.RecordAssignment("Alice", date, false, "", "Total Count")
 	assert.NoError(t, err)
 	assert.True(t, assignment.Override)
 	assert.Equal(t, "Bob", assignment.Parent) // Should still be Bob due to override
@@ -213,7 +213,7 @@ func TestGetAssignmentsInRange(t *testing.T) {
 	}
 
 	for _, a := range assignments {
-		_, err := tracker.RecordAssignment(a.parent, a.date)
+		_, err := tracker.RecordAssignment(a.parent, a.date, false, "", "Alternating")
 		assert.NoError(t, err)
 	}
 
@@ -239,7 +239,7 @@ func TestGoogleCalendarIntegration(t *testing.T) {
 	eventID := "google_event_123"
 
 	// Create assignment with Google Calendar event ID
-	assignment, err := tracker.RecordAssignmentWithDetails("Alice", date, false, eventID)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, eventID, "Override")
 	assert.NoError(t, err)
 	assert.Equal(t, eventID, assignment.GoogleCalendarEventID)
 
