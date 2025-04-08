@@ -81,6 +81,8 @@
             /* Give cells some height */
             width: 14.28%;
             /* 100% / 7 days */
+            position: relative;
+            /* For tooltip positioning */
         }
 
         .calendar th {
@@ -102,10 +104,24 @@
         .calendar td .decision-reason {
             font-size: 0.8em;
             font-style: italic;
-            display: block;
+            display: none;
+            /* Hidden by default on desktop */
             margin-top: 2px;
             color: #777;
             /* Muted color */
+        }
+
+        /* Show decision reason on mobile devices */
+        @media (max-width: 768px) {
+            .calendar td .decision-reason {
+                display: block;
+                /* Always visible on mobile */
+            }
+        }
+
+        /* Show decision reason when calendar is in active state */
+        .calendar.show-reasons .decision-reason {
+            display: block;
         }
 
         /* Ensure decision reason inherits parent cell styling for different parent types */
@@ -117,6 +133,31 @@
         .calendar td.ParentB .decision-reason {
             color: rgba(245, 124, 0, 0.7);
             /* Muted orange */
+        }
+
+        /* Tooltip styles for desktop */
+        .calendar td .tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Show tooltip on hover */
+        @media (min-width: 769px) {
+            .calendar td:hover .tooltip {
+                visibility: visible;
+                opacity: 1;
+            }
         }
 
         .calendar td.ParentA {
@@ -208,7 +249,7 @@
     {{if and .IsAuthenticated .CalendarWeeks}}
     <div class="calendar-container">
         <h2>Assignment Calendar: {{.CurrentMonth}}</h2>
-        <table class="calendar">
+        <table class="calendar" id="assignment-calendar">
             <thead>
                 <tr>
                     <th>Mon</th>
@@ -230,6 +271,7 @@
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>
                         {{if .Assignment.DecisionReason}}
+                        <span class="tooltip">{{.Assignment.DecisionReason}}</span>
                         <span class="decision-reason">{{.Assignment.DecisionReason}}</span>
                         {{end}}
                         {{end}}
@@ -264,6 +306,14 @@
 
         if (todayCell) {
             todayCell.classList.add('today');
+        }
+
+        // Add click event to show all decision reasons
+        const calendar = document.getElementById('assignment-calendar');
+        if (calendar) {
+            calendar.addEventListener('click', function () {
+                calendar.classList.toggle('show-reasons');
+            });
         }
     });
 </script>
