@@ -350,14 +350,6 @@ func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, 
 		return parentB, DecisionReasonTotalCount
 	}
 
-	// Log last assignments for context
-	// Be careful logging potentially large slices
-	// lastParents := make([]string, 0, len(lastAssignments))
-	// for _, a := range lastAssignments {
-	// 	lastParents = append(lastParents, a.Parent)
-	// }
-	// fairnessLogger = fairnessLogger.With().Strs("last_parents", lastParents).Logger()
-
 	// Prioritize the parent with fewer total assignments
 	statsA := stats[parentA]
 	statsB := stats[parentB]
