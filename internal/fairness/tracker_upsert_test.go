@@ -78,7 +78,7 @@ func TestConflictPreservesMetadata(t *testing.T) {
 	initialCreatedAt := assignment1.CreatedAt
 
 	// Small delay to ensure timestamps would be different if re-created
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 
 	// Update the same assignment
 	assignment2, err := tracker.RecordAssignment("Bob", date, true, "Updated")
