@@ -42,7 +42,7 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 	// Use proper UPSERT syntax with ON CONFLICT clause
 	// This works because we have a unique index on assignment_date
 	recordLogger.Debug().Msg("Using UPSERT with ON CONFLICT to create or update assignment")
-	result, err := t.db.Exec(`
+	_, err := t.db.Exec(`
 	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
 	VALUES (?, ?, ?, ?)
 	ON CONFLICT(assignment_date) DO UPDATE SET 
@@ -56,21 +56,13 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 		return nil, fmt.Errorf("failed to record assignment: %w", err)
 	}
 
-	// Get the last inserted ID
-	id, err := result.LastInsertId()
-	if err != nil {
-		recordLogger.Debug().Err(err).Msg("Failed to get last insert ID after upsert")
-		return nil, fmt.Errorf("failed to get last insert ID: %w", err)
-	}
-	recordLogger = recordLogger.With().Int64("assignment_id", id).Logger()
-	recordLogger.Debug().Msg("Assignment upserted successfully")
-
 	// Get the full assignment record
-	assignment, err := t.GetAssignmentByID(id)
+	assignment, err := t.GetAssignmentByDate(date)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get assignment after upsert: %w", err)
+		recordLogger.Debug().Err(err).Msg("Failed to get the upserted assignment")
+		return nil, fmt.Errorf("failed to get assignment by date: %w", err)
 	}
-
+	recordLogger.Debug().Int64("assignment_id", assignment.ID).Msg("Assignment upserted successfully")
 	return assignment, nil
 }
 
