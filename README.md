@@ -24,7 +24,6 @@ docker run \
   -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
   -e PORT=8080 \
   -e CONFIG_FILE=/app/config/routine.toml \
-  -e APP_URL=http://your-public-url:8080 \
   -v /path/to/config:/app/config \
   -v /path/to/data:/app/data \
   -p 8080:8080 \
@@ -80,7 +79,7 @@ This will create the necessary directories for configuration and data persistenc
 ## First-Time Setup
 
 1. Start the application
-2. Visit http://localhost:8080 (or your configured `APP_URL`)
+2. Visit the URL specified in your config's `app_url`
 3. Click "Connect Google Calendar" to start OAuth flow
 4. Select which calendar to use for night routine events
 5. The scheduler will now automatically create events
@@ -106,13 +105,14 @@ Set up the following environment variables for Google OAuth2:
 # Required environment variables
 GOOGLE_OAUTH_CLIENT_ID=your-client-id          # OAuth2 credentials
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret  # OAuth2 credentials
-PORT=8080                                      # Port for OAuth web interface and metrics
 CONFIG_FILE=configs/routine.toml               # Path to TOML configuration file
-APP_URL=http://localhost:8080                  # Application URL (defaults to http://localhost:<PORT>)
+
 # Optional environment variables
+PORT=8080                                      # Override port from TOML configuration
 ENV=development                                # Set to "production" for JSON logging, otherwise pretty console logging
 
-The OAuth2 callback URL is automatically constructed from APP_URL as "<APP_URL>/oauth/callback"
+Note: Application URLs (for OAuth callback and webhooks) are now configured in the TOML file
+under the [app] section. The OAuth2 callback URL is automatically constructed as "<app_url>/oauth/callback"
 ```
 
 ### Application Configuration
@@ -120,22 +120,32 @@ The OAuth2 callback URL is automatically constructed from APP_URL as "<APP_URL>/
 Create a `configs/routine.toml` file:
 
 ```toml
+[app]
+port = 8080                              # Port to listen on (can be overridden by PORT env var)
+app_url = "http://localhost:8080"        # Internal application URL for OAuth and general routes
+public_url = "http://localhost:8080"     # Public URL for webhooks and external integrations
+
 [parents]
-parent_a = "Parent1"  # First parent name
-parent_b = "Parent2"  # Second parent name
+parent_a = "Parent1"                     # First parent name
+parent_b = "Parent2"                     # Second parent name
 
 [availability]
-parent_a_unavailable = ["Wednesday"]  # Days when parent A can't do the routine
-parent_b_unavailable = ["Monday"]     # Days when parent B can't do the routine
+parent_a_unavailable = ["Wednesday"]     # Days when parent A can't do the routine
+parent_b_unavailable = ["Monday"]        # Days when parent B can't do the routine
 
 [schedule]
-update_frequency = "weekly"  # How often to update the calendar
-look_ahead_days = 30        # How many days to schedule in advance
+update_frequency = "weekly"              # How often to update the calendar
+look_ahead_days = 30                     # How many days to schedule in advance
 
 [service]
-state_file = "data/state.db"  # SQLite database file for state tracking
-log_level = "info"            # Logging level (trace, debug, info, warn, error, fatal, panic)
+state_file = "data/state.db"            # SQLite database file for state tracking
+log_level = "info"                      # Logging level (trace, debug, info, warn, error, fatal, panic)
 ```
+
+Note: In production environments:
+
+- Set `app_url` to your internal/private application URL for OAuth callbacks and general routes
+- Set `public_url` to your publicly accessible URL for webhooks from external services
 
 ## Logging
 
@@ -181,9 +191,9 @@ The application uses SQLite for persistent storage:
 ```
 data/
 └── state.db  # SQLite database containing:
-    ├── assignments         # Night routine assignments
-    ├── oauth_tokens        # Google OAuth2 tokens
-    ├── calendar_settings   # Selected calendar configuration
+    ├── assignments           # Night routine assignments
+    ├── oauth_tokens          # Google OAuth2 tokens
+    ├── calendar_settings     # Selected calendar configuration
     └── notification_channels # Google Calendar webhook channels
 ```
 
