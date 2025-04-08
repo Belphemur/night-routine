@@ -70,10 +70,10 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	dayAfter := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC)  // Thursday - Bob unavailable
 
 	// Add some prior assignments (Alice did the day before, Bob did yesterday)
-	_, err = tracker.RecordAssignment("Alice", dayBefore, false, "", "")
+	_, err = tracker.RecordAssignment("Alice", dayBefore, false, "")
 	assert.NoError(t, err)
 	// On Monday, Alice is unavailable, so Bob would be assigned
-	_, err = tracker.RecordAssignment("Bob", yesterday, false, "", string(DecisionReasonUnavailability))
+	_, err = tracker.RecordAssignment("Bob", yesterday, false, string(DecisionReasonUnavailability))
 	assert.NoError(t, err)
 
 	// Test period: 3 days starting from today (Tuesday)

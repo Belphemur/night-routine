@@ -5,7 +5,7 @@ import "time"
 // TrackerInterface defines the operations for tracking fairness
 type TrackerInterface interface {
 	// RecordAssignment records a new assignment with all details
-	RecordAssignment(parent string, date time.Time, override bool, googleCalendarEventID string, decisionReason string) (*Assignment, error)
+	RecordAssignment(parent string, date time.Time, override bool, decisionReason string) (*Assignment, error)
 
 	// GetLastAssignmentsUntil returns the last n assignments up to a specific date
 	GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)

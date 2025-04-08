@@ -30,80 +30,45 @@ func New(db *database.DB) (*Tracker, error) {
 }
 
 // RecordAssignment records a new assignment with all details
-func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool, googleCalendarEventID string, decisionReason string) (*Assignment, error) {
+func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool, decisionReason string) (*Assignment, error) {
 	recordLogger := t.logger.With().
 		Str("date", date.Format(dateFormat)).
 		Str("parent", parent).
 		Bool("override", override).
-		Str("event_id", googleCalendarEventID).
 		Str("decision_reason", decisionReason).
 		Logger()
 	recordLogger.Debug().Msg("Recording assignment details")
 
-	// Check if there's already an assignment for this date
-	recordLogger.Debug().Msg("Checking for existing assignment on this date")
-	existingAssignment, err := t.GetAssignmentByDate(date)
-	if err != nil {
-		// Error already logged in GetAssignmentByDate
-		return nil, fmt.Errorf("failed to check existing assignment: %w", err)
-	}
-
-	// If there's already an assignment, update it
-	if existingAssignment != nil {
-		recordLogger = recordLogger.With().Int64("assignment_id", existingAssignment.ID).Logger()
-		recordLogger.Debug().Msg("Existing assignment found, updating details")
-
-		// Only update if the parent has changed and it wasn't an override
-		if existingAssignment.Parent != parent && !existingAssignment.Override {
-			recordLogger.Debug().Str("old_parent", existingAssignment.Parent).Str("new_parent", parent).Msg("Updating existing assignment parent (non-override)")
-			_, err := t.db.Exec(`
-			UPDATE assignments
-			SET parent_name = ?, override = ?, google_calendar_event_id = ?, decision_reason = ?
-			WHERE id = ?
-			`, parent, override, googleCalendarEventID, decisionReason, existingAssignment.ID)
-
-			if err != nil {
-				recordLogger.Debug().Err(err).Msg("Failed to update assignment")
-				return nil, fmt.Errorf("failed to update assignment: %w", err)
-			}
-			recordLogger.Debug().Msg("Assignment updated successfully")
-			// Refresh the assignment
-			return t.GetAssignmentByID(existingAssignment.ID)
-		} else if existingAssignment.Override {
-			recordLogger.Debug().Str("existing_parent", existingAssignment.Parent).Msg("Existing assignment is an override, not changing parent")
-			return existingAssignment, nil
-		} else {
-			recordLogger.Debug().Str("parent", existingAssignment.Parent).Msg("Parent has not changed, returning existing assignment")
-			return existingAssignment, nil
-		}
-	}
-
-	// No existing assignment, create a new one
-	recordLogger.Debug().Msg("No existing assignment found, creating new one")
+	// Use proper UPSERT syntax with ON CONFLICT clause
+	// This works because we have a unique index on assignment_date
+	recordLogger.Debug().Msg("Using UPSERT with ON CONFLICT to create or update assignment")
 	result, err := t.db.Exec(`
-	INSERT INTO assignments (parent_name, assignment_date, override, google_calendar_event_id, decision_reason)
-	VALUES (?, ?, ?, ?, ?)
-	`, parent, date.Format(dateFormat), override, googleCalendarEventID, decisionReason)
+	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+	VALUES (?, ?, ?, ?)
+	ON CONFLICT(assignment_date) DO UPDATE SET 
+		parent_name = excluded.parent_name,
+		override = excluded.override,
+		decision_reason = excluded.decision_reason
+	`, parent, date.Format(dateFormat), override, decisionReason)
 
 	if err != nil {
-		recordLogger.Debug().Err(err).Msg("Failed to insert new assignment")
+		recordLogger.Debug().Err(err).Msg("Failed to upsert assignment")
 		return nil, fmt.Errorf("failed to record assignment: %w", err)
 	}
 
 	// Get the last inserted ID
 	id, err := result.LastInsertId()
 	if err != nil {
-		recordLogger.Debug().Err(err).Msg("Failed to get last insert ID after insert")
+		recordLogger.Debug().Err(err).Msg("Failed to get last insert ID after upsert")
 		return nil, fmt.Errorf("failed to get last insert ID: %w", err)
 	}
 	recordLogger = recordLogger.With().Int64("assignment_id", id).Logger()
-	recordLogger.Debug().Msg("New assignment inserted successfully")
+	recordLogger.Debug().Msg("Assignment upserted successfully")
 
 	// Get the full assignment record
 	assignment, err := t.GetAssignmentByID(id)
 	if err != nil {
-		// Error logged in GetAssignmentByID
-		return nil, fmt.Errorf("failed to get assignment after insert: %w", err)
+		return nil, fmt.Errorf("failed to get assignment after upsert: %w", err)
 	}
 
 	return assignment, nil
@@ -119,7 +84,7 @@ func (t *Tracker) scanAssignment(scanner interface {
 	var dateStr string
 	var createdAt, updatedAt time.Time
 	var googleEventID sql.NullString
-	var decisionReason sql.NullString // New field
+	var decisionReason sql.NullString
 
 	err := scanner.Scan(
 		&a.ID,
@@ -127,7 +92,7 @@ func (t *Tracker) scanAssignment(scanner interface {
 		&dateStr,
 		&a.Override,
 		&googleEventID,
-		&decisionReason, // New field
+		&decisionReason,
 		&createdAt,
 		&updatedAt,
 	)

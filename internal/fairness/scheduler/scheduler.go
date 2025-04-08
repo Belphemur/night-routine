@@ -187,7 +187,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 
 	// Record the assignment in the database
 	assignLogger.Debug().Msg("Recording assignment in tracker")
-	trackerAssignment, err := s.tracker.RecordAssignment(parent, date, false, "", string(decisionReason))
+	trackerAssignment, err := s.tracker.RecordAssignment(parent, date, false, string(decisionReason))
 	if err != nil {
 		assignLogger.Error().Err(err).Msg("Failed to record assignment")
 		return nil, fmt.Errorf("failed to record assignment: %w", err)
