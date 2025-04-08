@@ -41,6 +41,6 @@ temp/
 
 # Log files
 *.log
-/data/*.db
+/data/*.db*
 
 __debug_bin*
