@@ -192,15 +192,14 @@ func run(ctx context.Context) error {
 	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, cfg, tokenManager)
 	webhookHandler.RegisterRoutes()
 
+	// Check for existing token and initialize calendar service if found
 	hasToken, _ := tokenManager.HasToken()
 	if hasToken {
 		logger.Info().Msg("Token found, attempting initial calendar service initialization and notification setup")
-		// Initialize calendar service if not already initialized
 		if !calSvc.IsInitialized() {
 			if err := calSvc.Initialize(ctx); err != nil {
 				// Log as warning, app can continue without calendar initially
 				logger.Warn().Err(err).Msg("Initial calendar service initialization failed")
-				// Do not return err here, allow app to run
 			} else {
 				logger.Info().Msg("Initial calendar service initialization successful")
 				// Set up notification channel for calendar changes only if initialized
@@ -223,6 +222,9 @@ func run(ctx context.Context) error {
 		logger.Info().Msg("No token found initially. Waiting for OAuth flow.")
 	}
 
+	// Perform manual sync on startup if configured and possible
+	performManualStartupSync(ctx, cfg, hasToken, calSvc, sched)
+
 	// Register handler for token setup signals
 	appSignals.OnTokenSetup(func(ctx context.Context, data appSignals.TokenSetupData) {
 		signalLogger := logging.GetLogger("signal-token-setup")
@@ -230,6 +232,7 @@ func run(ctx context.Context) error {
 			signalLogger.Info().Msg("Token setup detected - initializing calendar service")
 
 			// Initialize the calendar service with the new token
+			// This might be redundant if already initialized above, but Initialize handles that.
 			if err := calSvc.Initialize(ctx); err != nil {
 				signalLogger.Error().Err(err).Msg("Failed to initialize calendar service after token setup")
 				return
@@ -320,6 +323,36 @@ func run(ctx context.Context) error {
 				}
 			}
 		}
+	}
+}
+
+// performManualStartupSync checks the config and performs a schedule sync if enabled and possible.
+// It assumes calSvc initialization was already attempted if hasToken is true.
+func performManualStartupSync(ctx context.Context, cfg *config.Config, hasToken bool, calSvc *calendar.Service, sched *scheduler.Scheduler) {
+	logger := logging.GetLogger("manual-startup-sync") // Get logger specific to this function
+
+	if !cfg.Service.ManualSyncOnStartup {
+		return // Feature not enabled
+	}
+
+	logger.Info().Msg("Manual sync on startup configured.")
+	if !hasToken {
+		logger.Warn().Msg("Manual sync on startup configured, but no token found. Skipping sync.")
+		return
+	}
+
+	// Check if the calendar service is actually initialized (initial attempt might have failed)
+	if !calSvc.IsInitialized() {
+		logger.Warn().Msg("Cannot perform manual sync on startup: Calendar service failed to initialize earlier.")
+		return
+	}
+
+	// Perform the sync
+	logger.Info().Msg("Performing manual schedule sync on startup...")
+	if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
+		logger.Error().Err(err).Msg("Manual schedule sync on startup failed")
+	} else {
+		logger.Info().Msg("Manual schedule sync on startup completed successfully")
 	}
 }
 

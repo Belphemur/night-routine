@@ -20,7 +20,7 @@ graph TD
     E --> I[State Storage]
     W --> J[OAuth Handler]
     W --> K[Calendar Selection]
-    WH --> DB           
+    WH --> DB
     WH --> C
     DB --> MG[Database Migrations]
     LG --> ZL[Zerolog Library]
@@ -56,6 +56,7 @@ look_ahead_days = 30
 [service]
 state_file = "data/state.db"
 log_level = "info" # Logging level
+manual_sync_on_startup = false # Perform sync on startup if token exists
 ```
 
 ### Environment Variables

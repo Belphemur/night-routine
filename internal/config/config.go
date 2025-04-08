@@ -50,8 +50,9 @@ type ScheduleConfig struct {
 
 // ServiceConfig holds the service configuration
 type ServiceConfig struct {
-	StateFile string `toml:"state_file"`
-	LogLevel  string `toml:"log_level"` // New field for log level
+	StateFile           string `toml:"state_file"`
+	LogLevel            string `toml:"log_level"`              // New field for log level
+	ManualSyncOnStartup bool   `toml:"manual_sync_on_startup"` // Perform a sync on startup if token exists
 }
 
 // Load reads the configuration file and environment variables

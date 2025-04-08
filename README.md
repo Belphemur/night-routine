@@ -67,6 +67,7 @@ This will create the necessary directories for configuration and data persistenc
 - Google Calendar integration with OAuth2
 - Configurable parent availability
 - Automated scheduling with daily/weekly/monthly updates
+- Optional manual schedule sync on application startup
 - Webhook endpoint for manual assignment overrides (e.g., via Google Calendar updates)
 - Structured logging using [zerolog](https://github.com/rs/zerolog) with configurable levels
 - Persistent storage using SQLite:
@@ -140,6 +141,7 @@ look_ahead_days = 30                     # How many days to schedule in advance
 [service]
 state_file = "data/state.db"            # SQLite database file for state tracking
 log_level = "info"                      # Logging level (trace, debug, info, warn, error, fatal, panic)
+manual_sync_on_startup = false          # Perform a schedule sync immediately on startup if a token exists
 ```
 
 Note: In production environments:
