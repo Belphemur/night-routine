@@ -12,7 +12,8 @@ look_ahead_days = 7        # How many days to schedule in advance
 
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
-log_level = "info"  # Possible values: trace, debug, info, warn, error, fatal, panic
+log_level = "info"             # Possible values: trace, debug, info, warn, error, fatal, panic
+# manual_sync_on_startup = true # Optional: Perform a schedule sync immediately on startup if a token exists (defaults to true)
 
 [app]
 port = 8888  # The port to run the application on
