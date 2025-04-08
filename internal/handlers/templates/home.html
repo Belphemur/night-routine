@@ -58,6 +58,70 @@
         .sync-button {
             background-color: #4caf50;
         }
+
+        /* --- Calendar Styles --- */
+        .calendar-container {
+            margin-top: 30px;
+        }
+
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            /* Ensure columns are evenly spaced */
+        }
+
+        .calendar th,
+        .calendar td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            vertical-align: top;
+            height: 80px;
+            /* Give cells some height */
+            width: 14.28%;
+            /* 100% / 7 days */
+        }
+
+        .calendar th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .calendar td .day-number {
+            font-size: 1.1em;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .calendar td .assignment {
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .calendar td.padding-day {
+            background-color: #f9f9f9;
+            color: #aaa;
+        }
+
+        .calendar td.padding-day .assignment {
+            color: #bbb;
+            /* Dim assignment text on padding days */
+        }
+
+        .calendar td.today {
+            background-color: #fffde7;
+            /* Light yellow background for today */
+            font-weight: bold;
+        }
+
+        .calendar td.today .day-number {
+            color: #f57f17;
+            /* Highlight today's number */
+        }
+
+        /* --- End Calendar Styles --- */
     </style>
 </head>
 
@@ -84,7 +148,7 @@
         <div>
             <a href="/calendars" class="button">Change Calendar</a>
             <a href="/sync" class="button sync-button">Sync Now</a>
-            </div>
+        </div>
         {{else}}
         <p>No calendar selected</p>
         <a href="/calendars" class="button">Select Calendar</a>
@@ -95,6 +159,65 @@
         <a href="/auth" class="button">Connect Google Calendar</a>
         {{end}}
     </div>
+
+    <!-- Calendar Section -->
+    {{if and .IsAuthenticated .CalendarWeeks}}
+    <div class="calendar-container">
+        <h2>Assignment Calendar: {{.CurrentMonth}}</h2>
+        <table class="calendar">
+            <thead>
+                <tr>
+                    <th>Mon</th>
+                    <th>Tue</th>
+                    <th>Wed</th>
+                    <th>Thu</th>
+                    <th>Fri</th>
+                    <th>Sat</th>
+                    <th>Sun</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .CalendarWeeks}}
+                <tr>
+                    {{range .}}
+                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}}" data-date="{{.Date.Format "2006-01-02"}}">
+                        <span class="day-number">{{.DayOfMonth}}</span>
+                        {{if .Assignment}}
+                        <span class="assignment">{{.Assignment.Parent}}</span>
+                        {{end}}
+                    </td>
+                    {{end}}
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else if .IsAuthenticated}}
+    <!-- Optional: Show a message if authenticated but calendar data failed to load -->
+    <!-- <p>Could not load assignment calendar.</p> -->
+    {{end}}
+    <!-- End Calendar Section -->
+
 </body>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to format date as YYYY-MM-DD (local timezone)
+        function getLocalDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const today = new Date();
+        const todayString = getLocalDateString(today);
+        const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
+
+        if (todayCell) {
+            todayCell.classList.add('today');
+        }
+    });
+</script>
 
 </html>

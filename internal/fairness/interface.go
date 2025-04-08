@@ -40,4 +40,3 @@ type TrackerInterface interface {
 
 // Ensure Tracker implements the TrackerInterface
 var _ TrackerInterface = (*Tracker)(nil)
-var _ TrackerInterface = (*MockTracker)(nil)
