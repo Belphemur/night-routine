@@ -11,8 +11,7 @@ import (
 type CalendarDay struct {
 	Date           time.Time
 	DayOfMonth     int
-	IsCurrentMonth bool // Is this day within the primary month being displayed?
-	IsToday        bool
+	IsCurrentMonth bool                  // Is this day within the primary month being displayed?
 	Assignment     *scheduler.Assignment // Assignment for this day (nil if none)
 }
 
@@ -71,8 +70,6 @@ func StructureAssignmentsForTemplate(startDate, endDate time.Time, assignments [
 	}
 
 	var currentWeek []CalendarDay
-	now := time.Now()
-	todayStr := now.UTC().Format("2006-01-02") // Use UTC for comparison
 
 	currentDate := startDate // Reset currentDate to the actual start
 	for !currentDate.After(endDate) {
@@ -81,7 +78,6 @@ func StructureAssignmentsForTemplate(startDate, endDate time.Time, assignments [
 			Date:           currentDate,
 			DayOfMonth:     currentDate.Day(),
 			IsCurrentMonth: currentDate.Month() == primaryMonth && currentDate.Year() == primaryYear,
-			IsToday:        dateStr == todayStr,
 			Assignment:     assignmentMap[dateStr], // Will be nil if no assignment
 		}
 		currentWeek = append(currentWeek, day)
