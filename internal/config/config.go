@@ -17,14 +17,15 @@ type Config struct {
 	Availability AvailabilityConfig `toml:"availability"`
 	Schedule     ScheduleConfig     `toml:"schedule"`
 	Service      ServiceConfig      `toml:"service"`
-	App          *ApplicationConfig // From environment
+	App          ApplicationConfig  `toml:"app"`
 	OAuth        *oauth2.Config     // Replaced with Google OAuth2 Config
 }
 
-// ApplicationConfig holds the application configuration from environment
+// ApplicationConfig holds the application configuration
 type ApplicationConfig struct {
-	Port int
-	Url  string // Application URL
+	Port      int    `toml:"port"`       // Port to listen on
+	AppUrl    string `toml:"app_url"`    // Application URL for internal use (OAuth, etc.)
+	PublicUrl string `toml:"public_url"` // Public URL for external access (webhooks)
 }
 
 // ParentsConfig holds the parent names
@@ -65,27 +66,31 @@ func Load(path string) (*Config, error) {
 		cfg.Service.StateFile = filepath.Join(configDir, "..", cfg.Service.StateFile)
 	}
 
-	// Load application config from environment
-	portNum := 8888 // Default port
+	// Set default port and allow override from environment
+	if cfg.App.Port == 0 {
+		cfg.App.Port = 8888 // Default port
+	}
 	if port := os.Getenv("PORT"); port != "" {
+		portNum := 0
 		if _, err := fmt.Sscanf(port, "%d", &portNum); err != nil {
 			return nil, fmt.Errorf("PORT must be a valid number: %v", err)
 		}
-	}
-	cfg.App = &ApplicationConfig{
-		Port: portNum,
-		Url:  fmt.Sprintf("http://localhost:%d", portNum),
+		cfg.App.Port = portNum
 	}
 
-	if appUrl := os.Getenv("APP_URL"); appUrl != "" {
-		cfg.App.Url = appUrl
+	// Set default URLs if not specified in config
+	if cfg.App.AppUrl == "" {
+		cfg.App.AppUrl = fmt.Sprintf("http://localhost:%d", cfg.App.Port)
+	}
+	if cfg.App.PublicUrl == "" {
+		cfg.App.PublicUrl = cfg.App.AppUrl
 	}
 
 	// Load OAuth config from environment
 	cfg.OAuth = &oauth2.Config{
 		ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-		RedirectURL:  cfg.App.Url + "/oauth/callback",
+		RedirectURL:  cfg.App.AppUrl + "/oauth/callback",
 		Scopes: []string{
 			calendar.CalendarEventsScope,
 			calendar.CalendarCalendarlistReadonlyScope,
@@ -102,6 +107,7 @@ func Load(path string) (*Config, error) {
 
 // validate checks if the configuration is valid
 func validate(cfg *Config) error {
+	// Validate parent names
 	if cfg.Parents.ParentA == "" || cfg.Parents.ParentB == "" {
 		return fmt.Errorf("both parent names are required")
 	}
@@ -110,15 +116,25 @@ func validate(cfg *Config) error {
 		return fmt.Errorf("parent names must be different")
 	}
 
+	// Validate schedule configuration
 	switch cfg.Schedule.UpdateFrequency {
 	case "daily", "weekly", "monthly":
-	// Valid frequencies
+		// Valid frequencies
 	default:
 		return fmt.Errorf("invalid update frequency: %s", cfg.Schedule.UpdateFrequency)
 	}
 
 	if cfg.Schedule.LookAheadDays < 1 {
 		return fmt.Errorf("look ahead days must be positive")
+	}
+
+	// Validate application URLs
+	if cfg.App.AppUrl == "" {
+		return fmt.Errorf("app_url is required in [app] configuration")
+	}
+
+	if cfg.App.PublicUrl == "" {
+		return fmt.Errorf("public_url is required in [app] configuration")
 	}
 
 	// Validate OAuth configuration

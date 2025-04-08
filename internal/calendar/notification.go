@@ -101,7 +101,7 @@ func (s *Service) SetupNotificationChannel(ctx context.Context) error {
 
 	// The address where Google will send notifications
 	// This should be a publicly accessible URL
-	address := fmt.Sprintf("%s/api/webhook/calendar", s.config.App.Url)
+	address := fmt.Sprintf("%s/api/webhook/calendar", s.config.App.PublicUrl)
 	logger.Debug().Str("webhook_address", address).Msg("Generated webhook address")
 
 	// Create the channel object for Google API

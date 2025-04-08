@@ -330,7 +330,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
 					Title: constants.NightRoutineIdentifier,
-					Url:   s.config.App.Url,
+					Url:   s.config.App.AppUrl,
 				},
 				ExtendedProperties: &calendar.EventExtendedProperties{
 					Private: privateData,

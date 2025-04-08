@@ -13,3 +13,8 @@ look_ahead_days = 7        # How many days to schedule in advance
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking
 log_level = "info"  # Possible values: trace, debug, info, warn, error, fatal, panic
+
+[app]
+port = 8888  # The port to run the application on
+app_url = "http://localhost:8888"  # Internal application URL used for OAuth and general application routes
+public_url = "http://localhost:8888"  # Public URL used for webhooks and external integrations
