@@ -14,6 +14,7 @@ require (
 
 require (
 	github.com/ncruces/julianday v1.0.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 )
 
