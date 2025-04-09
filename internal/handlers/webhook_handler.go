@@ -14,7 +14,7 @@ import (
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
-	"github.com/belphemur/night-routine/internal/fairness/scheduler"
+	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/belphemur/night-routine/internal/token"
 	"github.com/rs/zerolog"
@@ -23,15 +23,15 @@ import (
 // WebhookHandler handles incoming webhook notifications
 type WebhookHandler struct {
 	*BaseHandler
-	CalendarService *calendar.Service
-	Scheduler       *scheduler.Scheduler
+	CalendarService calendar.CalendarService
+	Scheduler       Scheduler.SchedulerInterface
 	Config          *config.Config
 	TokenManager    *token.TokenManager
 	logger          zerolog.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler
-func NewWebhookHandler(baseHandler *BaseHandler, calendarService *calendar.Service, scheduler *scheduler.Scheduler, config *config.Config, tokenManager *token.TokenManager) *WebhookHandler {
+func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, config *config.Config, tokenManager *token.TokenManager) *WebhookHandler {
 	return &WebhookHandler{
 		BaseHandler:     baseHandler,
 		CalendarService: calendarService,
@@ -298,7 +298,7 @@ func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.
 
 	// Filter assignments to only include those with Google Calendar event IDs
 	// We don't want to push more event than needed
-	var assignmentsWithEventIDs []*scheduler.Assignment
+	var assignmentsWithEventIDs []*Scheduler.Assignment
 	for _, assignment := range assignments {
 		if assignment.GoogleCalendarEventID != "" {
 			assignmentsWithEventIDs = append(assignmentsWithEventIDs, assignment)
