@@ -22,12 +22,12 @@ type BaseHandler struct {
 	TokenStore   *database.TokenStore
 	TokenManager *token.TokenManager
 	Config       *config.Config
-	Tracker      *fairness.Tracker
+	Tracker      fairness.TrackerInterface
 	logger       zerolog.Logger
 }
 
 // NewBaseHandler creates a common base handler with shared components
-func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker *fairness.Tracker) (*BaseHandler, error) {
+func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
 	tmpl, err := template.New("").ParseFS(templateFS, "templates/*.html")

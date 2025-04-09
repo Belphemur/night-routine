@@ -296,9 +296,19 @@ func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.
 	}
 	recalcLogger.Info().Int("assignments_generated", len(assignments)).Msg("New schedule generated")
 
-	// Sync the new schedule with Google Calendar
+	// Filter assignments to only include those with Google Calendar event IDs
+	// We don't want to push more event than needed
+	var assignmentsWithEventIDs []*scheduler.Assignment
+	for _, assignment := range assignments {
+		if assignment.GoogleCalendarEventID != "" {
+			assignmentsWithEventIDs = append(assignmentsWithEventIDs, assignment)
+		}
+	}
+	recalcLogger.Info().Int("assignments_with_event_ids", len(assignmentsWithEventIDs)).Msg("Filtered assignments with Google Calendar event IDs")
+
+	// Sync only assignments that have Google Calendar event IDs
 	recalcLogger.Debug().Msg("Syncing recalculated schedule with Google Calendar")
-	if err := h.CalendarService.SyncSchedule(ctx, assignments); err != nil {
+	if err := h.CalendarService.SyncSchedule(ctx, assignmentsWithEventIDs); err != nil {
 		recalcLogger.Error().Err(err).Msg("Failed to sync recalculated schedule")
 		return fmt.Errorf("failed to sync schedule: %w", err)
 	}
