@@ -224,13 +224,13 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 			continue
 		}
 
-		// Check if the assignment is in the future or today
-		today := time.Now().Truncate(24 * time.Hour)
-		if assignment.Date.Before(today) {
-			eventLogger.Warn().Msg("Rejecting override attempt for past assignment")
+		// Check if the assignment is after yesterday
+		yesterday := time.Now().Truncate(24 * time.Hour).Add(-24 * time.Hour)
+		if assignment.Date.Before(yesterday) {
+			eventLogger.Warn().Msg("Rejecting override attempt for past assignment older than yesterday")
 			continue
 		}
-		eventLogger.Debug().Msg("Assignment date is today or in the future, proceeding with update")
+		eventLogger.Debug().Msg("Assignment date is yesterday or in the future, proceeding with update")
 
 		// Update the assignment with the new parent name and set override flag
 		eventLogger.Info().Msg("Updating assignment parent due to event change (override)")
