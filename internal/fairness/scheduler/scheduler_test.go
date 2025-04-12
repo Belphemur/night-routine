@@ -41,7 +41,8 @@ func TestGenerateSchedule(t *testing.T) {
 	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC) // Sunday
 	end := time.Date(2023, 1, 7, 0, 0, 0, 0, time.UTC)   // Saturday
 
-	schedule, err := scheduler.GenerateSchedule(start, end)
+	// Use the end date as the "current time" for the test
+	schedule, err := scheduler.GenerateSchedule(start, end, end)
 	assert.NoError(t, err)
 	assert.Len(t, schedule, 7)
 
@@ -77,7 +78,8 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Test period: 3 days starting from today (Tuesday)
-	schedule, err := scheduler.GenerateSchedule(today, dayAfter)
+	// Use the end date (dayAfter) as the "current time" for the test
+	schedule, err := scheduler.GenerateSchedule(today, dayAfter, dayAfter)
 	assert.NoError(t, err)
 	assert.Len(t, schedule, 3)
 
@@ -285,4 +287,63 @@ func TestAlternatingAssignments(t *testing.T) {
 	parent, reason = scheduler.determineNextParent(lastAssignments, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonAlternating, reason)
+}
+
+// TestGenerateScheduleWithCurrentTimeFiltering tests that assignments before or on
+// currentTime, or overridden assignments, are treated as fixed.
+func TestGenerateScheduleWithCurrentTimeFiltering(t *testing.T) {
+	cfg := createTestConfig()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	scheduler := New(cfg, tracker)
+
+	// Define dates
+	day1 := time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC) // Wednesday
+	day2 := time.Date(2023, 2, 2, 0, 0, 0, 0, time.UTC) // Thursday (Bob unavailable)
+	day3 := time.Date(2023, 2, 3, 0, 0, 0, 0, time.UTC) // Friday
+
+	currentTime := day2 // Set current time to day2
+
+	// Record initial assignments
+	_, err = tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonAlternating) // Past, not overridden -> Fixed
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating) // Present, not overridden -> Fixed
+	assert.NoError(t, err)
+	// Record a future assignment that should be ignored unless overridden
+	initialDay3Assignment, err := tracker.RecordAssignment("Alice", day3, false, fairness.DecisionReasonAlternating)
+	assert.NoError(t, err)
+	// Now override the future assignment by updating the existing record
+	err = tracker.UpdateAssignmentParent(initialDay3Assignment.ID, "Bob", true) // Future, but overridden -> Fixed
+	assert.NoError(t, err)
+
+	// Generate schedule for day1 to day3, with currentTime being day2
+	schedule, err := scheduler.GenerateSchedule(day1, day3, currentTime)
+	assert.NoError(t, err)
+	assert.Len(t, schedule, 3)
+
+	// Verify assignments
+	// Day 1: Should be Alice (fixed from past)
+	assert.Equal(t, "Alice", schedule[0].Parent)
+	assert.Equal(t, day1.Format("2006-01-02"), schedule[0].Date.Format("2006-01-02"))
+	// Check reason if possible, might be overwritten by generation logic if not truly fixed
+	// assert.Equal(t, fairness.DecisionReasonAlternating, schedule[0].DecisionReason) // This might change based on how fixed assignments are handled
+
+	// Day 2: Should be Bob (fixed from present)
+	assert.Equal(t, "Bob", schedule[1].Parent)
+	assert.Equal(t, day2.Format("2006-01-02"), schedule[1].Date.Format("2006-01-02"))
+	// assert.Equal(t, fairness.DecisionReasonAlternating, schedule[1].DecisionReason)
+
+	// Day 3: Should be Bob (fixed because it was overridden)
+	assert.Equal(t, "Bob", schedule[2].Parent)
+	assert.Equal(t, day3.Format("2006-01-02"), schedule[2].Date.Format("2006-01-02"))
+	// The reason should reflect the override status when fetched
+	// Let's fetch the assignment directly to check the reason stored vs generated
+	finalDay3Assignment, err := tracker.GetAssignmentByID(initialDay3Assignment.ID)
+	assert.NoError(t, err)
+	assert.True(t, finalDay3Assignment.Override) // Ensure override flag is set
+	// The generated schedule should reflect the reason of the *fixed* assignment
+	assert.Equal(t, finalDay3Assignment.DecisionReason, schedule[2].DecisionReason)
 }

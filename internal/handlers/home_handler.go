@@ -151,7 +151,7 @@ func (h *HomeHandler) generateCalendarData(logger zerolog.Logger) (monthName str
 	startDate, endDate := viewhelpers.CalculateCalendarRange(refTime)
 	logger.Debug().Time("start_date", startDate).Time("end_date", endDate).Msg("Calculated calendar range")
 
-	assignments, err := h.Scheduler.GenerateSchedule(startDate, endDate)
+	assignments, err := h.Scheduler.GenerateSchedule(startDate, endDate, time.Now())
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to generate schedule for calendar view")
 		return "", nil, err // Return error to the caller

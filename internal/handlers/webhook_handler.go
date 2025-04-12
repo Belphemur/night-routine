@@ -289,7 +289,7 @@ func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.
 
 	// Generate a new schedule
 	recalcLogger.Debug().Msg("Generating new schedule")
-	assignments, err := h.Scheduler.GenerateSchedule(fromDate, endDate)
+	assignments, err := h.Scheduler.GenerateSchedule(fromDate, endDate, time.Now())
 	if err != nil {
 		recalcLogger.Error().Err(err).Msg("Failed to generate schedule during recalculation")
 		return fmt.Errorf("failed to generate schedule: %w", err)
