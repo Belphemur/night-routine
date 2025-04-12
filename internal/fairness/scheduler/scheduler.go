@@ -57,20 +57,21 @@ func New(cfg *config.Config, tracker fairness.TrackerInterface) *Scheduler {
 	}
 }
 
-// GenerateSchedule creates a schedule for the specified date range
-// This updated version respects overridden assignments as fixed points
-func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error) {
+// GenerateSchedule creates a schedule for the specified date range, considering a current time.
+// Assignments that are overridden or occurred before/on currentTime are considered fixed.
+func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time) ([]*Assignment, error) {
 	genLogger := s.logger.With().
 		Time("start_date", start).
 		Time("end_date", end).
+		Time("current_time", currentTime).
 		Logger()
 	genLogger.Info().Msg("Generating schedule")
 
 	var schedule []*Assignment
 	current := start
 
-	// Get all existing assignments in the date range, including overrides
-	genLogger.Debug().Msg("Fetching existing assignments in range")
+	// Get all existing assignments in the date range
+	genLogger.Debug().Msg("Fetching all existing assignments in range")
 	existingAssignments, err := s.tracker.GetAssignmentsInRange(start, end)
 	if err != nil {
 		genLogger.Error().Err(err).Msg("Failed to get existing assignments")
@@ -78,18 +79,23 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 	}
 	genLogger.Debug().Int("count", len(existingAssignments)).Msg("Fetched existing assignments")
 
-	// Map overridden assignments by date for easy lookup
-	assignmentByDateOverridden := make(map[string]*fairness.Assignment)
-	overrideCount := 0
+	// Map assignments fixed in time (overridden or before/on currentTime) by date for easy lookup
+	assigmentFixedInTime := make(map[string]*fairness.Assignment)
+	fixedCount := 0
+	// Truncate currentTime to the beginning of the day for comparison
+	currentDay := currentTime.Truncate(24 * time.Hour)
 	for _, a := range existingAssignments {
-		if !a.Override {
-			continue
+		assignmentDay := a.Date.Truncate(24 * time.Hour)
+		// Skip assignment if it's NOT overridden AND its date is AFTER the current time's date
+		if !a.Override && assignmentDay.After(currentDay) {
+			continue // This assignment is neither overridden nor in the past/present, so it's not fixed
 		}
+		// Otherwise, the assignment is fixed (either overridden or past/present)
 		dateStr := a.Date.Format("2006-01-02")
-		assignmentByDateOverridden[dateStr] = a
-		overrideCount++
+		assigmentFixedInTime[dateStr] = a
+		fixedCount++
 	}
-	genLogger.Debug().Int("override_count", overrideCount).Msg("Mapped overridden assignments")
+	genLogger.Debug().Int("fixed_count", fixedCount).Msg("Mapped fixed assignments (overridden or past/present)")
 
 	// Process each day in the range
 	genLogger.Debug().Msg("Processing days in range")
@@ -97,27 +103,27 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time) ([]*Assignment, error
 		dateStr := current.Format("2006-01-02")
 		dayLogger := genLogger.With().Str("date", dateStr).Logger()
 
-		// Check if there's an existing assignment overridden for this date
-		if existing, ok := assignmentByDateOverridden[dateStr]; ok {
-			dayLogger.Info().Int64("assignment_id", existing.ID).Str("parent", existing.Parent).Msg("Using existing overridden assignment")
+		// Check if there's a fixed assignment (overridden or past/present) for this date
+		if fixedAssignment, ok := assigmentFixedInTime[dateStr]; ok {
+			dayLogger.Info().Int64("assignment_id", fixedAssignment.ID).Str("parent", fixedAssignment.Parent).Str("reason", string(fixedAssignment.DecisionReason)).Bool("override", fixedAssignment.Override).Msg("Using fixed assignment")
 			// Convert to scheduler assignment
 			parentType := ParentTypeB
-			if existing.Parent == s.config.Parents.ParentA {
+			if fixedAssignment.Parent == s.config.Parents.ParentA {
 				parentType = ParentTypeA
 			}
 			assignment := &Assignment{
-				ID:                    existing.ID,
-				Date:                  existing.Date,
-				Parent:                existing.Parent,
+				ID:                    fixedAssignment.ID,
+				Date:                  fixedAssignment.Date,
+				Parent:                fixedAssignment.Parent,
 				ParentType:            parentType,
-				GoogleCalendarEventID: existing.GoogleCalendarEventID,
-				DecisionReason:        fairness.DecisionReasonOverride,
-				UpdatedAt:             existing.UpdatedAt,
+				GoogleCalendarEventID: fixedAssignment.GoogleCalendarEventID,
+				DecisionReason:        fixedAssignment.DecisionReason, // Use the reason from the fixed assignment
+				UpdatedAt:             fixedAssignment.UpdatedAt,
 			}
 			schedule = append(schedule, assignment)
 		} else {
-			dayLogger.Debug().Msg("No override found, assigning parent for date")
-			// No overridden assignment, create a new one or update existing one
+			dayLogger.Debug().Msg("No fixed assignment found for this date, assigning parent")
+			// No fixed assignment, determine assignment based on fairness rules
 			assignment, err := s.assignForDate(current)
 			if err != nil {
 				dayLogger.Error().Err(err).Msg("Failed to assign parent for date")

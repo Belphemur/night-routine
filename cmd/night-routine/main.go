@@ -365,7 +365,7 @@ func updateSchedule(ctx context.Context, cfg *config.Config, sched *scheduler.Sc
 	scheduleLogger.Debug().Time("start_date", now).Time("end_date", end).Int("lookahead_days", cfg.Schedule.LookAheadDays).Msg("Calculated date range")
 
 	// Generate schedule
-	assignments, err := sched.GenerateSchedule(now, end)
+	assignments, err := sched.GenerateSchedule(now, end, time.Now())
 	if err != nil {
 		scheduleLogger.Error().Err(err).Msg("Failed to generate schedule")
 		return err

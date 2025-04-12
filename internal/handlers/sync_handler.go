@@ -122,7 +122,7 @@ func (h *SyncHandler) updateSchedule(ctx context.Context) error {
 
 	// Generate schedule
 	updateLogger.Debug().Msg("Generating schedule")
-	assignments, err := h.Scheduler.GenerateSchedule(now, end)
+	assignments, err := h.Scheduler.GenerateSchedule(now, end, time.Now())
 	if err != nil {
 		updateLogger.Error().Err(err).Msg("Failed to generate schedule")
 		// Wrap error for context

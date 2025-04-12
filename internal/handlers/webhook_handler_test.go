@@ -114,9 +114,16 @@ type MockScheduler struct {
 	mock.Mock
 }
 
-func (m *MockScheduler) GenerateSchedule(fromDate, endDate time.Time) ([]*Scheduler.Assignment, error) {
-	args := m.Called(fromDate, endDate)
-	return args.Get(0).([]*Scheduler.Assignment), args.Error(1)
+// GenerateSchedule mocks the GenerateSchedule method of the SchedulerInterface
+func (m *MockScheduler) GenerateSchedule(fromDate, endDate time.Time, currentTime time.Time) ([]*Scheduler.Assignment, error) {
+	// Note: We use mock.Anything for currentTime in expectations as it's often time.Now()
+	args := m.Called(fromDate, endDate, currentTime)
+	// Ensure the returned slice is correctly typed
+	if assignments, ok := args.Get(0).([]*Scheduler.Assignment); ok {
+		return assignments, args.Error(1)
+	}
+	// Return nil slice if the type assertion fails or if nil was returned
+	return nil, args.Error(1)
 }
 
 func (m *MockScheduler) UpdateAssignmentParent(id int64, parent string, override bool) error {
@@ -158,7 +165,8 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				tracker.On("GetLastAssignmentDate").Return(lastDate, nil)
 
 				// Set up expectations for scheduler
-				scheduler.On("GenerateSchedule", fromDate, lastDate).Return(schedulerAssignments, nil)
+				// Use mock.Anything for the currentTime argument
+				scheduler.On("GenerateSchedule", fromDate, lastDate, mock.AnythingOfType("time.Time")).Return(schedulerAssignments, nil)
 
 				// Set up expectations for calendar service
 				calService.On("SyncSchedule", ctx, mock.Anything).Return(nil)
@@ -179,7 +187,8 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				tracker.On("GetLastAssignmentDate").Return(zeroTime, nil)
 
 				// Set up expectations for scheduler
-				scheduler.On("GenerateSchedule", fromDate, lookAheadEndDate).Return(schedulerAssignments, nil)
+				// Use mock.Anything for the currentTime argument
+				scheduler.On("GenerateSchedule", fromDate, lookAheadEndDate, mock.AnythingOfType("time.Time")).Return(schedulerAssignments, nil)
 
 				// Set up expectations for calendar service
 				calService.On("SyncSchedule", ctx, mock.Anything).Return(nil)
@@ -204,7 +213,8 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				tracker.On("GetLastAssignmentDate").Return(lastDate, nil)
 
 				// Set up expectations for scheduler with error
-				scheduler.On("GenerateSchedule", fromDate, lastDate).Return([]*Scheduler.Assignment{}, errors.New("generation error"))
+				// Use mock.Anything for the currentTime argument
+				scheduler.On("GenerateSchedule", fromDate, lastDate, mock.AnythingOfType("time.Time")).Return([]*Scheduler.Assignment{}, errors.New("generation error"))
 			},
 			configLookAheadDays: 7,
 			expectedError:       "failed to generate schedule: generation error",
@@ -221,7 +231,8 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				tracker.On("GetLastAssignmentDate").Return(lastDate, nil)
 
 				// Set up expectations for scheduler
-				scheduler.On("GenerateSchedule", fromDate, lastDate).Return(schedulerAssignments, nil)
+				// Use mock.Anything for the currentTime argument
+				scheduler.On("GenerateSchedule", fromDate, lastDate, mock.AnythingOfType("time.Time")).Return(schedulerAssignments, nil)
 
 				// Set up expectations for calendar service with error
 				calService.On("SyncSchedule", ctx, mock.Anything).Return(errors.New("sync error"))
@@ -245,7 +256,8 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				tracker.On("GetLastAssignmentDate").Return(lastDate, nil)
 
 				// Set up expectations for scheduler
-				scheduler.On("GenerateSchedule", fromDate, lastDate).Return(schedulerAssignments, nil)
+				// Use mock.Anything for the currentTime argument
+				scheduler.On("GenerateSchedule", fromDate, lastDate, mock.AnythingOfType("time.Time")).Return(schedulerAssignments, nil)
 
 				// Set up expectations for calendar service
 				calService.On("SyncSchedule", ctx, mock.Anything).Return(nil)
