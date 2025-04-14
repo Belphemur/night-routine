@@ -2,7 +2,9 @@ package calendar
 
 import (
 	"context"
+	"errors" // Add errors import
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -170,39 +172,35 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	}
 	s.logger.Debug().Int("event_count", len(events.Items)).Msg("Fetched existing events")
 
-	// Map events created by our app by date for easy lookup
-	eventsByDate := make(map[string][]*calendar.Event)
+	// Map events created by our app by assignment ID for easy lookup
+	eventsByAssignmentID := make(map[int64][]*calendar.Event) // Renamed and changed key type
 	ourEventCount := 0
 	for _, event := range events.Items {
 		if event.ExtendedProperties == nil || event.ExtendedProperties.Private == nil {
 			continue
 		}
 
-		if val, ok := event.ExtendedProperties.Private["app"]; !ok || val != constants.NightRoutineIdentifier {
-			continue
-		}
-		ourEventCount++
-		// Extract date from the event
-		var eventDate string
-		if event.Start.Date != "" {
-			eventDate = event.Start.Date
-		} else if event.Start.DateTime != "" {
-			// Parse datetime if date is not available directly
-			t, err := time.Parse(time.RFC3339, event.Start.DateTime)
-			if err == nil {
-				eventDate = t.Format("2006-01-02")
-			} else {
-				s.logger.Warn().Err(err).Str("event_id", event.Id).Str("start_time", event.Start.DateTime).Msg("Failed to parse event start time")
-			}
-		}
-		if eventDate != "" {
-			eventsByDate[eventDate] = append(eventsByDate[eventDate], event)
-		}
-	}
-	s.logger.Debug().Int("our_event_count", ourEventCount).Msg("Mapped existing events created by this app")
+		appIdentifier, appOk := event.ExtendedProperties.Private["app"]
+		assignmentIDStr, idOk := event.ExtendedProperties.Private["assignmentId"]
 
-	// Track dates we've already processed to avoid duplicates
-	processedDates := make(map[string]bool)
+		if !appOk || appIdentifier != constants.NightRoutineIdentifier || !idOk {
+			continue // Skip if not our app's event or missing assignmentId
+		}
+
+		// Convert assignment ID string to int64
+		assignmentID, err := strconv.ParseInt(assignmentIDStr, 10, 64)
+		if err != nil {
+			s.logger.Warn().Err(err).Str("event_id", event.Id).Str("assignmentId_str", assignmentIDStr).Msg("Failed to parse assignmentId from event properties")
+			continue // Skip if parsing fails
+		}
+
+		ourEventCount++
+		eventsByAssignmentID[assignmentID] = append(eventsByAssignmentID[assignmentID], event) // Use assignmentID as key
+	}
+	s.logger.Debug().Int("our_event_count", ourEventCount).Msg("Mapped existing events created by this app by assignment ID")
+
+	// Track assignments we've already processed to avoid duplicates
+	processedAssignments := make(map[int64]bool)
 	var mu sync.Mutex // Mutex to protect the map
 
 	// Use a wait group to wait for all goroutines to finish
@@ -217,15 +215,13 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 
 	// Process assignments concurrently
 	for _, assignment := range assignments {
-		dateStr := assignment.Date.Format("2006-01-02")
-
-		// Skip if we've already handled this date - thread-safe check
+		// Skip if we've already handled this assignment ID - thread-safe check
 		mu.Lock()
-		if processedDates[dateStr] {
+		if processedAssignments[assignment.ID] {
 			mu.Unlock()
 			continue
 		}
-		processedDates[dateStr] = true
+		processedAssignments[assignment.ID] = true
 		mu.Unlock()
 
 		// Add to wait group
@@ -247,7 +243,9 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				Logger()
 			goroutineLogger.Debug().Msg("Processing assignment")
 
-			dateStr := a.Date.Format("2006-01-02")
+			startDateStr := a.Date.Format("2006-01-02")
+			// For all-day events, the end date is the day after the start date.
+			endDateStr := a.Date.AddDate(0, 0, 1).Format("2006-01-02")
 
 			privateData := map[string]string{
 				"updatedAt":    a.UpdatedAt.Format(time.RFC3339),
@@ -271,6 +269,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 						UseDefault:      false,
 						ForceSendFields: []string{"UseDefault"},
 					}
+					event.Start.Date = startDateStr
+					event.End.Date = endDateStr
 					event.ExtendedProperties.Private = privateData
 
 					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
@@ -287,15 +287,18 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				// If get fails or update fails, we'll fall through to create a new event
 			}
 
-			// We need to safely access the shared eventsByDate map
+			// We need to safely access the shared eventsByAssignmentID map
 			mu.Lock()
-			dateEvents := eventsByDate[dateStr]
+			// Look up events using the assignment ID
+			assignmentEvents := eventsByAssignmentID[a.ID]
 			mu.Unlock()
 
-			// Delete any existing events on this date (if we couldn't update or had no ID)
-			if len(dateEvents) > 0 {
-				goroutineLogger.Debug().Int("count", len(dateEvents)).Msg("Deleting existing events for this date")
-				for _, existingEvent := range dateEvents {
+			// Delete any existing events associated with this assignment ID (if we couldn't update or had no ID)
+			// Note: This logic might need adjustment. Currently, it deletes *all* events found for this assignment ID
+			// if the initial update/get failed. Consider if only *one* event should exist per assignment ID.
+			if len(assignmentEvents) > 0 {
+				goroutineLogger.Debug().Int("count", len(assignmentEvents)).Msg("Deleting existing events for this assignment ID")
+				for _, existingEvent := range assignmentEvents {
 					// Skip if this is the event we just tried to update (and failed)
 					if existingEvent.Id == a.GoogleCalendarEventID {
 						continue
@@ -319,10 +322,10 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 			event := &calendar.Event{
 				Summary: fmt.Sprintf("[%s] 🌃👶Routine", a.Parent),
 				Start: &calendar.EventDateTime{
-					Date: dateStr,
+					Date: startDateStr,
 				},
 				End: &calendar.EventDateTime{
-					Date: dateStr,
+					Date: endDateStr,
 				},
 				Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
 					a.Parent, constants.NightRoutineIdentifier),
@@ -374,17 +377,18 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	s.logger.Debug().Msg("All assignment processing goroutines finished")
 
 	// Check if any errors occurred
-	var firstErr error
+	var allErrors []error // Slice to hold all errors
 	for err := range errChan {
-		if firstErr == nil {
-			firstErr = err // Capture the first error
+		if err != nil {
+			allErrors = append(allErrors, err) // Collect all non-nil errors
+			s.logger.Error().Err(err).Msg("Error occurred during concurrent assignment processing")
 		}
-		s.logger.Error().Err(err).Msg("Error occurred during concurrent assignment processing")
 	}
 
-	if firstErr != nil {
-		s.logger.Error().Msg("Errors occurred during sync, returning first error")
-		return firstErr // Return the first error encountered
+	if len(allErrors) > 0 {
+		joinedErr := errors.Join(allErrors...) // Join all collected errors
+		s.logger.Error().Err(joinedErr).Int("error_count", len(allErrors)).Msg("Errors occurred during sync, returning joined error")
+		return joinedErr // Return the joined error
 	}
 
 	s.logger.Info().Int("assignments_count", len(assignments)).Msg("Schedule sync completed successfully")
