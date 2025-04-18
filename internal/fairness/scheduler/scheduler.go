@@ -253,6 +253,7 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 }
 
 // UpdateAssignmentParent updates the parent for an assignment and sets the override flag
+// When override is true, it also sets the decision reason to Override
 func (s *Scheduler) UpdateAssignmentParent(id int64, parent string, override bool) error {
 	updateLogger := s.logger.With().
 		Int64("assignment_id", id).
