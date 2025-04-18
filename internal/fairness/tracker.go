@@ -158,12 +158,22 @@ func (t *Tracker) UpdateAssignmentGoogleCalendarEventID(id int64, googleCalendar
 func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool) error {
 	updateLogger := t.logger.With().Int64("assignment_id", id).Str("new_parent", parent).Bool("override", override).Logger()
 	updateLogger.Debug().Msg("Updating assignment parent and override status")
-	_, err := t.db.Exec(`
-	UPDATE assignments
-	SET parent_name = ?, override = ?
-	WHERE id = ?
-	`, parent, override, id)
 
+	// Build query and arguments dynamically
+	query := "UPDATE assignments SET parent_name = ?, override = ?"
+	args := []interface{}{parent, override}
+
+	if override {
+		// When overriding, also update the decision reason
+		query += ", decision_reason = ?"
+		args = append(args, DecisionReasonOverride)
+	}
+
+	query += " WHERE id = ?"
+	args = append(args, id)
+
+	// Execute the query
+	_, err := t.db.Exec(query, args...)
 	if err != nil {
 		updateLogger.Debug().Err(err).Msg("Failed to execute update query")
 		return fmt.Errorf("failed to update assignment parent: %w", err)

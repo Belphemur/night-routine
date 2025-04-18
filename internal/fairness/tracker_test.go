@@ -175,6 +175,7 @@ func TestAssignmentWithOverride(t *testing.T) {
 	assignment, err := tracker.RecordAssignment("Alice", date, false, "Total Count")
 	assert.NoError(t, err)
 	assert.False(t, assignment.Override)
+	assert.Equal(t, DecisionReason("Total Count"), assignment.DecisionReason)
 
 	// Override the assignment
 	err = tracker.UpdateAssignmentParent(assignment.ID, "Bob", true)
@@ -185,12 +186,64 @@ func TestAssignmentWithOverride(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, updated.Override)
 	assert.Equal(t, "Bob", updated.Parent)
+	assert.Equal(t, DecisionReasonOverride, updated.DecisionReason, "Decision reason should be set to Override when overriding")
 
 	// With our simplified method, overrides can be changed
 	assignment, err = tracker.RecordAssignment("Alice", date, false, "Total Count")
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", assignment.Parent) // Should now be Alice (overrides can be changed)
 	assert.False(t, assignment.Override)        // Override flag is updated
+	assert.Equal(t, DecisionReason("Total Count"), assignment.DecisionReason, "Decision reason should be updated when override is removed")
+}
+
+// TestUpdateAssignmentParentWithOverride tests the UpdateAssignmentParent method with override
+func TestUpdateAssignmentParentWithOverride(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	date := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Create initial assignment with a specific decision reason
+	initialReason := DecisionReason("Alternating")
+	assignment, err := tracker.RecordAssignment("Alice", date, false, initialReason)
+	assert.NoError(t, err)
+	assert.Equal(t, initialReason, assignment.DecisionReason)
+
+	// Test case 1: Update with override=true
+	err = tracker.UpdateAssignmentParent(assignment.ID, "Bob", true)
+	assert.NoError(t, err)
+
+	// Verify decision reason is set to Override
+	updated, err := tracker.GetAssignmentByDate(date)
+	assert.NoError(t, err)
+	assert.Equal(t, "Bob", updated.Parent)
+	assert.True(t, updated.Override)
+	assert.Equal(t, DecisionReasonOverride, updated.DecisionReason, "Decision reason should be set to Override when override=true")
+
+	// Test case 2: Update with override=false
+	err = tracker.UpdateAssignmentParent(updated.ID, "Charlie", false)
+	assert.NoError(t, err)
+
+	// Verify decision reason is not changed when override=false
+	updated2, err := tracker.GetAssignmentByDate(date)
+	assert.NoError(t, err)
+	assert.Equal(t, "Charlie", updated2.Parent)
+	assert.False(t, updated2.Override)
+	assert.Equal(t, DecisionReasonOverride, updated2.DecisionReason, "Decision reason should not be changed when override=false")
+
+	// Test case 3: Set override=true again with a different parent
+	err = tracker.UpdateAssignmentParent(updated2.ID, "David", true)
+	assert.NoError(t, err)
+
+	// Verify decision reason is set to Override again
+	updated3, err := tracker.GetAssignmentByDate(date)
+	assert.NoError(t, err)
+	assert.Equal(t, "David", updated3.Parent)
+	assert.True(t, updated3.Override)
+	assert.Equal(t, DecisionReasonOverride, updated3.DecisionReason, "Decision reason should be set to Override when override=true")
 }
 
 // TestGetAssignmentsInRange tests the GetAssignmentsInRange method
