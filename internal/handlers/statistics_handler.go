@@ -53,18 +53,23 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		return
 	}
 
-	parentNamesSet := make(map[string]struct{})
-	monthHeadersSet := make(map[string]struct{})
-
-	now := time.Now()
-	for i := 0; i < 12; i++ {
-		// Iterate from 11 months ago to current month to get the last 12 distinct months
-		month := now.AddDate(0, -(11 - i), 0)
-		monthHeadersSet[month.Format("2006-01")] = struct{}{}
+	if len(rawStats) == 0 {
+		// No data from the database, so show "No statistics data available"
+		// data.ParentsStats is already nil, data.MonthHeaders is empty.
+		handlerLogger.Info().Msg("No raw statistics data found. Rendering page with 'No data available'.")
+		h.RenderTemplate(w, "statistics.html", data)
+		return
 	}
 
+	// 1. Create a lookup map from rawStats: ParentName -> MonthYear -> Count
+	statsLookupMap := make(map[string]map[string]int)
+	parentNamesSet := make(map[string]struct{})
 	for _, stat := range rawStats {
 		parentNamesSet[stat.ParentName] = struct{}{}
+		if _, ok := statsLookupMap[stat.ParentName]; !ok {
+			statsLookupMap[stat.ParentName] = make(map[string]int)
+		}
+		statsLookupMap[stat.ParentName][stat.MonthYear] = stat.Count
 	}
 
 	var sortedParentNames []string
@@ -73,31 +78,58 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	}
 	sort.Strings(sortedParentNames)
 
-	for month := range monthHeadersSet {
-		data.MonthHeaders = append(data.MonthHeaders, month)
+	// 2. Generate all 12 potential month headers for the last 12 months
+	allPossibleMonthHeaders := []string{}
+	now := time.Now()
+	for i := 0; i < 12; i++ {
+		month := now.AddDate(0, -(11 - i), 0)
+		allPossibleMonthHeaders = append(allPossibleMonthHeaders, month.Format("2006-01"))
 	}
-	sort.Strings(data.MonthHeaders) // Sorts "YYYY-MM" chronologically
+	sort.Strings(allPossibleMonthHeaders) // Ensure chronological order
 
-	statsMap := make(map[string]map[string]int) // ParentName -> MonthYear -> Count
-	for _, stat := range rawStats {
-		if _, ok := statsMap[stat.ParentName]; !ok {
-			statsMap[stat.ParentName] = make(map[string]int)
+	// 3. Filter month headers: only keep months where at least one parent has a non-zero count.
+	finalMonthHeaders := []string{}
+	for _, monthStr := range allPossibleMonthHeaders {
+		hasDataForThisMonth := false
+		for _, parentName := range sortedParentNames {
+			if parentData, ok := statsLookupMap[parentName]; ok {
+				if count, ok2 := parentData[monthStr]; ok2 && count > 0 {
+					hasDataForThisMonth = true
+					break
+				}
+			}
 		}
-		statsMap[stat.ParentName][stat.MonthYear] = stat.Count
+		if hasDataForThisMonth {
+			finalMonthHeaders = append(finalMonthHeaders, monthStr)
+		}
 	}
 
+	// 4. If no month headers remain after filtering (all months had zero counts for all parents),
+	//    then treat as "No data available".
+	if len(finalMonthHeaders) == 0 {
+		handlerLogger.Info().Msg("All months have zero counts for all parents. Rendering page with 'No data available'.")
+		// data.ParentsStats is still nil. data.MonthHeaders should be empty for the template's "No data" block.
+		data.MonthHeaders = nil // Explicitly set to nil for clarity, though empty slice works too.
+		h.RenderTemplate(w, "statistics.html", data)
+		return
+	}
+	data.MonthHeaders = finalMonthHeaders
+
+	// 5. Build data.ParentsStats using the filtered finalMonthHeaders.
 	for _, parentName := range sortedParentNames {
 		parentStat := ParentStatsForTemplate{
 			ParentName:    parentName,
 			MonthlyCounts: make(map[string]int),
 		}
+		// For each of the *filtered* display month headers, fill in the count for the current parent
 		for _, monthHeader := range data.MonthHeaders {
-			if count, ok := statsMap[parentName][monthHeader]; ok {
-				parentStat.MonthlyCounts[monthHeader] = count
-			} else {
-				// Ensure every parent has an entry for every month in the header, defaulting to 0
-				parentStat.MonthlyCounts[monthHeader] = 0
+			count := 0 // Default to 0
+			if parentMonthlyData, parentExists := statsLookupMap[parentName]; parentExists {
+				if monthCount, monthExists := parentMonthlyData[monthHeader]; monthExists {
+					count = monthCount
+				}
 			}
+			parentStat.MonthlyCounts[monthHeader] = count
 		}
 		data.ParentsStats = append(data.ParentsStats, parentStat)
 	}
