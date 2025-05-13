@@ -150,11 +150,7 @@ func (t *Tracker) GetAssignmentByID(id int64) (*Assignment, error) {
 		getLogger.Error().Err(err).Msg("Failed to scan assignment row")
 		return nil, fmt.Errorf("failed to scan assignment: %w", err)
 	}
-	// Check for context error after QueryRowContext itself, before scan, if QueryRowContext returns it directly
-	if err := ctx.Err(); err == context.DeadlineExceeded {
-		getLogger.Error().Err(err).Msg("Database query for assignment by ID timed out")
-		return nil, fmt.Errorf("database query timed out: %w", err)
-	}
+	// QueryRowContext is expected to propagate context errors, so no additional check is needed here.
 
 	getLogger.Debug().Msg("Assignment retrieved successfully")
 	return a, nil
@@ -290,11 +286,7 @@ func (t *Tracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 		getLogger.Error().Err(err).Msg("Failed to scan assignment row for GetAssignmentByDate")
 		return nil, fmt.Errorf("failed to scan assignment: %w", err)
 	}
-	// Check for context error after QueryRowContext itself
-	if err := ctx.Err(); err == context.DeadlineExceeded {
-		getLogger.Error().Err(err).Msg("Database query for assignment by date timed out")
-		return nil, fmt.Errorf("database query timed out: %w", err)
-	}
+// Removed redundant context error check. Error handling is consolidated in the scanAssignment block.
 
 	if a != nil {
 		getLogger.Debug().Int64("assignment_id", a.ID).Msg("Assignment retrieved successfully")
