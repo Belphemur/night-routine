@@ -175,6 +175,10 @@ func run(ctx context.Context) error {
 	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc)
 	syncHandler.RegisterRoutes()
 
+	// Initialize statistics handler
+	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
+	statisticsHandler.RegisterRoutes()
+
 	// Start HTTP server
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.App.Port),

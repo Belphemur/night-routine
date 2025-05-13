@@ -30,7 +30,15 @@ type BaseHandler struct {
 func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
-	tmpl, err := template.New("").ParseFS(templateFS, "templates/*.html")
+
+	// Define custom template functions
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int {
+			return a + b
+		},
+	}
+
+	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse templates")
 		return nil, err

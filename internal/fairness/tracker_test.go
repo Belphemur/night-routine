@@ -320,3 +320,168 @@ func TestGoogleCalendarIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, newEventID, updated.GoogleCalendarEventID)
 }
+
+func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	// Define a fixed "now" for consistent testing.
+	testReferenceTime := time.Date(2025, time.May, 15, 10, 0, 0, 0, time.UTC)
+
+	// Helper to create dates relative to testReferenceTime
+	monthsAgo := func(m int) time.Time {
+		return testReferenceTime.AddDate(0, -m, 0)
+	}
+	daysAgo := func(d int) time.Time {
+		return testReferenceTime.AddDate(0, 0, -d)
+	}
+
+	t.Run("No assignments", func(t *testing.T) {
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 12)
+		assert.NoError(t, err)
+		assert.Empty(t, stats)
+	})
+
+	// --- Setup data for subsequent tests ---
+	// Parent A:
+	// - 2 assignments 1 month ago (current month - 1)
+	// - 1 assignment 3 months ago
+	// - 1 assignment 13 months ago (should be excluded for 12 month lookback)
+	_, err = tracker.RecordAssignment("Parent A", monthsAgo(1).AddDate(0, 0, -1), false, "Test") // e.g., April 2025
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Parent A", monthsAgo(1).AddDate(0, 0, -2), false, "Test") // e.g., April 2025
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Parent A", monthsAgo(3), false, "Test") // e.g., February 2025
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Parent A", monthsAgo(13), false, "Test") // e.g., April 2024 (too old)
+	assert.NoError(t, err)
+
+	// Parent B:
+	// - 1 assignment this month (current month)
+	// - 3 assignments 11 months ago (just within 12 month lookback)
+	_, err = tracker.RecordAssignment("Parent B", daysAgo(5), false, "Test") // e.g., May 2025
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Parent B", monthsAgo(11).AddDate(0, 0, -1), false, "Test") // e.g., June 2024
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Parent B", monthsAgo(11).AddDate(0, 0, -2), false, "Test") // e.g., June 2024
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Parent B", monthsAgo(11).AddDate(0, 0, -3), false, "Test") // e.g., June 2024
+	assert.NoError(t, err)
+
+	// Parent C:
+	// - 1 assignment 12 months ago (should be excluded as start of range is Nth month ago, not N+1)
+	//   The logic `now.AddDate(0, -(nMonths - 1), 0)` means for 12 months, it goes back 11 months
+	//   to the *start* of that month. So, 12 full months ago is outside.
+	//   Example: If now is May 2025, 12 months lookback includes May 2024.
+	//   `monthsAgo(11)` is June 2024. `monthsAgo(12)` is May 2024.
+	//   The first day of range is `time.Date(startDateRange.Year(), startDateRange.Month(), 1, ...)`
+	//   If nMonths = 12, startDateRange = now - 11 months.
+	//   If now = May 15, 2025, startDateRange = June 15, 2024. firstDayOfRange = June 1, 2024.
+	//   So, data from May 2024 should be excluded.
+	_, err = tracker.RecordAssignment("Parent C", monthsAgo(12), false, "Test") // e.g., May 2024 (should be included if logic is inclusive of 12th month)
+	assert.NoError(t, err)
+	// Let's add one for Parent C that *is* included (11 months ago)
+	_, err = tracker.RecordAssignment("Parent C", monthsAgo(11).AddDate(0, 0, -5), false, "Test") // e.g. June 2024
+	assert.NoError(t, err)
+
+	t.Run("With assignments within 12 months", func(t *testing.T) {
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 12)
+		assert.NoError(t, err)
+		// Expected:
+		// Parent A: monthsAgo(1) -> 2, monthsAgo(3) -> 1
+		// Parent B: daysAgo(5) (current month) -> 1, monthsAgo(11) -> 3
+		// Parent C: monthsAgo(11) -> 1 (monthsAgo(12) should be included by the query logic)
+
+		// Create a map for easier assertion
+		resultsMap := make(map[string]map[string]int) // Parent -> MonthYear -> Count
+		for _, s := range stats {
+			if _, ok := resultsMap[s.ParentName]; !ok {
+				resultsMap[s.ParentName] = make(map[string]int)
+			}
+			resultsMap[s.ParentName][s.MonthYear] = s.Count
+		}
+
+		// Assertions for Parent A
+		month1AgoStr := monthsAgo(1).Format("2006-01")
+		month3AgoStr := monthsAgo(3).Format("2006-01")
+		assert.Equal(t, 2, resultsMap["Parent A"][month1AgoStr], "Parent A, 1 month ago")
+		assert.Equal(t, 1, resultsMap["Parent A"][month3AgoStr], "Parent A, 3 months ago")
+		_, thirteenMonthsAgoExists := resultsMap["Parent A"][monthsAgo(13).Format("2006-01")]
+		assert.False(t, thirteenMonthsAgoExists, "Parent A, 13 months ago should not exist")
+
+		// Assertions for Parent B
+		currentMonthStr := testReferenceTime.Format("2006-01") // May 2025
+		month11AgoStr := monthsAgo(11).Format("2006-01")       // June 2024
+		assert.Equal(t, 1, resultsMap["Parent B"][currentMonthStr], "Parent B, current month")
+		assert.Equal(t, 3, resultsMap["Parent B"][month11AgoStr], "Parent B, 11 months ago")
+
+		// Assertions for Parent C
+		// The query `assignment_date >= ?` where ? is firstDayOfRange (e.g., 2024-06-01 for a May 2025 run with 12 months)
+		// So, monthsAgo(12) which is May 2024, should NOT be included.
+		// monthsAgo(11) which is June 2024, SHOULD be included.
+		month12AgoStr := monthsAgo(12).Format("2006-01")
+
+		_, twelveMonthsAgoExists := resultsMap["Parent C"][month12AgoStr]
+		assert.False(t, twelveMonthsAgoExists, "Parent C, 12 months ago (e.g. May 2024) should NOT be included")
+		assert.Equal(t, 1, resultsMap["Parent C"][month11AgoStr], "Parent C, 11 months ago (e.g. June 2024)")
+
+		// Total number of stat rows
+		// Parent A: 2 rows (month1ago, month3ago)
+		// Parent B: 2 rows (currentMonth, month11ago)
+		// Parent C: 1 row (month11ago)
+		// Total = 5
+		assert.Len(t, stats, 5, "Total number of stat rows")
+	})
+
+	t.Run("Lookback for 1 month", func(t *testing.T) {
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 1)
+		assert.NoError(t, err)
+
+		resultsMap := make(map[string]map[string]int)
+		for _, s := range stats {
+			if _, ok := resultsMap[s.ParentName]; !ok {
+				resultsMap[s.ParentName] = make(map[string]int)
+			}
+			resultsMap[s.ParentName][s.MonthYear] = s.Count
+		}
+		currentMonthStr := testReferenceTime.Format("2006-01")
+
+		// Parent A: No assignments in current month
+		// Parent B: 1 assignment in current month
+		// Parent C: No assignments in current month
+		assert.Equal(t, 1, resultsMap["Parent B"][currentMonthStr], "Parent B, current month for 1 month lookback")
+		_, parentAExists := resultsMap["Parent A"]
+		assert.False(t, parentAExists, "Parent A should not have stats for 1 month lookback")
+		_, parentCExists := resultsMap["Parent C"]
+		assert.False(t, parentCExists, "Parent C should not have stats for 1 month lookback")
+		assert.Len(t, stats, 1)
+	})
+
+	t.Run("Lookback for 2 months", func(t *testing.T) {
+		// This should include current month and (current month - 1)
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 2)
+		assert.NoError(t, err)
+
+		resultsMap := make(map[string]map[string]int)
+		for _, s := range stats {
+			if _, ok := resultsMap[s.ParentName]; !ok {
+				resultsMap[s.ParentName] = make(map[string]int)
+			}
+			resultsMap[s.ParentName][s.MonthYear] = s.Count
+		}
+		currentMonthStr := testReferenceTime.Format("2006-01") // May 2025
+		month1AgoStr := monthsAgo(1).Format("2006-01")         // April 2025
+
+		// Parent A: 2 assignments 1 month ago
+		// Parent B: 1 assignment current month
+		// Parent C: No assignments in these 2 months
+		assert.Equal(t, 2, resultsMap["Parent A"][month1AgoStr], "Parent A, 1 month ago for 2 months lookback")
+		assert.Equal(t, 1, resultsMap["Parent B"][currentMonthStr], "Parent B, current month for 2 months lookback")
+		_, parentCExists := resultsMap["Parent C"]
+		assert.False(t, parentCExists, "Parent C should not have stats for 2 months lookback")
+		assert.Len(t, stats, 2) // Parent A (1 row), Parent B (1 row)
+	})
+}

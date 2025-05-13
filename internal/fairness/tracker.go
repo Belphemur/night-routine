@@ -1,6 +1,7 @@
 package fairness
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -13,6 +14,8 @@ import (
 const (
 	// dateFormat is the format used for dates in the database
 	dateFormat = "2006-01-02"
+	// defaultQueryTimeout is the default timeout for database queries.
+	defaultQueryTimeout = 30 * time.Second
 )
 
 // Tracker maintains the state of night routine assignments
@@ -42,7 +45,11 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 	// Use proper UPSERT syntax with ON CONFLICT clause
 	// This works because we have a unique index on assignment_date
 	recordLogger.Debug().Msg("Using UPSERT with ON CONFLICT to create or update assignment")
-	_, err := t.db.Exec(`
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	_, err := t.db.ExecContext(ctx, `
 	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
 	VALUES (?, ?, ?, ?)
 	ON CONFLICT(assignment_date) DO UPDATE SET 
@@ -52,7 +59,11 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 		`, parent, date.Format(dateFormat), override, decisionReason.String())
 
 	if err != nil {
-		recordLogger.Debug().Err(err).Msg("Failed to upsert assignment")
+		if err == context.DeadlineExceeded {
+			recordLogger.Error().Err(err).Msg("Database upsert for assignment timed out")
+			return nil, fmt.Errorf("database upsert timed out: %w", err)
+		}
+		recordLogger.Error().Err(err).Msg("Failed to upsert assignment")
 		return nil, fmt.Errorf("failed to record assignment: %w", err)
 	}
 
@@ -119,7 +130,11 @@ func (t *Tracker) scanAssignment(scanner interface {
 func (t *Tracker) GetAssignmentByID(id int64) (*Assignment, error) {
 	getLogger := t.logger.With().Int64("assignment_id", id).Logger()
 	getLogger.Debug().Msg("Getting assignment by ID")
-	row := t.db.QueryRow(`
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	row := t.db.QueryRowContext(ctx, `
 		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 		FROM assignments
 		WHERE id = ?
@@ -127,9 +142,15 @@ func (t *Tracker) GetAssignmentByID(id int64) (*Assignment, error) {
 
 	a, err := t.scanAssignment(row)
 	if err != nil {
-		getLogger.Debug().Err(err).Msg("Failed to scan assignment row")
+		if err == context.DeadlineExceeded { // This check might be redundant if QueryRowContext handles it before scan
+			getLogger.Error().Err(err).Msg("Database query for assignment by ID timed out during scan")
+			return nil, fmt.Errorf("database query timed out during scan: %w", err)
+		}
+		// sql.ErrNoRows is handled by scanAssignment
+		getLogger.Error().Err(err).Msg("Failed to scan assignment row")
 		return nil, fmt.Errorf("failed to scan assignment: %w", err)
 	}
+	// QueryRowContext is expected to propagate context errors, so no additional check is needed here.
 
 	getLogger.Debug().Msg("Assignment retrieved successfully")
 	return a, nil
@@ -139,14 +160,22 @@ func (t *Tracker) GetAssignmentByID(id int64) (*Assignment, error) {
 func (t *Tracker) UpdateAssignmentGoogleCalendarEventID(id int64, googleCalendarEventID string) error {
 	updateLogger := t.logger.With().Int64("assignment_id", id).Str("event_id", googleCalendarEventID).Logger()
 	updateLogger.Debug().Msg("Updating assignment Google Calendar Event ID")
-	_, err := t.db.Exec(`
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	_, err := t.db.ExecContext(ctx, `
 	UPDATE assignments
 	SET google_calendar_event_id = ?
 	WHERE id = ?
 	`, googleCalendarEventID, id)
 
 	if err != nil {
-		updateLogger.Debug().Err(err).Msg("Failed to execute update query")
+		if err == context.DeadlineExceeded {
+			updateLogger.Error().Err(err).Msg("Database update for Google Calendar Event ID timed out")
+			return fmt.Errorf("database update timed out: %w", err)
+		}
+		updateLogger.Error().Err(err).Msg("Failed to execute update query for Google Calendar Event ID")
 		return fmt.Errorf("failed to update assignment with Google Calendar event ID: %w", err)
 	}
 
@@ -173,9 +202,16 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	args = append(args, id)
 
 	// Execute the query
-	_, err := t.db.Exec(query, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	_, err := t.db.ExecContext(ctx, query, args...)
 	if err != nil {
-		updateLogger.Debug().Err(err).Msg("Failed to execute update query")
+		if err == context.DeadlineExceeded {
+			updateLogger.Error().Err(err).Msg("Database update for assignment parent timed out")
+			return fmt.Errorf("database update timed out: %w", err)
+		}
+		updateLogger.Error().Err(err).Msg("Failed to execute update query for assignment parent")
 		return fmt.Errorf("failed to update assignment parent: %w", err)
 	}
 
@@ -188,7 +224,11 @@ func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment
 	getLogger := t.logger.With().Int("limit", n).Time("until_date", until).Logger()
 	getLogger.Debug().Msg("Getting last assignments until date")
 	untilStr := until.Format(dateFormat)
-	rows, err := t.db.Query(`
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	rows, err := t.db.QueryContext(ctx, `
 SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 FROM assignments
 WHERE assignment_date < ?
@@ -196,7 +236,11 @@ ORDER BY assignment_date DESC
 LIMIT ?
 `, untilStr, n)
 	if err != nil {
-		getLogger.Debug().Err(err).Msg("Failed to query last assignments")
+		if err == context.DeadlineExceeded {
+			getLogger.Error().Err(err).Msg("Database query for last assignments timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		getLogger.Error().Err(err).Msg("Failed to query last assignments")
 		return nil, fmt.Errorf("failed to query assignments: %w", err)
 	}
 	defer rows.Close()
@@ -224,7 +268,11 @@ func (t *Tracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 	getLogger := t.logger.With().Str("date", date.Format(dateFormat)).Logger()
 	getLogger.Debug().Msg("Getting assignment by date")
 	dateStr := date.Format(dateFormat)
-	row := t.db.QueryRow(`
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	row := t.db.QueryRowContext(ctx, `
 		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 		FROM assignments
 		WHERE assignment_date = ?
@@ -234,9 +282,11 @@ func (t *Tracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 
 	a, err := t.scanAssignment(row)
 	if err != nil {
-		getLogger.Debug().Err(err).Msg("Failed to scan assignment row")
+		// sql.ErrNoRows is handled by scanAssignment
+		getLogger.Error().Err(err).Msg("Failed to scan assignment row for GetAssignmentByDate")
 		return nil, fmt.Errorf("failed to scan assignment: %w", err)
 	}
+	// Removed redundant context error check. Error handling is consolidated in the scanAssignment block.
 
 	if a != nil {
 		getLogger.Debug().Int64("assignment_id", a.ID).Msg("Assignment retrieved successfully")
@@ -255,7 +305,10 @@ func (t *Tracker) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignm
 		return nil, nil
 	}
 
-	row := t.db.QueryRow(`
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	row := t.db.QueryRowContext(ctx, `
 		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 		FROM assignments
 		WHERE google_calendar_event_id = ?
@@ -263,8 +316,14 @@ func (t *Tracker) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignm
 
 	a, err := t.scanAssignment(row)
 	if err != nil {
-		getLogger.Debug().Err(err).Msg("Failed to scan assignment row")
+		// sql.ErrNoRows is handled by scanAssignment
+		getLogger.Error().Err(err).Msg("Failed to scan assignment row for GetAssignmentByGoogleCalendarEventID")
 		return nil, fmt.Errorf("failed to scan assignment: %w", err)
+	}
+	// Check for context error after QueryRowContext itself
+	if err := ctx.Err(); err == context.DeadlineExceeded {
+		getLogger.Error().Err(err).Msg("Database query for assignment by Google Calendar Event ID timed out")
+		return nil, fmt.Errorf("database query timed out: %w", err)
 	}
 
 	if a != nil {
@@ -285,7 +344,10 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 	startStr := start.Format(dateFormat)
 	endStr := end.Format(dateFormat)
 
-	rows, err := t.db.Query(`
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	rows, err := t.db.QueryContext(ctx, `
 	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
 	FROM assignments
 	WHERE assignment_date >= ? AND assignment_date <= ?
@@ -293,7 +355,11 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 	`, startStr, endStr)
 
 	if err != nil {
-		getLogger.Debug().Err(err).Msg("Failed to query assignments in range")
+		if err == context.DeadlineExceeded {
+			getLogger.Error().Err(err).Msg("Database query for assignments in range timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		getLogger.Error().Err(err).Msg("Failed to query assignments in range")
 		return nil, fmt.Errorf("failed to query assignments in range: %w", err)
 	}
 	defer rows.Close()
@@ -323,7 +389,10 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	untilStr := until.Format(dateFormat)
 	thirtyDaysBeforeUntil := until.AddDate(0, 0, -30).Format(dateFormat)
 
-	rows, err := t.db.Query(`
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	rows, err := t.db.QueryContext(ctx, `
 	SELECT
 	parent_name,
 	COUNT(*) as total_assignments,
@@ -333,7 +402,11 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	GROUP BY parent_name
 	`, thirtyDaysBeforeUntil, untilStr, untilStr)
 	if err != nil {
-		getLogger.Debug().Err(err).Msg("Failed to query parent stats")
+		if err == context.DeadlineExceeded {
+			getLogger.Error().Err(err).Msg("Database query for parent stats timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		getLogger.Error().Err(err).Msg("Failed to query parent stats")
 		return nil, fmt.Errorf("failed to query stats: %w", err)
 	}
 	defer rows.Close()
@@ -361,7 +434,11 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
 	getLogger := t.logger
 	getLogger.Debug().Msg("Getting last assignment date")
-	row := t.db.QueryRow(`
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	row := t.db.QueryRowContext(ctx, `
 	SELECT assignment_date
 	FROM assignments
 	ORDER BY assignment_date DESC
@@ -373,10 +450,21 @@ func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			getLogger.Debug().Msg("No assignments found in database")
-			return time.Time{}, nil
+			return time.Time{}, nil // Not a timeout error, but legitimate no rows
 		}
-		getLogger.Debug().Err(err).Msg("Failed to scan last assignment date")
+		// For QueryRowContext, the context error might be returned by Scan if the query itself failed due to timeout
+		if err == context.DeadlineExceeded || ctx.Err() == context.DeadlineExceeded {
+			getLogger.Error().Err(err).Msg("Database query for last assignment date timed out")
+			return time.Time{}, fmt.Errorf("database query timed out: %w", err)
+		}
+		getLogger.Error().Err(err).Msg("Failed to scan last assignment date")
 		return time.Time{}, fmt.Errorf("failed to get last assignment date: %w", err)
+	}
+	// An additional check for ctx.Err() might be redundant if Scan already propagated it.
+	// However, it's safer to check if the context was cancelled for other reasons.
+	if err := ctx.Err(); err == context.DeadlineExceeded {
+		getLogger.Error().Err(err).Msg("Database query for last assignment date timed out after scan attempt")
+		return time.Time{}, fmt.Errorf("database query timed out: %w", err)
 	}
 
 	date, err := time.Parse(dateFormat, dateStr)
@@ -387,6 +475,78 @@ func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
 
 	getLogger.Debug().Time("last_date", date).Msg("Last assignment date retrieved successfully")
 	return date, nil
+}
+
+// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months,
+// relative to the given referenceTime.
+func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]MonthlyStatRow, error) {
+	statsLogger := t.logger.With().Time("reference_time", referenceTime).Int("months_lookback", nMonths).Logger()
+	statsLogger.Debug().Msg("Getting parent monthly stats")
+
+	// Calculate the start date for the query range (first day of the Nth month ago)
+	// Use the provided referenceTime instead of time.Now()
+	firstDayOfRange := calculateFirstDayOfRange(referenceTime, nMonths)
+
+	query := `
+		SELECT
+			parent_name,
+			strftime('%Y-%m', assignment_date) as month_year,
+			COUNT(*) as count
+		FROM assignments
+		WHERE assignment_date >= ? AND assignment_date <= ?
+		GROUP BY parent_name, month_year
+		ORDER BY parent_name, month_year;
+	`
+	// Query up to the current date
+	ctxQuery, cancelQuery := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancelQuery()
+
+	// Query up to the provided referenceTime
+	rows, err := t.db.QueryContext(ctxQuery, query, firstDayOfRange.Format(dateFormat), referenceTime.Format(dateFormat))
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			statsLogger.Error().Err(err).Msg("Database query for monthly stats timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		statsLogger.Error().Err(err).Msg("Failed to query parent monthly stats")
+		return nil, fmt.Errorf("failed to query parent monthly stats: %w", err)
+	}
+	defer rows.Close()
+
+	var results []MonthlyStatRow
+	for rows.Next() {
+		var row MonthlyStatRow
+		if err := rows.Scan(&row.ParentName, &row.MonthYear, &row.Count); err != nil {
+			statsLogger.Error().Err(err).Msg("Failed to scan monthly stat row")
+			return nil, fmt.Errorf("failed to scan monthly stat row: %w", err)
+		}
+		results = append(results, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		statsLogger.Error().Err(err).Msg("Error iterating monthly stat rows")
+		return nil, fmt.Errorf("error iterating monthly stat rows: %w", err)
+	}
+
+	statsLogger.Debug().Int("row_count", len(results)).Msg("Fetched parent monthly stats successfully")
+	return results, nil
+}
+
+// calculateFirstDayOfRange determines the first day of the month, nMonths ago from 'now'.
+// For example, if nMonths is 12 and 'now' is 2025-05-15, it returns 2024-06-01.
+// If nMonths is 1 and 'now' is 2025-05-15, it returns 2025-05-01.
+func calculateFirstDayOfRange(now time.Time, nMonths int) time.Time {
+	if nMonths <= 0 {
+		// Default to current month if nMonths is invalid, though the calling function expects nMonths > 0
+		nMonths = 1
+	}
+	// To get the Nth month ago, we subtract (nMonths - 1) from the current month.
+	// Example: nMonths = 12 (last 12 months including current). We want to go back 11 months from current.
+	// If now is May 2025, 11 months ago is June 2024. The range starts June 1, 2024.
+	// Example: nMonths = 1 (current month). We want to go back 0 months.
+	// If now is May 2025, 0 months ago is May 2025. The range starts May 1, 2025.
+	targetMonth := now.AddDate(0, -(nMonths - 1), 0)
+	return time.Date(targetMonth.Year(), targetMonth.Month(), 1, 0, 0, 0, 0, now.Location())
 }
 
 // Assignment represents a night routine assignment
@@ -405,4 +565,11 @@ type Assignment struct {
 type Stats struct {
 	TotalAssignments int
 	Last30Days       int
+}
+
+// MonthlyStatRow holds a raw row from the monthly statistics query.
+type MonthlyStatRow struct {
+	ParentName string
+	MonthYear  string // Format: "YYYY-MM"
+	Count      int
 }
