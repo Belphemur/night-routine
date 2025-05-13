@@ -286,7 +286,7 @@ func (t *Tracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 		getLogger.Error().Err(err).Msg("Failed to scan assignment row for GetAssignmentByDate")
 		return nil, fmt.Errorf("failed to scan assignment: %w", err)
 	}
-// Removed redundant context error check. Error handling is consolidated in the scanAssignment block.
+	// Removed redundant context error check. Error handling is consolidated in the scanAssignment block.
 
 	if a != nil {
 		getLogger.Debug().Int64("assignment_id", a.ID).Msg("Assignment retrieved successfully")
