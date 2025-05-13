@@ -82,10 +82,14 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	allPossibleMonthHeaders := []string{}
 	now := time.Now()
 	for i := 0; i < 12; i++ {
+		// This loop generates months in chronological order:
+		// i=0: -(11-0) = -11 (oldest month in range)
+		// ...
+		// i=11: -(11-11) = 0 (current month)
 		month := now.AddDate(0, -(11 - i), 0)
 		allPossibleMonthHeaders = append(allPossibleMonthHeaders, month.Format("2006-01"))
 	}
-	sort.Strings(allPossibleMonthHeaders) // Ensure chronological order
+	// sort.Strings(allPossibleMonthHeaders) // This sort is redundant as the loop above generates them in order.
 
 	// 3. Filter month headers: only keep months where at least one parent has a non-zero count.
 	finalMonthHeaders := []string{}
