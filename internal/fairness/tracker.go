@@ -389,6 +389,57 @@ func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
 	return date, nil
 }
 
+// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months.
+func (t *Tracker) GetParentMonthlyStatsForLastNMonths(nMonths int) ([]MonthlyStatRow, error) {
+	statsLogger := t.logger.With().Int("months_lookback", nMonths).Logger()
+	statsLogger.Debug().Msg("Getting parent monthly stats")
+
+	// Calculate the start date for the query range (first day of the Nth month ago)
+	now := time.Now()
+	// Subtract (nMonths - 1) to get to the Nth month ago, then go to the 1st day of that month.
+	// Example: nMonths = 12, now = 2025-05-15. We want from 2024-06-01.
+	// now.AddDate(0, -(12-1), 0) = 2025-05-15 - 11 months = 2024-06-15
+	// Then take time.Date(Year, Month, 1, ...)
+	startDateRange := now.AddDate(0, -(nMonths - 1), 0)
+	firstDayOfRange := time.Date(startDateRange.Year(), startDateRange.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	query := `
+		SELECT
+			parent_name,
+			strftime('%Y-%m', assignment_date) as month_year,
+			COUNT(*) as count
+		FROM assignments
+		WHERE assignment_date >= ? AND assignment_date <= ?
+		GROUP BY parent_name, month_year
+		ORDER BY parent_name, month_year;
+	`
+	// Query up to the current date
+	rows, err := t.db.Query(query, firstDayOfRange.Format(dateFormat), now.Format(dateFormat))
+	if err != nil {
+		statsLogger.Error().Err(err).Msg("Failed to query parent monthly stats")
+		return nil, fmt.Errorf("failed to query parent monthly stats: %w", err)
+	}
+	defer rows.Close()
+
+	var results []MonthlyStatRow
+	for rows.Next() {
+		var row MonthlyStatRow
+		if err := rows.Scan(&row.ParentName, &row.MonthYear, &row.Count); err != nil {
+			statsLogger.Error().Err(err).Msg("Failed to scan monthly stat row")
+			return nil, fmt.Errorf("failed to scan monthly stat row: %w", err)
+		}
+		results = append(results, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		statsLogger.Error().Err(err).Msg("Error iterating monthly stat rows")
+		return nil, fmt.Errorf("error iterating monthly stat rows: %w", err)
+	}
+
+	statsLogger.Debug().Int("row_count", len(results)).Msg("Fetched parent monthly stats successfully")
+	return results, nil
+}
+
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
@@ -405,4 +456,11 @@ type Assignment struct {
 type Stats struct {
 	TotalAssignments int
 	Last30Days       int
+}
+
+// MonthlyStatRow holds a raw row from the monthly statistics query.
+type MonthlyStatRow struct {
+	ParentName string
+	MonthYear  string // Format: "YYYY-MM"
+	Count      int
 }

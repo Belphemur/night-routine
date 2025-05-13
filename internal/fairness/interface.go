@@ -33,6 +33,9 @@ type TrackerInterface interface {
 
 	// GetLastAssignmentDate returns the date of the last assignment in the database
 	GetLastAssignmentDate() (time.Time, error)
+
+	// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months.
+	GetParentMonthlyStatsForLastNMonths(nMonths int) ([]MonthlyStatRow, error)
 }
 
 // Ensure Tracker implements the TrackerInterface
