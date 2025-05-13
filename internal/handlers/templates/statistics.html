@@ -81,11 +81,11 @@
             </tr>
         </thead>
         <tbody>
-            {{range .ParentsStats}}
+            {{range $parentStat := .ParentsStats}}
             <tr>
-                <td>{{.ParentName}}</td>
-                {{range $.MonthHeaders}} {{/* Use $ to access .MonthHeaders from outer scope */}}
-                <td>{{index .MonthlyCounts .}}</td>
+                <td>{{$parentStat.ParentName}}</td>
+                {{range $.MonthHeaders}} {{/* . here is the month string, e.g., "2023-01" */}}
+                <td>{{index $parentStat.MonthlyCounts .}}</td> {{/* Access MonthlyCounts from the outer loop's item */}}
                 {{end}}
             </tr>
             {{end}}
