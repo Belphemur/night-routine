@@ -328,22 +328,19 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 	tracker, err := New(db)
 	assert.NoError(t, err)
 
-	// Define "now" for consistent testing. Let's say it's May 15, 2025
-	// The function calculates based on time.Now(), so we can't directly mock it
-	// without interface changes or more complex test setups.
-	// For this test, we'll insert data relative to the actual time.Now()
-	// and verify the logic based on a 12-month lookback.
+	// Define a fixed "now" for consistent testing.
+	testReferenceTime := time.Date(2025, time.May, 15, 10, 0, 0, 0, time.UTC)
 
-	// Helper to create dates relative to current time
+	// Helper to create dates relative to testReferenceTime
 	monthsAgo := func(m int) time.Time {
-		return time.Now().AddDate(0, -m, 0)
+		return testReferenceTime.AddDate(0, -m, 0)
 	}
 	daysAgo := func(d int) time.Time {
-		return time.Now().AddDate(0, 0, -d)
+		return testReferenceTime.AddDate(0, 0, -d)
 	}
 
 	t.Run("No assignments", func(t *testing.T) {
-		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(12)
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 12)
 		assert.NoError(t, err)
 		assert.Empty(t, stats)
 	})
@@ -391,7 +388,7 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("With assignments within 12 months", func(t *testing.T) {
-		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(12)
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 12)
 		assert.NoError(t, err)
 		// Expected:
 		// Parent A: monthsAgo(1) -> 2, monthsAgo(3) -> 1
@@ -416,8 +413,8 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 		assert.False(t, thirteenMonthsAgoExists, "Parent A, 13 months ago should not exist")
 
 		// Assertions for Parent B
-		currentMonthStr := time.Now().Format("2006-01")
-		month11AgoStr := monthsAgo(11).Format("2006-01")
+		currentMonthStr := testReferenceTime.Format("2006-01") // May 2025
+		month11AgoStr := monthsAgo(11).Format("2006-01")       // June 2024
 		assert.Equal(t, 1, resultsMap["Parent B"][currentMonthStr], "Parent B, current month")
 		assert.Equal(t, 3, resultsMap["Parent B"][month11AgoStr], "Parent B, 11 months ago")
 
@@ -440,7 +437,7 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 	})
 
 	t.Run("Lookback for 1 month", func(t *testing.T) {
-		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(1)
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 1)
 		assert.NoError(t, err)
 
 		resultsMap := make(map[string]map[string]int)
@@ -450,7 +447,7 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 			}
 			resultsMap[s.ParentName][s.MonthYear] = s.Count
 		}
-		currentMonthStr := time.Now().Format("2006-01")
+		currentMonthStr := testReferenceTime.Format("2006-01")
 
 		// Parent A: No assignments in current month
 		// Parent B: 1 assignment in current month
@@ -465,7 +462,7 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 
 	t.Run("Lookback for 2 months", func(t *testing.T) {
 		// This should include current month and (current month - 1)
-		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(2)
+		stats, err := tracker.GetParentMonthlyStatsForLastNMonths(testReferenceTime, 2)
 		assert.NoError(t, err)
 
 		resultsMap := make(map[string]map[string]int)
@@ -475,8 +472,8 @@ func TestGetParentMonthlyStatsForLastNMonths(t *testing.T) {
 			}
 			resultsMap[s.ParentName][s.MonthYear] = s.Count
 		}
-		currentMonthStr := time.Now().Format("2006-01")
-		month1AgoStr := monthsAgo(1).Format("2006-01")
+		currentMonthStr := testReferenceTime.Format("2006-01") // May 2025
+		month1AgoStr := monthsAgo(1).Format("2006-01")         // April 2025
 
 		// Parent A: 2 assignments 1 month ago
 		// Parent B: 1 assignment current month

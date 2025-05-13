@@ -485,14 +485,15 @@ func (t *Tracker) GetLastAssignmentDate() (time.Time, error) {
 	return date, nil
 }
 
-// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months.
-func (t *Tracker) GetParentMonthlyStatsForLastNMonths(nMonths int) ([]MonthlyStatRow, error) {
-	statsLogger := t.logger.With().Int("months_lookback", nMonths).Logger()
+// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months,
+// relative to the given referenceTime.
+func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]MonthlyStatRow, error) {
+	statsLogger := t.logger.With().Time("reference_time", referenceTime).Int("months_lookback", nMonths).Logger()
 	statsLogger.Debug().Msg("Getting parent monthly stats")
 
 	// Calculate the start date for the query range (first day of the Nth month ago)
-	now := time.Now()
-	firstDayOfRange := calculateFirstDayOfRange(now, nMonths)
+	// Use the provided referenceTime instead of time.Now()
+	firstDayOfRange := calculateFirstDayOfRange(referenceTime, nMonths)
 
 	query := `
 		SELECT
@@ -508,7 +509,8 @@ func (t *Tracker) GetParentMonthlyStatsForLastNMonths(nMonths int) ([]MonthlySta
 	ctxQuery, cancelQuery := context.WithTimeout(context.Background(), defaultQueryTimeout)
 	defer cancelQuery()
 
-	rows, err := t.db.QueryContext(ctxQuery, query, firstDayOfRange.Format(dateFormat), now.Format(dateFormat))
+	// Query up to the provided referenceTime
+	rows, err := t.db.QueryContext(ctxQuery, query, firstDayOfRange.Format(dateFormat), referenceTime.Format(dateFormat))
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			statsLogger.Error().Err(err).Msg("Database query for monthly stats timed out")

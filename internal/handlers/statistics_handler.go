@@ -44,8 +44,9 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling statistics page request")
 
 	data := StatisticsPageData{}
+	nowForStats := time.Now() // Use a consistent "now" for this request processing
 
-	rawStats, err := h.Tracker.GetParentMonthlyStatsForLastNMonths(12)
+	rawStats, err := h.Tracker.GetParentMonthlyStatsForLastNMonths(nowForStats, 12)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get parent monthly stats from tracker")
 		data.ErrorMessage = "Could not retrieve statistics data. Please try again later."
@@ -80,13 +81,13 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 
 	// 2. Generate all 12 potential month headers for the last 12 months
 	allPossibleMonthHeaders := []string{}
-	now := time.Now()
+	// Use the same nowForStats as used for fetching data, for consistency in month generation
 	for i := 0; i < 12; i++ {
 		// This loop generates months in chronological order:
 		// i=0: -(11-0) = -11 (oldest month in range)
 		// ...
 		// i=11: -(11-11) = 0 (current month)
-		month := now.AddDate(0, -(11 - i), 0)
+		month := nowForStats.AddDate(0, -(11 - i), 0)
 		allPossibleMonthHeaders = append(allPossibleMonthHeaders, month.Format("2006-01"))
 	}
 	// sort.Strings(allPossibleMonthHeaders) // This sort is redundant as the loop above generates them in order.

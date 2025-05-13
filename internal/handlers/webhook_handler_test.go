@@ -68,8 +68,8 @@ func (m *MockTracker) UpdateAssignmentParent(id int64, parent string, override b
 	return args.Error(0)
 }
 
-func (m *MockTracker) GetParentMonthlyStatsForLastNMonths(nMonths int) ([]fairness.MonthlyStatRow, error) {
-	args := m.Called(nMonths)
+func (m *MockTracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]fairness.MonthlyStatRow, error) {
+	args := m.Called(referenceTime, nMonths)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
