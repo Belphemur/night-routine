@@ -1,3 +1,10 @@
+## [0.8.4](https://github.com/Belphemur/night-routine/compare/v0.8.3...v0.8.4) (2025-05-24)
+
+
+### Bug Fixes
+
+* set GITHUB_TOKEN for attest build provenance step ([519d6ef](https://github.com/Belphemur/night-routine/commit/519d6ef676d3a9250f41501458224ec6c2c25005))
+
 ## [0.8.3](https://github.com/Belphemur/night-routine/compare/v0.8.2...v0.8.3) (2025-05-24)
 
 
