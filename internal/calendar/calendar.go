@@ -263,12 +263,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					// Event exists, update it
 					goroutineLogger.Debug().Str("event_id", event.Id).Msg("Existing event found, updating")
 					event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", a.Parent)
-					event.Description = fmt.Sprintf("Night routine duty assigned to %s [%s]",
-						a.Parent, constants.NightRoutineIdentifier)
-					event.Reminders = &calendar.EventReminders{
-						UseDefault:      false,
-						ForceSendFields: []string{"UseDefault"},
-					}
+					event.Description = fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
+						a.Parent, a.DecisionReason.String(), constants.NightRoutineIdentifier)
 					event.Start.Date = startDateStr
 					event.End.Date = endDateStr
 					event.ExtendedProperties.Private = privateData
@@ -327,8 +323,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				End: &calendar.EventDateTime{
 					Date: endDateStr,
 				},
-				Description: fmt.Sprintf("Night routine duty assigned to %s [%s]",
-					a.Parent, constants.NightRoutineIdentifier),
+				Description: fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
+					a.Parent, a.DecisionReason.String(), constants.NightRoutineIdentifier),
 				Location:     "Home",
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
@@ -337,16 +333,6 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				},
 				ExtendedProperties: &calendar.EventExtendedProperties{
 					Private: privateData,
-				},
-				Reminders: &calendar.EventReminders{
-					UseDefault:      false,
-					ForceSendFields: []string{"UseDefault"},
-					Overrides: []*calendar.EventReminder{
-						{
-							Method:  "popup",
-							Minutes: 4 * 60, // The day before at 8 PM
-						},
-					},
 				},
 			}
 
