@@ -1,3 +1,10 @@
+## [0.8.2](https://github.com/Belphemur/night-routine/compare/v0.8.1...v0.8.2) (2025-05-24)
+
+
+### Bug Fixes
+
+* update permissions and use GITHUB_TOKEN for authentication in release workflow ([5b5d445](https://github.com/Belphemur/night-routine/commit/5b5d445411c31096feb35fb664ca1deaf6319686))
+
 ## [0.8.1](https://github.com/Belphemur/night-routine/compare/v0.8.0...v0.8.1) (2025-05-24)
 
 
