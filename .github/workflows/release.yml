@@ -65,8 +65,8 @@ jobs:
       - name: Install GoReleaser CLI
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: goreleaser
-          version: latest # Installs GoReleaser, does not run it
+          version: latest
+          install-only: true
 
       # Set up Node.js (for semantic-release)
       - name: Setup Node.js
