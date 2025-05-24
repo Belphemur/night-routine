@@ -1,3 +1,15 @@
+# [0.9.0](https://github.com/Belphemur/night-routine/compare/v0.8.4...v0.9.0) (2025-05-24)
+
+
+### Bug Fixes
+
+* explicitly disable all calendar event reminders ([1da2343](https://github.com/Belphemur/night-routine/commit/1da23438596db24842671911bbc46b5b8df88ec1))
+
+
+### Features
+
+* add assignment reason to calendar event description and remove reminders ([6c44afe](https://github.com/Belphemur/night-routine/commit/6c44afefc67927cef420bb569917161b2f74837b))
+
 ## [0.8.4](https://github.com/Belphemur/night-routine/compare/v0.8.3...v0.8.4) (2025-05-24)
 
 
