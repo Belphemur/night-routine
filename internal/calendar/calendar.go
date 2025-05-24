@@ -263,15 +263,11 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					// Event exists, update it
 					goroutineLogger.Debug().Str("event_id", event.Id).Msg("Existing event found, updating")
 					event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", a.Parent)
-					event.Description = formatEventDescription(a.Parent, a.DecisionReason.String())
+					event.Description = formatEventDescription(a)
 					event.Start.Date = startDateStr
 					event.End.Date = endDateStr
 					event.ExtendedProperties.Private = privateData
-					event.Reminders = &calendar.EventReminders{
-						UseDefault:      false,
-						Overrides:       []*calendar.EventReminder{},
-						ForceSendFields: []string{"UseDefault", "Overrides"},
-					}
+					setNoReminders(event)
 
 					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
 					if err == nil {
@@ -327,7 +323,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				End: &calendar.EventDateTime{
 					Date: endDateStr,
 				},
-				Description:  formatEventDescription(a.Parent, a.DecisionReason.String()),
+				Description:  formatEventDescription(a),
 				Location:     "Home",
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
@@ -337,12 +333,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				ExtendedProperties: &calendar.EventExtendedProperties{
 					Private: privateData,
 				},
-				Reminders: &calendar.EventReminders{
-					UseDefault:      false,
-					Overrides:       []*calendar.EventReminder{},
-					ForceSendFields: []string{"UseDefault", "Overrides"},
-				},
 			}
+			setNoReminders(event)
 
 			// Create the event in Google Calendar
 			createdEvent, err := s.srv.Events.Insert(s.calendarID, event).Do()
@@ -390,7 +382,16 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 }
 
 // formatEventDescription formats the event description string.
-func formatEventDescription(parent string, reason string) string {
+func formatEventDescription(assignment *scheduler.Assignment) string {
 	return fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
-		parent, reason, constants.NightRoutineIdentifier)
+		assignment.Parent, assignment.DecisionReason.String(), constants.NightRoutineIdentifier)
+}
+
+// setNoReminders disables all reminders for an event.
+func setNoReminders(event *calendar.Event) {
+	event.Reminders = &calendar.EventReminders{
+		UseDefault:      false,
+		Overrides:       []*calendar.EventReminder{},
+		ForceSendFields: []string{"UseDefault", "Overrides"},
+	}
 }
