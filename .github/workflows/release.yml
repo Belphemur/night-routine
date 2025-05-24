@@ -77,14 +77,14 @@ jobs:
 
       # Install semantic-release and plugins
       - name: Install semantic-release dependencies
-        run: npm install -g semantic-release @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/changelog @semantic-release/git @semantic-release/exec
+        run: npm ci
 
       # Run semantic-release
       # This will analyze commits, determine version, generate notes,
       # trigger GoReleaser (via semantic-release-goreleaser plugin),
       # and publish the GitHub release.
       - name: Run semantic-release
-        run: semantic-release
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COSIGN_EXPERIMENTAL: "1" # Required if .goreleaser.yml uses keyless signing
