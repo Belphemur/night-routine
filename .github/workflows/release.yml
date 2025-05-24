@@ -128,3 +128,4 @@ jobs:
           subject-name: ${{ steps.image-name.outputs.value }}
           subject-digest: ${{ steps.digests.outputs.digest }}
           push-to-registry: true # Upload attestation to GHCR
+          github-token: ${{ steps.generate_token.outputs.token }}
