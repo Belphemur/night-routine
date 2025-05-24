@@ -33,6 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }} # Your private key
 
       # Set up Go environment (for GoReleaser)
       - name: Set up Go
