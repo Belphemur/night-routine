@@ -10,8 +10,6 @@ permissions:
   contents: write # To create releases, upload artifacts, and allow semantic-release to push tags/commits
   packages: write # To push Docker images to GHCR
   id-token: write # For keyless signing with Cosign/Sigstore
-  issues: write # For semantic-release to comment on issues
-  pull-requests: write # For semantic-release to comment on PRs
 
 # Ensure only one release job runs at a time
 concurrency:
@@ -66,7 +64,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ steps.generate_token.outputs.token }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Install GoReleaser CLI (for semantic-release-goreleaser plugin)
       - name: Install GoReleaser CLI
@@ -127,7 +125,7 @@ jobs:
       - name: Attest Build Provenance
         uses: actions/attest-build-provenance@v2
         env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           subject-name: ${{ steps.image-name.outputs.value }}
           subject-digest: ${{ steps.digests.outputs.digest }}
