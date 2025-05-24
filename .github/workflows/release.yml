@@ -86,6 +86,22 @@ jobs:
       - name: Install semantic-release dependencies
         run: npm ci
 
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Configure Git for GPG signing
+        run: |
+          git config --global user.signingkey ${{ steps.import_gpg.outputs.keyid }}
+          git config --global commit.gpgsign true
+        env:
+          GIT_AUTHOR_NAME: "releaser[bot]"
+          GIT_AUTHOR_EMAIL: ${{ secrets.RELEASER_EMAIL }}
+          GIT_COMMITTER_NAME: "releaser[bot]"
+          GIT_COMMITTER_EMAIL: ${{ secrets.RELEASER_EMAIL }}
+
       # Run semantic-release
       # This will analyze commits, determine version, generate notes,
       # trigger GoReleaser (via semantic-release-goreleaser plugin),
@@ -94,6 +110,8 @@ jobs:
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.RELEASER_EMAIL }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.RELEASER_EMAIL }}
           COSIGN_EXPERIMENTAL: "1" # Required if .goreleaser.yml uses keyless signing
 
       - name: Export digest
