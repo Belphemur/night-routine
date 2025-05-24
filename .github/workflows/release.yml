@@ -27,13 +27,19 @@ jobs:
       - name: Set Docker image name
         id: image-name
         run: echo "value=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-
+      - name: Generate bot app token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASER_APP_ID }}
+          private-key: ${{ secrets.RELEASER_PRIVATE_KEY }}
       # Check out the repository code with full history for semantic-release
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          token: ${{ steps.generate_token.outputs.token }}
           fetch-depth: 0
-          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }} # Your private key
+          persist-credentials: false
 
       # Set up Go environment (for GoReleaser)
       - name: Set up Go
@@ -60,7 +66,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ steps.generate_token.outputs.token }}
 
       # Install GoReleaser CLI (for semantic-release-goreleaser plugin)
       - name: Install GoReleaser CLI
@@ -87,7 +93,7 @@ jobs:
       - name: Run semantic-release
         run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           COSIGN_EXPERIMENTAL: "1" # Required if .goreleaser.yml uses keyless signing
 
       - name: Export digest
@@ -102,6 +108,8 @@ jobs:
       # Generate SLSA provenance attestation for the Docker manifest list
       - name: Attest Build Provenance
         uses: actions/attest-build-provenance@v2
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         with:
           subject-name: ${{ steps.image-name.outputs.value }}
           subject-digest: ${{ steps.digests.outputs.digest }}
