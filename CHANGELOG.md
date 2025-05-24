@@ -1,3 +1,10 @@
+## [0.8.3](https://github.com/Belphemur/night-routine/compare/v0.8.2...v0.8.3) (2025-05-24)
+
+
+### Bug Fixes
+
+* remove GITHUB_TOKEN environment variable from attest build provenance step ([03c9d9e](https://github.com/Belphemur/night-routine/commit/03c9d9eb8d53b4fe366504eb796681f3da60b58d))
+
 ## [0.8.2](https://github.com/Belphemur/night-routine/compare/v0.8.1...v0.8.2) (2025-05-24)
 
 
