@@ -263,8 +263,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					// Event exists, update it
 					goroutineLogger.Debug().Str("event_id", event.Id).Msg("Existing event found, updating")
 					event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", a.Parent)
-					event.Description = fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
-						a.Parent, a.DecisionReason.String(), constants.NightRoutineIdentifier)
+					event.Description = formatEventDescription(a.Parent, a.DecisionReason.String())
 					event.Start.Date = startDateStr
 					event.End.Date = endDateStr
 					event.ExtendedProperties.Private = privateData
@@ -323,8 +322,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				End: &calendar.EventDateTime{
 					Date: endDateStr,
 				},
-				Description: fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
-					a.Parent, a.DecisionReason.String(), constants.NightRoutineIdentifier),
+				Description:  formatEventDescription(a.Parent, a.DecisionReason.String()),
 				Location:     "Home",
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
@@ -379,4 +377,10 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 
 	s.logger.Info().Int("assignments_count", len(assignments)).Msg("Schedule sync completed successfully")
 	return nil
+}
+
+// formatEventDescription formats the event description string.
+func formatEventDescription(parent string, reason string) string {
+	return fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
+		parent, reason, constants.NightRoutineIdentifier)
 }
