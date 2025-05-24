@@ -267,6 +267,11 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					event.Start.Date = startDateStr
 					event.End.Date = endDateStr
 					event.ExtendedProperties.Private = privateData
+					event.Reminders = &calendar.EventReminders{
+						UseDefault:      false,
+						Overrides:       []*calendar.EventReminder{},
+						ForceSendFields: []string{"UseDefault", "Overrides"},
+					}
 
 					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
 					if err == nil {
@@ -331,6 +336,11 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				},
 				ExtendedProperties: &calendar.EventExtendedProperties{
 					Private: privateData,
+				},
+				Reminders: &calendar.EventReminders{
+					UseDefault:      false,
+					Overrides:       []*calendar.EventReminder{},
+					ForceSendFields: []string{"UseDefault", "Overrides"},
 				},
 			}
 
