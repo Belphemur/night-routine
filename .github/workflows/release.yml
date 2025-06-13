@@ -52,7 +52,7 @@ jobs:
 
       # Install Syft for SBOM generation (if GoReleaser is configured to use it or for other steps)
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0.20.0
+        uses: anchore/sbom-action/download-syft@v0.20.1
 
       # Set up QEMU for multi-platform builds (used by GoReleaser's Docker buildx)
       - name: Set up QEMU
