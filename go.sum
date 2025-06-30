@@ -73,6 +73,8 @@ github.com/ncruces/go-sqlite3 v0.26.1 h1:lBXmbmucH1Bsj57NUQR6T84UoMN7jnNImhF+ibE
 github.com/ncruces/go-sqlite3 v0.26.1/go.mod h1:XFTPtFIo1DmGCh+XVP8KGn9b/o2f+z0WZuT09x2N6eo=
 github.com/ncruces/go-sqlite3 v0.26.2 h1:5UkIBwdfMN2irpVI1dgi9TjTUlxNI06Rti1C8O7ZKVg=
 github.com/ncruces/go-sqlite3 v0.26.2/go.mod h1:XFTPtFIo1DmGCh+XVP8KGn9b/o2f+z0WZuT09x2N6eo=
+github.com/ncruces/go-sqlite3 v0.26.3 h1:WFkQj4KNMhbqiBPGDrVpK74w1DzcxQu3wYpmdWAvfYM=
+github.com/ncruces/go-sqlite3 v0.26.3/go.mod h1:XFTPtFIo1DmGCh+XVP8KGn9b/o2f+z0WZuT09x2N6eo=
 github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt7M=
 github.com/ncruces/julianday v1.0.0/go.mod h1:Dusn2KvZrrovOMJuOt0TNXL6tB7U2E8kvza5fFc9G7g=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
