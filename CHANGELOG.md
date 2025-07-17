@@ -1,3 +1,10 @@
+## [0.9.13](https://github.com/Belphemur/night-routine/compare/v0.9.12...v0.9.13) (2025-07-17)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/ncruces/go-sqlite3 to v0.27.0 ([#65](https://github.com/Belphemur/night-routine/issues/65)) ([dc854cd](https://github.com/Belphemur/night-routine/commit/dc854cde6fd1447fabd2bfe5adac24e7f3a236bb))
+
 ## [0.9.12](https://github.com/Belphemur/night-routine/compare/v0.9.11...v0.9.12) (2025-07-16)
 
 
