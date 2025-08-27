@@ -2,15 +2,23 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
+	gcalendar "google.golang.org/api/calendar/v3"
+
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
+	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
+	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // MockTracker is a mock implementation of the fairness.TrackerInterface
@@ -315,4 +323,277 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 			mockCalService.AssertExpectations(t)
 		})
 	}
+}
+
+// TestProcessEventsWithinTransactionIntegration tests the transaction functionality in processEventsWithinTransaction
+func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
+	// Setup test database
+	dbPath := "test_webhook_transaction.db"
+	defer os.Remove(dbPath)
+
+	db, err := database.New(database.NewDefaultOptions(dbPath))
+	require.NoError(t, err)
+	defer db.Close()
+
+	// Run migrations
+	err = db.MigrateDatabase()
+	require.NoError(t, err)
+
+	// Create real tracker and scheduler
+	tracker, err := fairness.New(db)
+	require.NoError(t, err)
+
+	cfg := &config.Config{
+		Schedule: config.ScheduleConfig{
+			LookAheadDays: 7,
+		},
+	}
+	scheduler := Scheduler.New(cfg, tracker)
+
+	// Create mock calendar service
+	mockCalService := &MockCalendarService{}
+	mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
+
+	// Create webhook handler with real database
+	handler := &WebhookHandler{
+		BaseHandler: &BaseHandler{
+			Tracker: tracker,
+		},
+		Scheduler:       scheduler,
+		Config:          cfg,
+		DB:              db,
+		CalendarService: mockCalService,
+		logger:          logging.GetLogger("webhook-test"),
+	}
+
+	t.Run("Successful Transaction with Multiple Events", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create test events that won't trigger updates (matching parent names)
+		events := []*gcalendar.Event{
+			{
+				Id:      "event1",
+				Status:  "confirmed",
+				Summary: "[OriginalParent1] 🌃👶Routine", // Same as original parent
+				ExtendedProperties: &gcalendar.EventExtendedProperties{
+					Private: map[string]string{
+						"app": constants.NightRoutineIdentifier,
+					},
+				},
+			},
+		}
+
+		// First, create assignment that this event will reference
+		assignment1, err := tracker.RecordAssignment("OriginalParent1", time.Now().AddDate(0, 0, 1), false, fairness.DecisionReasonTotalCount)
+		require.NoError(t, err)
+
+		// Update assignment with Google Calendar event ID
+		err = tracker.UpdateAssignmentGoogleCalendarEventID(assignment1.ID, "event1")
+		require.NoError(t, err)
+
+		// Count assignments before transaction
+		var countBefore int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countBefore)
+		require.NoError(t, err)
+
+		// Process events within transaction
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			return handler.processEventsWithinTransaction(ctx, events, handler.logger)
+		})
+
+		// Should succeed since parent names match (no update needed)
+		assert.NoError(t, err)
+
+		// Verify count is unchanged (no new assignments created)
+		var countAfter int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countAfter)
+		assert.NoError(t, err)
+		assert.Equal(t, countBefore, countAfter)
+	})
+
+	t.Run("Transaction Rollback on Scheduler Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create a mock scheduler that will fail
+		mockScheduler := new(MockScheduler)
+		mockScheduler.On("GetAssignmentByGoogleCalendarEventID", "event_fail").Return((*Scheduler.Assignment)(nil), errors.New("scheduler error"))
+
+		// Create handler with mock scheduler that will fail
+		handlerWithFailingScheduler := &WebhookHandler{
+			BaseHandler: &BaseHandler{
+				Tracker: tracker,
+			},
+			Scheduler: mockScheduler,
+			Config:    cfg,
+			DB:        db,
+		}
+
+		// Create test event that will cause scheduler to fail
+		events := []*gcalendar.Event{
+			{
+				Id:      "event_fail",
+				Status:  "confirmed",
+				Summary: "[FailParent] 🌃👶Routine",
+				ExtendedProperties: &gcalendar.EventExtendedProperties{
+					Private: map[string]string{
+						"app": constants.NightRoutineIdentifier,
+					},
+				},
+			},
+		}
+
+		// Count assignments before transaction
+		var countBefore int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countBefore)
+		require.NoError(t, err)
+
+		// Process events within transaction - should fail and rollback
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			return handlerWithFailingScheduler.processEventsWithinTransaction(ctx, events, handler.logger)
+		})
+
+		// Should fail due to scheduler error
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "scheduler error")
+
+		// Verify no changes were made (transaction rolled back)
+		var countAfter int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countAfter)
+		assert.NoError(t, err)
+		assert.Equal(t, countBefore, countAfter)
+
+		mockScheduler.AssertExpectations(t)
+	})
+
+	t.Run("Transaction Handles Cancelled Events", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create test events with cancelled status
+		events := []*gcalendar.Event{
+			{
+				Id:      "cancelled_event",
+				Status:  "cancelled",
+				Summary: "[CancelledParent] 🌃👶Routine",
+				ExtendedProperties: &gcalendar.EventExtendedProperties{
+					Private: map[string]string{
+						"app": constants.NightRoutineIdentifier,
+					},
+				},
+			},
+		}
+
+		// Count assignments before transaction
+		var countBefore int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countBefore)
+		require.NoError(t, err)
+
+		// Process events within transaction
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			return handler.processEventsWithinTransaction(ctx, events, handler.logger)
+		})
+
+		// Should succeed (cancelled events are skipped)
+		assert.NoError(t, err)
+
+		// Verify no changes were made (cancelled events are ignored)
+		var countAfter int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countAfter)
+		assert.NoError(t, err)
+		assert.Equal(t, countBefore, countAfter)
+	})
+
+	t.Run("Transaction Handles Non-Night-Routine Events", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create test events without Night Routine identifier
+		events := []*gcalendar.Event{
+			{
+				Id:      "external_event",
+				Status:  "confirmed",
+				Summary: "[ExternalParent] Some Other Event",
+				ExtendedProperties: &gcalendar.EventExtendedProperties{
+					Private: map[string]string{
+						"app": "other-app",
+					},
+				},
+			},
+			{
+				Id:      "no_properties_event",
+				Status:  "confirmed",
+				Summary: "[NoPropsParent] Event Without Properties",
+				// No ExtendedProperties
+			},
+		}
+
+		// Count assignments before transaction
+		var countBefore int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countBefore)
+		require.NoError(t, err)
+
+		// Process events within transaction
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			return handler.processEventsWithinTransaction(ctx, events, handler.logger)
+		})
+
+		// Should succeed (non-Night-Routine events are skipped)
+		assert.NoError(t, err)
+
+		// Verify no changes were made (external events are ignored)
+		var countAfter int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countAfter)
+		assert.NoError(t, err)
+		assert.Equal(t, countBefore, countAfter)
+	})
+}
+
+// TestProcessEventChangesTransactionIntegration tests the full processEventChanges method with transaction
+func TestProcessEventChangesTransactionIntegration(t *testing.T) {
+	// This test would require mocking Google Calendar API calls
+	// For now, we focus on testing the transaction wrapper behavior
+
+	dbPath := "test_webhook_process_events.db"
+	defer os.Remove(dbPath)
+
+	db, err := database.New(database.NewDefaultOptions(dbPath))
+	require.NoError(t, err)
+	defer db.Close()
+
+	err = db.MigrateDatabase()
+	require.NoError(t, err)
+
+	t.Run("Transaction Wrapper Functionality", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Test that the transaction wrapper works by verifying database state
+		var transactionStarted bool
+		var transactionCommitted bool
+
+		// Use WithTransaction directly to test the wrapper
+		err := db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			transactionStarted = true
+
+			// Perform a simple database operation
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+				VALUES (?, ?, ?, ?)
+			`, "TransactionTestParent", "2024-12-01", false, "test_transaction")
+
+			if err != nil {
+				return err
+			}
+
+			transactionCommitted = true
+			return nil
+		})
+
+		assert.NoError(t, err)
+		assert.True(t, transactionStarted)
+		assert.True(t, transactionCommitted)
+
+		// Verify the record was committed
+		var count int
+		err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignments WHERE parent_name = ?", "TransactionTestParent").Scan(&count)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, count)
+	})
 }

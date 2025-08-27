@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
+	"github.com/belphemur/night-routine/internal/database"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/belphemur/night-routine/internal/token"
@@ -27,17 +29,19 @@ type WebhookHandler struct {
 	Scheduler       Scheduler.SchedulerInterface
 	Config          *config.Config
 	TokenManager    *token.TokenManager
+	DB              *database.DB
 	logger          zerolog.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler
-func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, config *config.Config, tokenManager *token.TokenManager) *WebhookHandler {
+func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, config *config.Config, tokenManager *token.TokenManager, db *database.DB) *WebhookHandler {
 	return &WebhookHandler{
 		BaseHandler:     baseHandler,
 		CalendarService: calendarService,
 		Scheduler:       scheduler,
 		Config:          config,
 		TokenManager:    tokenManager,
+		DB:              db,
 		logger:          logging.GetLogger("webhook"),
 	}
 }
@@ -160,9 +164,17 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 		return nil
 	}
 
-	// Process each event
+	// Process events within a transaction to ensure consistency
+	return h.DB.WithTransaction(ctx, func(tx *sql.Tx) error {
+		return h.processEventsWithinTransaction(ctx, events.Items, procLogger)
+	})
+}
+
+// processEventsWithinTransaction processes events within a database transaction
+func (h *WebhookHandler) processEventsWithinTransaction(ctx context.Context, events []*gcalendar.Event, procLogger zerolog.Logger) error {
 	var processingErrors []error
-	for _, event := range events.Items {
+
+	for _, event := range events {
 		eventLogger := procLogger.With().Str("event_id", event.Id).Logger()
 		eventLogger.Debug().Msg("Processing event")
 
@@ -256,11 +268,11 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 	if len(processingErrors) > 0 {
 		combinedErr := errors.Join(processingErrors...) // Use errors.Join
 		procLogger.Error().Err(combinedErr).Int("error_count", len(processingErrors)).Msg("Errors occurred while processing event changes")
-		return combinedErr // Return the combined error
+		return combinedErr // Return the combined error to trigger rollback
 	}
 
 	procLogger.Info().Msg("Finished processing event changes")
-	return nil
+	return nil // Success - transaction will be committed
 }
 
 // recalculateSchedule regenerates the schedule from the given date

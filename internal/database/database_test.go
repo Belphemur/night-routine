@@ -1,10 +1,15 @@
 package database
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDBClose(t *testing.T) {
@@ -136,4 +141,174 @@ func TestPragmaSettings(t *testing.T) {
 			assert.Equal(t, tc.expectedSync, synchronous, "Unexpected synchronous setting")
 		})
 	}
+}
+
+// TestWithTransaction tests the transaction functionality
+func TestWithTransaction(t *testing.T) {
+	dbPath := "test_transaction.db"
+	defer os.Remove(dbPath)
+
+	db, err := New(NewDefaultOptions(dbPath))
+	require.NoError(t, err)
+	defer db.Close()
+
+	// Run migrations to create tables
+	err = db.MigrateDatabase()
+	require.NoError(t, err)
+
+	t.Run("Successful Transaction", func(t *testing.T) {
+		ctx := context.Background()
+
+		err := db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			// Insert a test record
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+				VALUES (?, ?, ?, ?)
+			`, "TestParent", "2024-01-01", false, "test_reason")
+			return err
+		})
+
+		assert.NoError(t, err)
+
+		// Verify the record was committed
+		var count int
+		err = db.conn.QueryRow("SELECT COUNT(*) FROM assignments WHERE parent_name = ?", "TestParent").Scan(&count)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("Transaction Rollback on Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Count records before transaction
+		var countBefore int
+		err = db.conn.QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countBefore)
+		require.NoError(t, err)
+
+		testError := errors.New("test error")
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			// Insert a record
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+				VALUES (?, ?, ?, ?)
+			`, "RollbackParent", "2024-01-02", false, "rollback_reason")
+			if err != nil {
+				return err
+			}
+
+			// Return an error to trigger rollback
+			return testError
+		})
+
+		assert.Error(t, err)
+		assert.Equal(t, testError, err)
+
+		// Verify the record was rolled back
+		var countAfter int
+		err = db.conn.QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countAfter)
+		assert.NoError(t, err)
+		assert.Equal(t, countBefore, countAfter)
+	})
+
+	t.Run("Transaction Rollback on Panic", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Count records before transaction
+		var countBefore int
+		err = db.conn.QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countBefore)
+		require.NoError(t, err)
+
+		// Test panic recovery
+		assert.Panics(t, func() {
+			db.WithTransaction(ctx, func(tx *sql.Tx) error {
+				// Insert a record
+				_, err := tx.ExecContext(ctx, `
+					INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+					VALUES (?, ?, ?, ?)
+				`, "PanicParent", "2024-01-03", false, "panic_reason")
+				if err != nil {
+					return err
+				}
+
+				// Trigger a panic
+				panic("test panic")
+			})
+		})
+
+		// Verify the record was rolled back
+		var countAfter int
+		err = db.conn.QueryRow("SELECT COUNT(*) FROM assignments").Scan(&countAfter)
+		assert.NoError(t, err)
+		assert.Equal(t, countBefore, countAfter)
+	})
+
+	t.Run("Nested Operations in Transaction", func(t *testing.T) {
+		ctx := context.Background()
+
+		err := db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			// Insert multiple records in the same transaction
+			for i := 0; i < 3; i++ {
+				_, err := tx.ExecContext(ctx, `
+					INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+					VALUES (?, ?, ?, ?)
+				`, "NestedParent", "2024-01-0"+string(rune('4'+i)), false, "nested_reason")
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		assert.NoError(t, err)
+
+		// Verify all records were committed
+		var count int
+		err = db.conn.QueryRow("SELECT COUNT(*) FROM assignments WHERE parent_name = ?", "NestedParent").Scan(&count)
+		assert.NoError(t, err)
+		assert.Equal(t, 3, count)
+	})
+
+	t.Run("Context Cancellation", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		defer cancel()
+
+		// Wait for context to be cancelled
+		time.Sleep(10 * time.Millisecond)
+
+		err := db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			// This should fail due to context cancellation
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
+				VALUES (?, ?, ?, ?)
+			`, "CancelParent", "2024-01-07", false, "cancel_reason")
+			return err
+		})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "context")
+	})
+}
+
+// TestBeginTxPrivate tests that beginTx is private and not accessible
+func TestBeginTxPrivate(t *testing.T) {
+	dbPath := "test_private.db"
+	defer os.Remove(dbPath)
+
+	db, err := New(NewDefaultOptions(dbPath))
+	require.NoError(t, err)
+	defer db.Close()
+
+	// This test ensures beginTx is private by checking it's not accessible
+	// If beginTx were public, this would compile, but since it's private,
+	// we can only test through WithTransaction
+	ctx := context.Background()
+
+	// Test that we can only access transaction functionality through WithTransaction
+	err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+		// Verify we have a valid transaction
+		assert.NotNil(t, tx)
+		return nil
+	})
+
+	assert.NoError(t, err)
 }

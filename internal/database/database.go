@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"errors" // Import errors package for Join
@@ -218,6 +219,53 @@ func isZero(v interface{}) bool {
 // Conn returns the underlying database connection
 func (db *DB) Conn() *sql.DB {
 	return db.conn
+}
+
+// beginTx starts a new database transaction with the given options (private method)
+func (db *DB) beginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	db.logger.Debug().Msg("Starting database transaction")
+	tx, err := db.conn.BeginTx(ctx, opts)
+	if err != nil {
+		db.logger.Error().Err(err).Msg("Failed to start database transaction")
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	db.logger.Debug().Msg("Database transaction started successfully")
+	return tx, nil
+}
+
+// WithTransaction executes a function within a database transaction
+// If the function returns an error, the transaction is rolled back
+// Otherwise, the transaction is committed
+func (db *DB) WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error {
+	tx, err := db.beginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			db.logger.Error().Interface("panic", p).Msg("Panic occurred during transaction, rolling back")
+			tx.Rollback()
+			panic(p) // Re-throw panic after rollback
+		}
+	}()
+
+	if err := fn(tx); err != nil {
+		db.logger.Debug().Err(err).Msg("Transaction function returned error, rolling back")
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			db.logger.Error().Err(rollbackErr).Msg("Failed to rollback transaction")
+			return fmt.Errorf("transaction failed: %w, rollback failed: %v", err, rollbackErr)
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		db.logger.Error().Err(err).Msg("Failed to commit transaction")
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	db.logger.Debug().Msg("Transaction committed successfully")
+	return nil
 }
 
 // Close closes the database connection
