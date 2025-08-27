@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/Belphemur/night-routine/compare/v0.9.20...v0.10.0) (2025-08-27)
+
+
+### Features
+
+* use transaction for webhook handler ([e3b14cc](https://github.com/Belphemur/night-routine/commit/e3b14cce22d52b1c915869da36eab8bdf858918e))
+
 ## [0.9.20](https://github.com/Belphemur/night-routine/compare/v0.9.19...v0.9.20) (2025-08-24)
 
 
