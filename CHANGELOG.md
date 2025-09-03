@@ -1,3 +1,10 @@
+## [0.10.2](https://github.com/Belphemur/night-routine/compare/v0.10.1...v0.10.2) (2025-09-03)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/stretchr/testify to v1.11.1 ([8bf5e5b](https://github.com/Belphemur/night-routine/commit/8bf5e5b6cbdf792e7ddffa8bfb7ff919a1ae65b3))
+
 ## [0.10.1](https://github.com/Belphemur/night-routine/compare/v0.10.0...v0.10.1) (2025-09-03)
 
 
