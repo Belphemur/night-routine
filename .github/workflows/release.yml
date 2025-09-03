@@ -123,7 +123,7 @@ jobs:
 
       # Generate SLSA provenance attestation for the Docker manifest list
       - name: Attest Build Provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-name: ${{ steps.image-name.outputs.value }}
           subject-digest: ${{ steps.digests.outputs.digest }}
