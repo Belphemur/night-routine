@@ -1,3 +1,10 @@
+## [0.10.3](https://github.com/Belphemur/night-routine/compare/v0.10.2...v0.10.3) (2025-09-03)
+
+
+### Bug Fixes
+
+* go version used ([4e7ff9e](https://github.com/Belphemur/night-routine/commit/4e7ff9e621eb624ce462ffbd7100ac042fdc0bf8))
+
 ## [0.10.2](https://github.com/Belphemur/night-routine/compare/v0.10.1...v0.10.2) (2025-09-03)
 
 
