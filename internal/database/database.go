@@ -245,7 +245,9 @@ func (db *DB) WithTransaction(ctx context.Context, fn func(*sql.Tx) error) error
 	defer func() {
 		if p := recover(); p != nil {
 			db.logger.Error().Interface("panic", p).Msg("Panic occurred during transaction, rolling back")
-			tx.Rollback()
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				db.logger.Error().Err(rollbackErr).Msg("Failed to rollback transaction during panic recovery")
+			}
 			panic(p) // Re-throw panic after rollback
 		}
 	}()

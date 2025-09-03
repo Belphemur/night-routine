@@ -220,7 +220,7 @@ func TestWithTransaction(t *testing.T) {
 
 		// Test panic recovery
 		assert.Panics(t, func() {
-			db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			_ = db.WithTransaction(ctx, func(tx *sql.Tx) error {
 				// Insert a record
 				_, err := tx.ExecContext(ctx, `
 					INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
