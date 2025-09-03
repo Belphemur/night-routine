@@ -10,8 +10,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-env:
-  GO_VERSION: 1.24
 jobs:
   lint:
     name: Lint
@@ -22,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "${{ env.GO_VERSION }}"
+          go-version-file: go.mod
           cache: true
 
       - name: Verify dependencies
@@ -42,7 +40,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "${{ env.GO_VERSION }}"
+          go-version-file: go.mod
           cache: true
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@latest
@@ -71,7 +69,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "${{ env.GO_VERSION }}"
+          go-version-file: go.mod
           cache: true
 
       - name: Set version variables
