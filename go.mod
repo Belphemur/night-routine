@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
-	github.com/maniartech/signals v1.3.0
+	github.com/maniartech/signals v1.3.1
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.31.0
