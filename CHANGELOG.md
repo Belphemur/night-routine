@@ -1,3 +1,10 @@
+## [0.10.9](https://github.com/Belphemur/night-routine/compare/v0.10.8...v0.10.9) (2025-09-28)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/maniartech/signals to v1.3.1 ([#95](https://github.com/Belphemur/night-routine/issues/95)) ([c4d3816](https://github.com/Belphemur/night-routine/commit/c4d3816bd88c1c2b3bf04c75e9edc38f927a4417))
+
 ## [0.10.8](https://github.com/Belphemur/night-routine/compare/v0.10.7...v0.10.8) (2025-09-25)
 
 
