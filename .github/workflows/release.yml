@@ -75,7 +75,7 @@ jobs:
 
       # Set up Node.js (for semantic-release)
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: "lts/*" # Use a Long Term Support version
           cache: "npm" # Cache npm dependencies
