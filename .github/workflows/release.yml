@@ -48,7 +48,7 @@ jobs:
 
       # Install Cosign for signing artifacts (used by GoReleaser)
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.10.1
+        uses: sigstore/cosign-installer@v4.0.0
 
       # Install Syft for SBOM generation (if GoReleaser is configured to use it or for other steps)
       - name: Install Syft
