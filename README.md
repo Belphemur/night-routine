@@ -137,6 +137,7 @@ parent_b_unavailable = ["Monday"]        # Days when parent B can't do the routi
 [schedule]
 update_frequency = "weekly"              # How often to update the calendar
 look_ahead_days = 30                     # How many days to schedule in advance
+past_event_threshold_days = 5            # How many days in the past to accept event changes (default: 5)
 
 [service]
 state_file = "data/state.db"            # SQLite database file for state tracking
@@ -159,11 +160,11 @@ The application uses [zerolog](https://github.com/rs/zerolog) for structured log
 
 ## Override Night Routine (via Google Calendar Event Title)
 
-You can manually override a scheduled night routine assignment directly in Google Calendar **for events scheduled today or in the future**. Overrides for past events will be ignored.
+You can manually override a scheduled night routine assignment directly in Google Calendar **for events within a configurable time window**. By default, the application accepts changes for events up to 5 days in the past (configurable via `past_event_threshold_days`). Overrides for events beyond this threshold will be ignored.
 
 **How it works:**
 
-1.  Find the specific future or current night routine event in your Google Calendar (e.g., `"[ParentA] 🌃👶Routine"`).
+1.  Find the specific night routine event in your Google Calendar (e.g., `"[ParentA] 🌃👶Routine"`).
 2.  Edit the event title and change the parent's name within the square brackets (e.g., change it to `"[ParentB] 🌃👶Routine"`).
 3.  Save the event change in Google Calendar.
 
@@ -171,9 +172,19 @@ Google Calendar will send a notification to the application's webhook endpoint (
 
 - Verify the notification.
 - Detect the parent name change in the event title.
-- Update its internal database record for that specific date to reflect the override (only if the date is today or in the future).
+- Check if the event date is within the configured threshold (default: 5 days in the past).
+- Update its internal database record for that specific date to reflect the override (only if within the threshold).
 - Recalculate subsequent future assignments if needed to maintain fairness based on this manual change.
 - Sync any recalculated assignments back to Google Calendar.
+
+**Configuration:**
+
+You can adjust the time window for accepting past event changes by setting `past_event_threshold_days` in your `routine.toml`:
+
+```toml
+[schedule]
+past_event_threshold_days = 5  # Accept changes up to 5 days in the past (default)
+```
 
 This keeps the application's schedule and fairness tracking accurate even with manual adjustments. For a detailed technical explanation, see the Webhook Handler section in `docs/architecture.md`.
 
