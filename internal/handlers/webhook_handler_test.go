@@ -597,3 +597,170 @@ func TestProcessEventChangesTransactionIntegration(t *testing.T) {
 		assert.Equal(t, 1, count)
 	})
 }
+
+// TestProcessEventsWithinTransaction_PastEventThreshold tests the configurable past event threshold
+func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
+	// Setup test database
+	dbPath := "test_webhook_threshold.db"
+	defer os.Remove(dbPath)
+
+	db, err := database.New(database.NewDefaultOptions(dbPath))
+	require.NoError(t, err)
+	defer db.Close()
+
+	err = db.MigrateDatabase()
+	require.NoError(t, err)
+
+	tracker, err := fairness.New(db)
+	require.NoError(t, err)
+
+	now := time.Now()
+
+	tests := []struct {
+		name               string
+		thresholdDays      int
+		assignmentDaysAgo  int
+		expectedProcessed  bool
+		expectedLogMessage string
+	}{
+		{
+			name:               "Within default 5 day threshold - should accept",
+			thresholdDays:      5,
+			assignmentDaysAgo:  3,
+			expectedProcessed:  true,
+			expectedLogMessage: "Assignment date is within threshold",
+		},
+		{
+			name:               "At exact 5 day threshold boundary - should accept",
+			thresholdDays:      5,
+			assignmentDaysAgo:  5,
+			expectedProcessed:  true,
+			expectedLogMessage: "Assignment date is within threshold",
+		},
+		{
+			name:               "Beyond 5 day threshold - should reject",
+			thresholdDays:      5,
+			assignmentDaysAgo:  6,
+			expectedProcessed:  false,
+			expectedLogMessage: "Rejecting override attempt for past assignment outside threshold",
+		},
+		{
+			name:               "Within custom 10 day threshold - should accept",
+			thresholdDays:      10,
+			assignmentDaysAgo:  8,
+			expectedProcessed:  true,
+			expectedLogMessage: "Assignment date is within threshold",
+		},
+		{
+			name:               "Beyond custom 10 day threshold - should reject",
+			thresholdDays:      10,
+			assignmentDaysAgo:  11,
+			expectedProcessed:  false,
+			expectedLogMessage: "Rejecting override attempt for past assignment outside threshold",
+		},
+		{
+			name:               "With 1 day threshold - yesterday should accept",
+			thresholdDays:      1,
+			assignmentDaysAgo:  1,
+			expectedProcessed:  true,
+			expectedLogMessage: "Assignment date is within threshold",
+		},
+		{
+			name:               "With 1 day threshold - 2 days ago should reject",
+			thresholdDays:      1,
+			assignmentDaysAgo:  2,
+			expectedProcessed:  false,
+			expectedLogMessage: "Rejecting override attempt for past assignment outside threshold",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+
+			// Calculate the assignment date based on days ago
+			assignmentDate := now.AddDate(0, 0, -tt.assignmentDaysAgo).Truncate(24 * time.Hour)
+
+			// Create assignment in the database
+			assignment, err := tracker.RecordAssignment("OriginalParent", assignmentDate, false, fairness.DecisionReasonTotalCount)
+			require.NoError(t, err)
+
+			// Update assignment with Google Calendar event ID
+			eventID := "test_event_" + tt.name
+			err = tracker.UpdateAssignmentGoogleCalendarEventID(assignment.ID, eventID)
+			require.NoError(t, err)
+
+			// Create config with the test threshold
+			cfg := &config.Config{
+				Schedule: config.ScheduleConfig{
+					LookAheadDays:          7,
+					PastEventThresholdDays: tt.thresholdDays,
+				},
+			}
+
+			// Create real scheduler
+			scheduler := Scheduler.New(cfg, tracker)
+
+			// Create mock calendar service
+			mockCalService := &MockCalendarService{}
+			if tt.expectedProcessed {
+				// Only expect SyncSchedule to be called when processing is expected
+				mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
+			}
+
+			// Create webhook handler with configurable threshold
+			handler := &WebhookHandler{
+				BaseHandler: &BaseHandler{
+					Tracker: tracker,
+				},
+				Scheduler:       scheduler,
+				CalendarService: mockCalService,
+				Config:          cfg,
+				DB:              db,
+				logger:          logging.GetLogger("webhook-test"),
+			}
+
+			// Create test event with changed parent name
+			events := []*gcalendar.Event{
+				{
+					Id:      eventID,
+					Status:  "confirmed",
+					Summary: "[NewParent] 🌃👶Routine", // Changed from OriginalParent to NewParent
+					ExtendedProperties: &gcalendar.EventExtendedProperties{
+						Private: map[string]string{
+							"app": constants.NightRoutineIdentifier,
+						},
+					},
+				},
+			}
+
+			// Process events within transaction
+			err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+				return handler.processEventsWithinTransaction(ctx, events, handler.logger)
+			})
+
+			// Should not error regardless of threshold
+			assert.NoError(t, err)
+
+			// Verify the assignment was updated or not based on threshold
+			updatedAssignment, err := tracker.GetAssignmentByID(assignment.ID)
+			require.NoError(t, err)
+
+			if tt.expectedProcessed {
+				// Assignment should be updated with new parent and override flag
+				assert.Equal(t, "NewParent", updatedAssignment.Parent, "Assignment parent should be updated when within threshold")
+				assert.True(t, updatedAssignment.Override, "Override flag should be set to true")
+			} else {
+				// Assignment should remain unchanged
+				assert.Equal(t, "OriginalParent", updatedAssignment.Parent, "Assignment parent should not be updated when outside threshold")
+				assert.False(t, updatedAssignment.Override, "Override flag should remain false")
+			}
+
+			// Verify mock expectations
+			if tt.expectedProcessed {
+				mockCalService.AssertExpectations(t)
+			}
+		})
+	}
+}
+
