@@ -238,7 +238,7 @@ func (h *WebhookHandler) processEventsWithinTransaction(ctx context.Context, eve
 
 		// Check if the assignment is within the configurable past event threshold
 		thresholdDays := h.Config.Schedule.PastEventThresholdDays
-		thresholdDate := time.Now().Truncate(24 * time.Hour).AddDate(0, 0, -thresholdDays)
+		thresholdDate := time.Now().Truncate(24*time.Hour).AddDate(0, 0, -thresholdDays)
 		if assignment.Date.Before(thresholdDate) {
 			eventLogger.Warn().
 				Int("threshold_days", thresholdDays).

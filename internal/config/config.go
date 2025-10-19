@@ -60,8 +60,8 @@ type ServiceConfig struct {
 func Load(path string) (*Config, error) {
 	var cfg Config
 	// Set defaults before decoding
-	cfg.Service.ManualSyncOnStartup = true      // Default to true
-	cfg.Schedule.PastEventThresholdDays = 5     // Default to 5 days
+	cfg.Service.ManualSyncOnStartup = true  // Default to true
+	cfg.Schedule.PastEventThresholdDays = 5 // Default to 5 days
 
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return nil, err

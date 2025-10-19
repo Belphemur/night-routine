@@ -763,4 +763,3 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 		})
 	}
 }
-
