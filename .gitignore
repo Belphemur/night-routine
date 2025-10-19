@@ -43,6 +43,9 @@ temp/
 *.log
 /data/*.db*
 
+# Test database files
+test_*.db
+
 __debug_bin*
 
 node_modules/

@@ -55,6 +55,7 @@ parent_b_unavailable = ["Monday"]
 [schedule]
 update_frequency = "weekly"
 look_ahead_days = 30
+past_event_threshold_days = 5  # How many days in the past to accept event changes (default: 5)
 
 [service]
 state_file = "data/state.db"
@@ -190,8 +191,8 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
       - **Extract Parent:** It parses the event summary (expected format: `"[ParentName] 🌃👶Routine"`) to extract the assigned parent's name.
       - **Find Local Assignment:** It queries the `assignments` table using the `google_calendar_event_id` to find the corresponding local record.
       - **Change Detection:** It compares the extracted parent name with the parent name stored in the local assignment record.
-      - **Date Check:** It ensures the assignment date is not in the past. Overrides for past dates are rejected.
-      - **Update Local Assignment:** If the parent name has changed and the assignment is for today or the future, it updates the `parent_name` and sets the `override` flag to `true` in the `assignments` table for that record.
+      - **Date Check:** It ensures the assignment date is within the configurable past event threshold (default: 5 days). The threshold is configured via `past_event_threshold_days` in the `[schedule]` section of `routine.toml`. Overrides for assignments older than this threshold are rejected with a warning logged.
+      - **Update Local Assignment:** If the parent name has changed and the assignment is within the threshold, it updates the `parent_name` and sets the `override` flag to `true` in the `assignments` table for that record.
 6.  **Trigger Schedule Recalculation:** If any local assignment was updated due to an override, the handler triggers the `Scheduler` component.
     - The scheduler regenerates the schedule starting from the date of the earliest overridden assignment up to the previously calculated end date.
     - This recalculation respects the new override(s) and applies fairness rules to the subsequent, non-overridden days.

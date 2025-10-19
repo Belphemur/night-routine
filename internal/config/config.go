@@ -43,9 +43,10 @@ type AvailabilityConfig struct {
 
 // ScheduleConfig holds the scheduling parameters
 type ScheduleConfig struct {
-	UpdateFrequency string `toml:"update_frequency"`
-	CalendarID      string `toml:"calendar_id"`
-	LookAheadDays   int    `toml:"look_ahead_days"`
+	UpdateFrequency        string `toml:"update_frequency"`
+	CalendarID             string `toml:"calendar_id"`
+	LookAheadDays          int    `toml:"look_ahead_days"`
+	PastEventThresholdDays int    `toml:"past_event_threshold_days"`
 }
 
 // ServiceConfig holds the service configuration
@@ -59,7 +60,8 @@ type ServiceConfig struct {
 func Load(path string) (*Config, error) {
 	var cfg Config
 	// Set defaults before decoding
-	cfg.Service.ManualSyncOnStartup = true // Default to true
+	cfg.Service.ManualSyncOnStartup = true  // Default to true
+	cfg.Schedule.PastEventThresholdDays = 5 // Default to 5 days
 
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return nil, err

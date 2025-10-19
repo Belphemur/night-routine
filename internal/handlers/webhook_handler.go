@@ -236,13 +236,19 @@ func (h *WebhookHandler) processEventsWithinTransaction(ctx context.Context, eve
 			continue
 		}
 
-		// Check if the assignment is after yesterday
-		yesterday := time.Now().Truncate(24 * time.Hour).Add(-24 * time.Hour)
-		if assignment.Date.Before(yesterday) {
-			eventLogger.Warn().Msg("Rejecting override attempt for past assignment older than yesterday")
+		// Check if the assignment is within the configurable past event threshold
+		thresholdDays := h.Config.Schedule.PastEventThresholdDays
+		thresholdDate := time.Now().Truncate(24*time.Hour).AddDate(0, 0, -thresholdDays)
+		if assignment.Date.Before(thresholdDate) {
+			eventLogger.Warn().
+				Int("threshold_days", thresholdDays).
+				Str("threshold_date", thresholdDate.Format("2006-01-02")).
+				Msg("Rejecting override attempt for past assignment outside threshold")
 			continue
 		}
-		eventLogger.Debug().Msg("Assignment date is yesterday or in the future, proceeding with update")
+		eventLogger.Debug().
+			Int("threshold_days", thresholdDays).
+			Msg("Assignment date is within threshold, proceeding with update")
 
 		// Update the assignment with the new parent name and set override flag
 		eventLogger.Info().Msg("Updating assignment parent due to event change (override)")
