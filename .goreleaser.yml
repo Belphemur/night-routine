@@ -91,6 +91,11 @@ gomod:
   # Uses the Go module proxy to download dependencies.
   proxy: true
 
+# Change the digests filename for attestation
+# https://goreleaser.com/customization/docker_digest/
+docker_digest:
+  name_template: "digests.txt"
+
 # Creates SBOMs (Software Bill of Materials)
 # https://goreleaser.com/customization/sbom/
 sboms:
@@ -99,53 +104,34 @@ sboms:
   - id: source # Unique ID for source SBOM
     artifacts: source # Generate SBOM for the source code archive
 
-# Creates Docker images and pushes them to registries
+# Creates Docker images and pushes them to registries using Docker v2 API
 # https://goreleaser.com/customization/docker/
-dockers:
-  - image_templates:
-      - "ghcr.io/belphemur/night-routine:{{ .Version }}-amd64"
-      - "ghcr.io/belphemur/night-routine:latest-amd64"
-    use: buildx
-    goos: linux
-    goarch: amd64
+dockers_v2:
+  - id: night-routine-image
+    ids:
+      - night-routine
     dockerfile: build/Dockerfile
-    build_flag_templates:
-      - "--pull"
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    images:
+      - "ghcr.io/belphemur/night-routine"
+    tags:
+      - "{{ .Version }}"
+      - latest
     extra_files:
       - configs/routine.toml # Include config file in image
-
-  - image_templates:
-      - "ghcr.io/belphemur/night-routine:{{ .Version }}-arm64"
-      - "ghcr.io/belphemur/night-routine:latest-arm64"
-    use: buildx
-    goos: linux
-    goarch: arm64
-    dockerfile: build/Dockerfile
-    build_flag_templates:
-      - "--pull"
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
-    extra_files:
-      - configs/routine.toml # Include config file in image
-
-# Creates Docker manifest lists (multi-arch images)
-# https://goreleaser.com/customization/docker_manifest/
-docker_manifests:
-  - name_template: "ghcr.io/belphemur/night-routine:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/belphemur/night-routine:{{ .Version }}-amd64"
-      - "ghcr.io/belphemur/night-routine:{{ .Version }}-arm64"
-  - name_template: "ghcr.io/belphemur/night-routine:latest"
-    image_templates:
-      - "ghcr.io/belphemur/night-routine:latest-amd64"
-      - "ghcr.io/belphemur/night-routine:latest-arm64"
+    annotations:
+      "org.opencontainers.image.description": "A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation."
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    labels:
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.description": "A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation."

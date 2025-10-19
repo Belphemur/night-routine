@@ -9,6 +9,8 @@ on:
 permissions:
   contents: write # To create releases, upload artifacts, and allow semantic-release to push tags/commits
   packages: write # To push Docker images to GHCR
+  id-token: write # needed for keyless signing
+  attestations: write # needed for attestations
 
 # Ensure only one release job runs at a time
 concurrency:
@@ -20,10 +22,6 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      # Calculate the Docker image name with proper format for GHCR
-      - name: Set Docker image name
-        id: image-name
-        run: echo "value=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
       - name: Generate bot app token
         id: generate_token
         uses: actions/create-github-app-token@v2
@@ -52,6 +50,10 @@ jobs:
       # Set up QEMU for multi-platform builds (used by GoReleaser's Docker buildx)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+
+      # Set up Docker Buildx for multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       # Log in to GitHub Container Registry (GHCR) (for GoReleaser)
       - name: Log in to GHCR
@@ -106,20 +108,14 @@ jobs:
           GIT_AUTHOR_EMAIL: ${{ secrets.RELEASER_EMAIL }}
           GIT_COMMITTER_EMAIL: ${{ secrets.RELEASER_EMAIL }}
 
-      - name: Export digest
-        id: digests
-        run: |
-          DIGEST=$(docker buildx imagetools inspect ${{ steps.image-name.outputs.value }}:latest --format "{{json .Manifest.Digest}}" | xargs)
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "## Image Digest Information" >> $GITHUB_STEP_SUMMARY
-          echo "- Image: \`${{ steps.image-name.outputs.value }}:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Digest: \`$DIGEST\`" >> $GITHUB_STEP_SUMMARY
-
-      # Generate SLSA provenance attestation for the Docker manifest list
-      - name: Attest Build Provenance
+      # After GoReleaser runs, attest all the files in ./dist/checksums.txt:
+      - name: Attest Build Provenance for Archives
         uses: actions/attest-build-provenance@v3
         with:
-          subject-name: ${{ steps.image-name.outputs.value }}
-          subject-digest: ${{ steps.digests.outputs.digest }}
-          push-to-registry: true # Upload attestation to GHCR
-          github-token: ${{ steps.generate_token.outputs.token }}
+          subject-checksums: ./dist/checksums.txt
+
+      # After GoReleaser runs, attest all the images in ./dist/digests.txt:
+      - name: Attest Build Provenance for Docker Images
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-checksums: ./dist/digests.txt
