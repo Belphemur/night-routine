@@ -6,6 +6,7 @@ ENV ENV="production"
 WORKDIR /app
 
 ARG USER=default
+ARG TARGETPLATFORM
 ENV HOME=/app/
 
 RUN apk add --no-cache ca-certificates
@@ -13,8 +14,8 @@ RUN apk add --no-cache ca-certificates
 # add new user
 RUN adduser -D $USER
 
-# Copy pre-built binary
-COPY night-routine /app/night-routine
+# Copy pre-built binary from the platform-specific directory
+COPY ${TARGETPLATFORM}/night-routine /app/night-routine
 
 # Copy default configuration
 COPY configs/routine.toml /app/config/routine.toml

@@ -110,6 +110,7 @@ dockers_v2:
   - id: night-routine-image
     ids:
       - night-routine
+    dockerfile: build/Dockerfile
     platforms:
       - linux/amd64
       - linux/arm64
