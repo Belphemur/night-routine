@@ -1,3 +1,10 @@
+# [0.11.0](https://github.com/Belphemur/night-routine/compare/v0.10.13...v0.11.0) (2025-10-19)
+
+
+### Features
+
+* **webhook:** Add configurable threshold for accepting past event changes in webhook handler ([#107](https://github.com/Belphemur/night-routine/issues/107)) ([582bd9a](https://github.com/Belphemur/night-routine/commit/582bd9acc4f875e48c749a0eb5b9d400a42240aa))
+
 ## [0.10.13](https://github.com/Belphemur/night-routine/compare/v0.10.12...v0.10.13) (2025-10-08)
 
 
