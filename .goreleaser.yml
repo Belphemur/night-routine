@@ -118,6 +118,8 @@ dockers_v2:
     tags:
       - "{{ .Version }}"
       - latest
+    extra_files:
+      - configs/routine.toml # Include config file in image
     annotations:
       "org.opencontainers.image.description": "A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation."
       "org.opencontainers.image.created": "{{.Date}}"
