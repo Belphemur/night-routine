@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/Belphemur/night-routine/compare/v0.11.0...v0.12.0) (2025-10-19)
+
+
+### Features
+
+* migrate to docker v2 for goreleaser and setup provenance attestation ([#111](https://github.com/Belphemur/night-routine/issues/111)) ([fc8b800](https://github.com/Belphemur/night-routine/commit/fc8b800f6297be22f9afb89427f62cfb61a2c80d))
+
 # [0.11.0](https://github.com/Belphemur/night-routine/compare/v0.10.13...v0.11.0) (2025-10-19)
 
 
