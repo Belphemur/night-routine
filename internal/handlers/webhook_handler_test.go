@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -327,9 +327,9 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 
 // TestProcessEventsWithinTransactionIntegration tests the transaction functionality in processEventsWithinTransaction
 func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
-	// Setup test database
-	dbPath := "test_webhook_transaction.db"
-	defer os.Remove(dbPath)
+	// Setup test database in temp directory
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test_webhook_transaction.db")
 
 	db, err := database.New(database.NewDefaultOptions(dbPath))
 	require.NoError(t, err)
@@ -551,8 +551,8 @@ func TestProcessEventChangesTransactionIntegration(t *testing.T) {
 	// This test would require mocking Google Calendar API calls
 	// For now, we focus on testing the transaction wrapper behavior
 
-	dbPath := "test_webhook_process_events.db"
-	defer os.Remove(dbPath)
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test_webhook_process_events.db")
 
 	db, err := database.New(database.NewDefaultOptions(dbPath))
 	require.NoError(t, err)
@@ -600,9 +600,9 @@ func TestProcessEventChangesTransactionIntegration(t *testing.T) {
 
 // TestProcessEventsWithinTransaction_PastEventThreshold tests the configurable past event threshold
 func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
-	// Setup test database
-	dbPath := "test_webhook_threshold.db"
-	defer os.Remove(dbPath)
+	// Setup test database in temp directory
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test_webhook_threshold.db")
 
 	db, err := database.New(database.NewDefaultOptions(dbPath))
 	require.NoError(t, err)
@@ -617,60 +617,52 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		name               string
-		thresholdDays      int
-		assignmentDaysAgo  int
-		expectedProcessed  bool
-		expectedLogMessage string
+		name              string
+		thresholdDays     int
+		assignmentDaysAgo int
+		expectedProcessed bool
 	}{
 		{
-			name:               "Within default 5 day threshold - should accept",
-			thresholdDays:      5,
-			assignmentDaysAgo:  3,
-			expectedProcessed:  true,
-			expectedLogMessage: "Assignment date is within threshold",
+			name:              "Within default 5 day threshold - should accept",
+			thresholdDays:     5,
+			assignmentDaysAgo: 3,
+			expectedProcessed: true,
 		},
 		{
-			name:               "At exact 5 day threshold boundary - should accept",
-			thresholdDays:      5,
-			assignmentDaysAgo:  5,
-			expectedProcessed:  true,
-			expectedLogMessage: "Assignment date is within threshold",
+			name:              "At exact 5 day threshold boundary - should accept",
+			thresholdDays:     5,
+			assignmentDaysAgo: 5,
+			expectedProcessed: true,
 		},
 		{
-			name:               "Beyond 5 day threshold - should reject",
-			thresholdDays:      5,
-			assignmentDaysAgo:  6,
-			expectedProcessed:  false,
-			expectedLogMessage: "Rejecting override attempt for past assignment outside threshold",
+			name:              "Beyond 5 day threshold - should reject",
+			thresholdDays:     5,
+			assignmentDaysAgo: 6,
+			expectedProcessed: false,
 		},
 		{
-			name:               "Within custom 10 day threshold - should accept",
-			thresholdDays:      10,
-			assignmentDaysAgo:  8,
-			expectedProcessed:  true,
-			expectedLogMessage: "Assignment date is within threshold",
+			name:              "Within custom 10 day threshold - should accept",
+			thresholdDays:     10,
+			assignmentDaysAgo: 8,
+			expectedProcessed: true,
 		},
 		{
-			name:               "Beyond custom 10 day threshold - should reject",
-			thresholdDays:      10,
-			assignmentDaysAgo:  11,
-			expectedProcessed:  false,
-			expectedLogMessage: "Rejecting override attempt for past assignment outside threshold",
+			name:              "Beyond custom 10 day threshold - should reject",
+			thresholdDays:     10,
+			assignmentDaysAgo: 11,
+			expectedProcessed: false,
 		},
 		{
-			name:               "With 1 day threshold - yesterday should accept",
-			thresholdDays:      1,
-			assignmentDaysAgo:  1,
-			expectedProcessed:  true,
-			expectedLogMessage: "Assignment date is within threshold",
+			name:              "With 1 day threshold - yesterday should accept",
+			thresholdDays:     1,
+			assignmentDaysAgo: 1,
+			expectedProcessed: true,
 		},
 		{
-			name:               "With 1 day threshold - 2 days ago should reject",
-			thresholdDays:      1,
-			assignmentDaysAgo:  2,
-			expectedProcessed:  false,
-			expectedLogMessage: "Rejecting override attempt for past assignment outside threshold",
+			name:              "With 1 day threshold - 2 days ago should reject",
+			thresholdDays:     1,
+			assignmentDaysAgo: 2,
+			expectedProcessed: false,
 		},
 	}
 
