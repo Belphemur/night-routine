@@ -4,13 +4,11 @@ permissions:
 
 on:
   push:
-    branches: [main]
     paths:
       - 'docs-site/**'
       - 'mkdocs.yml'
       - 'requirements.txt'
   pull_request:
-    branches: [main]
     paths:
       - 'docs-site/**'
       - 'mkdocs.yml'
