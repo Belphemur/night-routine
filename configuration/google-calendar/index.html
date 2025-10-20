@@ -1,0 +1,2306 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration">
+      
+      
+        <meta name="author" content="Belphemur">
+      
+      
+        <link rel="canonical" href="https://belphemur.github.io/night-routine/configuration/google-calendar/">
+      
+      
+        <link rel="prev" href="../toml/">
+      
+      
+        <link rel="next" href="../../user-guide/setup/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
+    
+    
+      
+        <title>Google Calendar Setup - Night Routine Scheduler</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.84d31ad4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#google-calendar-setup" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Night Routine Scheduler" class="md-header__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Night Routine Scheduler
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Google Calendar Setup
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Belphemur/night-routine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Belphemur/night-routine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../features/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Features
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../installation/docker/" class="md-tabs__link">
+          
+  
+  
+  Installation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../environment/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user-guide/setup/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/local/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../api-reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Night Routine Scheduler" class="md-nav__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Night Routine Scheduler
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Belphemur/night-routine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Belphemur/night-routine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Installation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Docker Setup
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Docker Compose
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Local Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Configuration
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Environment Variables
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    TOML Configuration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Google Calendar Setup
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Google Calendar Setup
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-by-step-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step-by-Step Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step-by-Step Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-create-a-google-cloud-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Create a Google Cloud Project
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-enable-the-google-calendar-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Enable the Google Calendar API
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-configure-oauth-consent-screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Configure OAuth Consent Screen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-create-oauth-20-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Create OAuth 2.0 Credentials
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-configure-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Configure Environment Variables
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oauth-scopes-explained" class="md-nav__link">
+    <span class="md-ellipsis">
+      OAuth Scopes Explained
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-the-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing the Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing the Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-start-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Start the Application
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-access-the-web-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Access the Web Interface
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-connect-to-google-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Connect to Google Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-select-a-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Select a Calendar
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Production Deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Production Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#domain-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Domain Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#https-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      HTTPS Requirements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-environments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multiple Environments
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-400-redirect_uri_mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Error 400: redirect_uri_mismatch"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-blocked-this-apps-request-is-invalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Access Blocked: This app's request is invalid"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#this-app-is-blocked" class="md-nav__link">
+    <span class="md-ellipsis">
+      "This app is blocked"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-api-has-not-been-used-in-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Calendar API has not been used in project"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentials-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      Credentials Not Working
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#protect-your-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      Protect Your Credentials
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limit-scope-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Limit Scope Access
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitor-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitor Usage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restrict-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Restrict Access
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#managing-oauth-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      Managing OAuth Tokens
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Managing OAuth Tokens">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#viewing-token-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      Viewing Token Status
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#revoking-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revoking Access
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Token Refresh
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-quotas-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      API Quotas and Limits
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    User Guide
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            User Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    First-Time Setup
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/web-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Web Interface
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user-guide/manual-overrides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Manual Overrides
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Database Structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/assignment-logic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Assignment Logic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Development
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Local Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-by-step-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step-by-Step Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step-by-Step Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-create-a-google-cloud-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Create a Google Cloud Project
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-enable-the-google-calendar-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Enable the Google Calendar API
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-configure-oauth-consent-screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Configure OAuth Consent Screen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-create-oauth-20-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Create OAuth 2.0 Credentials
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-configure-environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Configure Environment Variables
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oauth-scopes-explained" class="md-nav__link">
+    <span class="md-ellipsis">
+      OAuth Scopes Explained
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-the-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing the Setup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing the Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-start-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Start the Application
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-access-the-web-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Access the Web Interface
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-connect-to-google-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Connect to Google Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-select-a-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Select a Calendar
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Production Deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Production Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#domain-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Domain Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#https-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      HTTPS Requirements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-environments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multiple Environments
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-400-redirect_uri_mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Error 400: redirect_uri_mismatch"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-blocked-this-apps-request-is-invalid" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Access Blocked: This app's request is invalid"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#this-app-is-blocked" class="md-nav__link">
+    <span class="md-ellipsis">
+      "This app is blocked"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-api-has-not-been-used-in-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Calendar API has not been used in project"
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credentials-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      Credentials Not Working
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#protect-your-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      Protect Your Credentials
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limit-scope-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Limit Scope Access
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitor-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monitor Usage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restrict-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Restrict Access
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#managing-oauth-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      Managing OAuth Tokens
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Managing OAuth Tokens">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#viewing-token-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      Viewing Token Status
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#revoking-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Revoking Access
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Token Refresh
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-quotas-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      API Quotas and Limits
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Belphemur/night-routine/edit/main/docs-site/configuration/google-calendar.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="google-calendar-setup">Google Calendar Setup<a class="headerlink" href="#google-calendar-setup" title="Permanent link">&para;</a></h1>
+<p>To use Night Routine Scheduler, you need to set up OAuth 2.0 credentials in Google Cloud Console and configure the Google Calendar API.</p>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A Google account</li>
+<li>Access to Google Cloud Console</li>
+<li>A Google Calendar (can be your primary calendar or a dedicated one)</li>
+</ul>
+<h2 id="step-by-step-setup">Step-by-Step Setup<a class="headerlink" href="#step-by-step-setup" title="Permanent link">&para;</a></h2>
+<h3 id="1-create-a-google-cloud-project">1. Create a Google Cloud Project<a class="headerlink" href="#1-create-a-google-cloud-project" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Go to the <a href="https://console.cloud.google.com/">Google Cloud Console</a></li>
+<li>Click on the project dropdown at the top of the page</li>
+<li>Click "New Project"</li>
+<li>Enter a project name (e.g., "Night Routine Scheduler")</li>
+<li>Click "Create"</li>
+<li>Wait for the project to be created, then select it from the project dropdown</li>
+</ol>
+<h3 id="2-enable-the-google-calendar-api">2. Enable the Google Calendar API<a class="headerlink" href="#2-enable-the-google-calendar-api" title="Permanent link">&para;</a></h3>
+<ol>
+<li>In the Google Cloud Console, go to <strong>APIs &amp; Services</strong> → <strong>Library</strong></li>
+<li>Search for "Google Calendar API"</li>
+<li>Click on "Google Calendar API" in the results</li>
+<li>Click the "Enable" button</li>
+<li>Wait for the API to be enabled</li>
+</ol>
+<h3 id="3-configure-oauth-consent-screen">3. Configure OAuth Consent Screen<a class="headerlink" href="#3-configure-oauth-consent-screen" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Go to <strong>APIs &amp; Services</strong> → <strong>OAuth consent screen</strong></li>
+<li>Select <strong>External</strong> user type (or <strong>Internal</strong> if you have a Google Workspace account)</li>
+<li>
+<p>Click "Create"</p>
+</li>
+<li>
+<p><strong>Fill in the App Information:</strong></p>
+<ul>
+<li><strong>App name:</strong> <code>Night Routine Scheduler</code> (or your preferred name)</li>
+<li><strong>User support email:</strong> Your email address</li>
+<li><strong>App logo:</strong> (Optional) Upload a logo</li>
+<li><strong>Application home page:</strong> (Optional) Your website</li>
+<li><strong>Authorized domains:</strong> (Leave empty for local development)</li>
+<li><strong>Developer contact information:</strong> Your email address</li>
+</ul>
+</li>
+<li>
+<p>Click "Save and Continue"</p>
+</li>
+<li>
+<p><strong>Add Scopes:</strong></p>
+<ul>
+<li>Click "Add or Remove Scopes"</li>
+<li>Filter for "Google Calendar API"</li>
+<li>Select the following scopes:<ul>
+<li><code>https://www.googleapis.com/auth/calendar</code> (See, edit, share, and permanently delete all calendars)</li>
+<li><code>https://www.googleapis.com/auth/calendar.events</code> (View and edit events on all your calendars)</li>
+</ul>
+</li>
+<li>Click "Update"</li>
+<li>Click "Save and Continue"</li>
+</ul>
+</li>
+<li>
+<p><strong>Add Test Users</strong> (for External apps in testing):</p>
+<ul>
+<li>Click "Add Users"</li>
+<li>Add your email address and any other users who will test the app</li>
+<li>Click "Add"</li>
+<li>Click "Save and Continue"</li>
+</ul>
+</li>
+<li>
+<p>Review the summary and click "Back to Dashboard"</p>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Publishing Status</p>
+<p>For personal use, you can leave the app in "Testing" status. Only test users will be able to authenticate. To use with more than 100 users, you'll need to submit the app for verification.</p>
+</div>
+<h3 id="4-create-oauth-20-credentials">4. Create OAuth 2.0 Credentials<a class="headerlink" href="#4-create-oauth-20-credentials" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Go to <strong>APIs &amp; Services</strong> → <strong>Credentials</strong></li>
+<li>Click "Create Credentials" → "OAuth client ID"</li>
+<li>Select <strong>Application type:</strong> "Web application"</li>
+<li>
+<p><strong>Name:</strong> <code>Night Routine Scheduler</code> (or your preferred name)</p>
+</li>
+<li>
+<p><strong>Add Authorized Redirect URIs:</strong></p>
+<p>For local development:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>http://localhost:8080/oauth/callback
+</span></code></pre></div></p>
+<p>For production (replace with your actual domain):
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>https://night-routine.example.com/oauth/callback
+</span></code></pre></div></p>
+<div class="admonition important">
+<p class="admonition-title">Callback URL Format</p>
+<p>The callback URL must match: <code>&lt;app_url&gt;/oauth/callback</code></p>
+<p>Where <code>app_url</code> is the value in your <code>routine.toml</code> configuration.</p>
+</div>
+</li>
+<li>
+<p>Click "Create"</p>
+</li>
+<li>
+<p><strong>Save Your Credentials:</strong></p>
+<ul>
+<li>A dialog will appear with your <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+<li><strong>Copy both values</strong> - you'll need them for configuration</li>
+<li>You can also download the JSON file for backup</li>
+</ul>
+</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Keep Credentials Secret</p>
+<p>Never commit your Client Secret to version control or share it publicly. Treat it like a password.</p>
+</div>
+<h3 id="5-configure-environment-variables">5. Configure Environment Variables<a class="headerlink" href="#5-configure-environment-variables" title="Permanent link">&para;</a></h3>
+<p>Set the OAuth credentials as environment variables:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_ID</span><span class="o">=</span><span class="s2">&quot;123456789-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com&quot;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_SECRET</span><span class="o">=</span><span class="s2">&quot;GOCSPX-your-secret-here&quot;</span>
+</span></code></pre></div>
+<p>Or add them to your <code>.env</code> file:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">GOOGLE_OAUTH_CLIENT_ID</span><span class="o">=</span><span class="m">123456789</span>-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">GOOGLE_OAUTH_CLIENT_SECRET</span><span class="o">=</span>GOCSPX-your-secret-here
+</span></code></pre></div>
+<p>For Docker:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">environment</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GOOGLE_OAUTH_CLIENT_ID=123456789-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-your-secret-here</span>
+</span></code></pre></div>
+<h2 id="oauth-scopes-explained">OAuth Scopes Explained<a class="headerlink" href="#oauth-scopes-explained" title="Permanent link">&para;</a></h2>
+<p>The application requires the following Google Calendar API scopes:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>calendar</code></td>
+<td>Full access to calendars - needed to create, update, and delete night routine events</td>
+</tr>
+<tr>
+<td><code>calendar.events</code></td>
+<td>Access to calendar events - needed to read and modify event details</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">Why Full Access?</p>
+<p>The application needs full calendar access to:</p>
+<ul>
+<li>Create all-day events for night routine assignments</li>
+<li>Update events when the schedule changes</li>
+<li>Delete events that are no longer needed</li>
+<li>Set up and manage webhook notifications</li>
+<li>Read event details to detect manual overrides</li>
+</ul>
+</div>
+<h2 id="testing-the-setup">Testing the Setup<a class="headerlink" href="#testing-the-setup" title="Permanent link">&para;</a></h2>
+<h3 id="1-start-the-application">1. Start the Application<a class="headerlink" href="#1-start-the-application" title="Permanent link">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>./night-routine
+</span></code></pre></div>
+<p>Or with Docker:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker-compose<span class="w"> </span>up<span class="w"> </span>-d
+</span></code></pre></div>
+<h3 id="2-access-the-web-interface">2. Access the Web Interface<a class="headerlink" href="#2-access-the-web-interface" title="Permanent link">&para;</a></h3>
+<p>Open your browser to the configured <code>app_url</code> (default: <code>http://localhost:8080</code>)</p>
+<h3 id="3-connect-to-google-calendar">3. Connect to Google Calendar<a class="headerlink" href="#3-connect-to-google-calendar" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Click the "Connect Google Calendar" button</li>
+<li>You'll be redirected to Google's OAuth consent screen</li>
+<li>Select your Google account</li>
+<li>Review the permissions requested</li>
+<li>Click "Continue" (or "Allow")</li>
+<li>You'll be redirected back to the application</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Unverified App Warning</p>
+<p>If your app is in "Testing" status, you'll see a warning that says "Google hasn't verified this app." Click "Advanced" → "Go to Night Routine Scheduler (unsafe)" to proceed. This is normal for apps in testing mode.</p>
+</div>
+<h3 id="4-select-a-calendar">4. Select a Calendar<a class="headerlink" href="#4-select-a-calendar" title="Permanent link">&para;</a></h3>
+<p>After authentication, you'll be redirected to the calendar selection page where you can choose which Google Calendar to use for night routine events.</p>
+<h2 id="production-deployment">Production Deployment<a class="headerlink" href="#production-deployment" title="Permanent link">&para;</a></h2>
+<h3 id="domain-configuration">Domain Configuration<a class="headerlink" href="#domain-configuration" title="Permanent link">&para;</a></h3>
+<p>For production deployments with a custom domain:</p>
+<ol>
+<li><strong>Add your domain to Authorized Domains</strong> (in OAuth consent screen)</li>
+<li>
+<p><strong>Add the production callback URL</strong> to Authorized Redirect URIs:
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>https://your-domain.com/oauth/callback
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Update your configuration</strong> to match:
+    <div class="language-toml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[app]</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-domain.com&quot;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your-domain.com&quot;</span>
+</span></code></pre></div></p>
+</li>
+</ol>
+<h3 id="https-requirements">HTTPS Requirements<a class="headerlink" href="#https-requirements" title="Permanent link">&para;</a></h3>
+<div class="admonition danger">
+<p class="admonition-title">HTTPS Required for Production</p>
+<p>Google OAuth requires HTTPS for production deployments. Use a reverse proxy (nginx, Caddy, Traefik) with Let's Encrypt for SSL certificates.</p>
+</div>
+<h3 id="multiple-environments">Multiple Environments<a class="headerlink" href="#multiple-environments" title="Permanent link">&para;</a></h3>
+<p>If you have multiple environments (development, staging, production), create separate OAuth credentials for each:</p>
+<ol>
+<li>Create separate Google Cloud projects for each environment, or</li>
+<li>Create multiple OAuth clients in the same project with different redirect URIs</li>
+</ol>
+<p><strong>Example:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Redirect URI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Development</td>
+<td><code>http://localhost:8080/oauth/callback</code></td>
+</tr>
+<tr>
+<td>Staging</td>
+<td><code>https://staging.example.com/oauth/callback</code></td>
+</tr>
+<tr>
+<td>Production</td>
+<td><code>https://night-routine.example.com/oauth/callback</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="error-400-redirect_uri_mismatch">"Error 400: redirect_uri_mismatch"<a class="headerlink" href="#error-400-redirect_uri_mismatch" title="Permanent link">&para;</a></h3>
+<p><strong>Cause:</strong> The redirect URI in your request doesn't match any of the authorized redirect URIs in Google Cloud Console.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Check your <code>app_url</code> in <code>routine.toml</code></li>
+<li>Verify the callback URL is constructed as <code>&lt;app_url&gt;/oauth/callback</code></li>
+<li>Ensure this exact URL is added to Authorized Redirect URIs in Google Cloud Console</li>
+<li>Check for typos, trailing slashes, and protocol (http vs https)</li>
+</ol>
+<h3 id="access-blocked-this-apps-request-is-invalid">"Access Blocked: This app's request is invalid"<a class="headerlink" href="#access-blocked-this-apps-request-is-invalid" title="Permanent link">&para;</a></h3>
+<p><strong>Cause:</strong> OAuth consent screen is not properly configured.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Complete all required fields in the OAuth consent screen</li>
+<li>Ensure scopes are added correctly</li>
+<li>If using "External" type in testing, add your email as a test user</li>
+</ol>
+<h3 id="this-app-is-blocked">"This app is blocked"<a class="headerlink" href="#this-app-is-blocked" title="Permanent link">&para;</a></h3>
+<p><strong>Cause:</strong> The app is not published and you're not a test user.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Go to OAuth consent screen in Google Cloud Console</li>
+<li>Add your email address to test users</li>
+<li>Or publish the app (requires verification for 100+ users)</li>
+</ol>
+<h3 id="calendar-api-has-not-been-used-in-project">"Calendar API has not been used in project"<a class="headerlink" href="#calendar-api-has-not-been-used-in-project" title="Permanent link">&para;</a></h3>
+<p><strong>Cause:</strong> The Google Calendar API is not enabled for your project.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Go to <strong>APIs &amp; Services</strong> → <strong>Library</strong></li>
+<li>Search for "Google Calendar API"</li>
+<li>Click "Enable"</li>
+</ol>
+<h3 id="credentials-not-working">Credentials Not Working<a class="headerlink" href="#credentials-not-working" title="Permanent link">&para;</a></h3>
+<p><strong>Checklist:</strong></p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Calendar API is enabled</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> OAuth consent screen is configured</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Credentials are created as "Web application" type</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Redirect URI matches exactly (including protocol and path)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Environment variables are set correctly</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> No extra whitespace in environment variables</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Client Secret hasn't been regenerated (old secret is invalid)</li>
+</ul>
+<h2 id="security-best-practices">Security Best Practices<a class="headerlink" href="#security-best-practices" title="Permanent link">&para;</a></h2>
+<h3 id="protect-your-credentials">Protect Your Credentials<a class="headerlink" href="#protect-your-credentials" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Never commit credentials to version control</li>
+<li>Use environment variables or secret management systems</li>
+<li>Rotate Client Secret if it's ever exposed</li>
+<li>Use different credentials for development and production</li>
+</ul>
+<h3 id="limit-scope-access">Limit Scope Access<a class="headerlink" href="#limit-scope-access" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Only request the scopes you need</li>
+<li>Review granted permissions regularly</li>
+<li>Revoke unused OAuth tokens</li>
+</ul>
+<h3 id="monitor-usage">Monitor Usage<a class="headerlink" href="#monitor-usage" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Check Google Cloud Console for unusual API usage</li>
+<li>Set up billing alerts</li>
+<li>Enable audit logs</li>
+</ul>
+<h3 id="restrict-access">Restrict Access<a class="headerlink" href="#restrict-access" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Use "Internal" user type if you have Google Workspace</li>
+<li>Limit test users to trusted accounts</li>
+<li>Regularly review who has access to the app</li>
+</ul>
+<h2 id="managing-oauth-tokens">Managing OAuth Tokens<a class="headerlink" href="#managing-oauth-tokens" title="Permanent link">&para;</a></h2>
+<p>OAuth tokens are stored in the SQLite database and automatically refreshed when needed.</p>
+<h3 id="viewing-token-status">Viewing Token Status<a class="headerlink" href="#viewing-token-status" title="Permanent link">&para;</a></h3>
+<p>The application shows authentication status on the home page.</p>
+<h3 id="revoking-access">Revoking Access<a class="headerlink" href="#revoking-access" title="Permanent link">&para;</a></h3>
+<p>To revoke access:</p>
+<ol>
+<li>Go to your <a href="https://myaccount.google.com/permissions">Google Account Permissions</a></li>
+<li>Find "Night Routine Scheduler"</li>
+<li>Click "Remove Access"</li>
+<li>Restart the application and re-authenticate</li>
+</ol>
+<h3 id="token-refresh">Token Refresh<a class="headerlink" href="#token-refresh" title="Permanent link">&para;</a></h3>
+<p>Access tokens expire after 1 hour but are automatically refreshed using the stored refresh token. You don't need to do anything.</p>
+<h2 id="api-quotas-and-limits">API Quotas and Limits<a class="headerlink" href="#api-quotas-and-limits" title="Permanent link">&para;</a></h2>
+<p>Google Calendar API has the following default limits:</p>
+<ul>
+<li><strong>Queries per day:</strong> 1,000,000</li>
+<li><strong>Queries per 100 seconds per user:</strong> 10,000</li>
+</ul>
+<p>Night Routine Scheduler is well within these limits for normal use:</p>
+<ul>
+<li>Initial setup: ~5-10 API calls</li>
+<li>Daily sync: ~2-5 API calls</li>
+<li>Webhook notifications: 1 API call per calendar change</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Monitoring Usage</p>
+<p>You can monitor your API usage in Google Cloud Console under <strong>APIs &amp; Services</strong> → <strong>Dashboard</strong></p>
+</div>
+<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../environment/">Configure environment variables</a></li>
+<li><a href="../toml/">Set up TOML configuration</a></li>
+<li><a href="../../user-guide/setup/">Complete first-time setup</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Belphemur/night-routine" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,2674 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration">
+      
+      
+        <meta name="author" content="Belphemur">
+      
+      
+        <link rel="canonical" href="https://belphemur.github.io/night-routine/user-guide/web-interface/">
+      
+      
+        <link rel="prev" href="../setup/">
+      
+      
+        <link rel="next" href="../manual-overrides/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
+    
+    
+      
+        <title>Web Interface - Night Routine Scheduler</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.84d31ad4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#web-interface-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Night Routine Scheduler" class="md-header__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Night Routine Scheduler
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Web Interface
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Belphemur/night-routine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Belphemur/night-routine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../features/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Features
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../installation/docker/" class="md-tabs__link">
+          
+  
+  
+  Installation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../configuration/environment/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../setup/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/local/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../api-reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Night Routine Scheduler" class="md-nav__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Night Routine Scheduler
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Belphemur/night-routine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Belphemur/night-routine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Installation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Docker Setup
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/docker-compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Docker Compose
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Local Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Configuration
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Environment Variables
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    TOML Configuration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/google-calendar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Google Calendar Setup
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    User Guide
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            User Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    First-Time Setup
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Web Interface
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Web Interface
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#home-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      Home Page
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Home Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication Status
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visual-monthly-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Visual Monthly Calendar
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Visual Monthly Calendar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#color-coding" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color Coding
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assignment-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assignment Details
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision-reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decision Reasons
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Actions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Actions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connect-google-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connect Google Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#change-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sync-now" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sync Now
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#view-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      View Statistics
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Navigation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calendar-selection-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Selection Page
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calendar Selection Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calendar-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar List
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selecting-a-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Selecting a Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changing-calendars" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changing Calendars
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistics-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      Statistics Page
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Statistics Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#monthly-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monthly Breakdown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interpreting-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interpreting Statistics
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      API Endpoints
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication Endpoints
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /auth
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-oauthcallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /oauth/callback
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calendar Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-calendars" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /calendars
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-calendarsselect" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /calendars/select
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#synchronization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Synchronization
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Synchronization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /sync
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhooks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Webhooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-apiwebhookcalendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/webhook/calendar
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#responsive-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Responsive Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Responsive Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#desktop-1024px" class="md-nav__link">
+    <span class="md-ellipsis">
+      Desktop (1024px+)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tablet-768px-1023px" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tablet (768px - 1023px)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile-768px" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mobile (&lt;768px)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browser-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Browser Compatibility
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard Shortcuts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Accessibility
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calendar-not-updating" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Not Updating
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assignment-details-not-showing-mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assignment Details Not Showing (Mobile)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook-notifications-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook Notifications Not Working
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-layout-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Page Layout Issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#regular-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Regular Checks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Hygiene
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual-overrides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Manual Overrides
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Architecture
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Database Structure
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/assignment-logic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Assignment Logic
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Development
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/local/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Local Development
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Testing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#home-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      Home Page
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Home Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication Status
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visual-monthly-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Visual Monthly Calendar
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Visual Monthly Calendar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#color-coding" class="md-nav__link">
+    <span class="md-ellipsis">
+      Color Coding
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assignment-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assignment Details
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision-reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decision Reasons
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Actions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Actions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connect-google-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connect Google Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#change-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sync-now" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sync Now
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#view-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      View Statistics
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Navigation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calendar-selection-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Selection Page
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calendar Selection Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calendar-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar List
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selecting-a-calendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      Selecting a Calendar
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changing-calendars" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changing Calendars
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistics-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      Statistics Page
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Statistics Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#monthly-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Monthly Breakdown
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      Features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interpreting-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interpreting Statistics
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      API Endpoints
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication Endpoints
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /auth
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-oauthcallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /oauth/callback
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Management
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calendar Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-calendars" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /calendars
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-calendarsselect" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /calendars/select
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#synchronization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Synchronization
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Synchronization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /sync
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhooks
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Webhooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-apiwebhookcalendar" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/webhook/calendar
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#responsive-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Responsive Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Responsive Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#desktop-1024px" class="md-nav__link">
+    <span class="md-ellipsis">
+      Desktop (1024px+)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tablet-768px-1023px" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tablet (768px - 1023px)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile-768px" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mobile (&lt;768px)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browser-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Browser Compatibility
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keyboard Shortcuts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Accessibility
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calendar-not-updating" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Not Updating
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assignment-details-not-showing-mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      Assignment Details Not Showing (Mobile)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook-notifications-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook Notifications Not Working
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-layout-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Page Layout Issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Best Practices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#regular-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Regular Checks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calendar-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      Calendar Hygiene
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Performance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Belphemur/night-routine/edit/main/docs-site/user-guide/web-interface.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="web-interface-guide">Web Interface Guide<a class="headerlink" href="#web-interface-guide" title="Permanent link">&para;</a></h1>
+<p>The Night Routine Scheduler web interface provides an intuitive way to manage your night routine schedule, view statistics, and control synchronization.</p>
+<h2 id="home-page">Home Page<a class="headerlink" href="#home-page" title="Permanent link">&para;</a></h2>
+<p>The home page (<code>/</code>) is your main dashboard for managing night routine assignments.</p>
+<h3 id="authentication-status">Authentication Status<a class="headerlink" href="#authentication-status" title="Permanent link">&para;</a></h3>
+<p>At the top of the page, you'll see your connection status:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Connected</label><label for="__tabbed_1_2">Not Connected</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>✅ Connected to Google Calendar
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>📅 Using calendar: Night Routine
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>❌ Not connected to Google Calendar
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>[Connect Google Calendar Button]
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="visual-monthly-calendar">Visual Monthly Calendar<a class="headerlink" href="#visual-monthly-calendar" title="Permanent link">&para;</a></h3>
+<p>The centerpiece of the home page is a visual calendar showing the current month's assignments.</p>
+<h4 id="color-coding">Color Coding<a class="headerlink" href="#color-coding" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Blue background</strong> - Parent A is assigned</li>
+<li><strong>Orange background</strong> - Parent B is assigned  </li>
+<li><strong>Yellow border</strong> - Today's date</li>
+<li><strong>Gray background</strong> - Days from previous/next month (padding)</li>
+</ul>
+<h4 id="assignment-details">Assignment Details<a class="headerlink" href="#assignment-details" title="Permanent link">&para;</a></h4>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Desktop</label><label for="__tabbed_2_2">Mobile</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p><strong>Hover</strong> over any date to see:</p>
+<ul>
+<li>Parent name</li>
+<li>Decision reason (why this parent was assigned)</li>
+<li>Date</li>
+</ul>
+</div>
+<div class="tabbed-block">
+<p><strong>Tap</strong> on any date to toggle the decision reason display. Tap again to hide.</p>
+</div>
+</div>
+</div>
+<h4 id="decision-reasons">Decision Reasons<a class="headerlink" href="#decision-reasons" title="Permanent link">&para;</a></h4>
+<p>Each assignment includes a reason explaining why that parent was chosen:</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unavailability</strong></td>
+<td>The other parent was unavailable on this day</td>
+</tr>
+<tr>
+<td><strong>Total Count</strong></td>
+<td>This parent has fewer total assignments</td>
+</tr>
+<tr>
+<td><strong>Recent Count</strong></td>
+<td>This parent has had fewer recent assignments</td>
+</tr>
+<tr>
+<td><strong>Consecutive Limit</strong></td>
+<td>Prevents too many consecutive assignments</td>
+</tr>
+<tr>
+<td><strong>Alternating</strong></td>
+<td>Maintains an alternating pattern</td>
+</tr>
+<tr>
+<td><strong>Override</strong></td>
+<td>Manually changed via Google Calendar</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quick-actions">Quick Actions<a class="headerlink" href="#quick-actions" title="Permanent link">&para;</a></h3>
+<p>The home page provides several action buttons:</p>
+<h4 id="connect-google-calendar">Connect Google Calendar<a class="headerlink" href="#connect-google-calendar" title="Permanent link">&para;</a></h4>
+<p><strong>When:</strong> Not yet authenticated</p>
+<p><strong>Action:</strong> Initiates the OAuth flow to connect your Google account</p>
+<p><strong>Result:</strong> Redirects to Google login, then to calendar selection after authorization</p>
+<h4 id="change-calendar">Change Calendar<a class="headerlink" href="#change-calendar" title="Permanent link">&para;</a></h4>
+<p><strong>When:</strong> Already authenticated</p>
+<p><strong>Action:</strong> Allows you to switch to a different Google Calendar</p>
+<p><strong>Result:</strong> Opens calendar selection page</p>
+<h4 id="sync-now">Sync Now<a class="headerlink" href="#sync-now" title="Permanent link">&para;</a></h4>
+<p><strong>When:</strong> Authenticated and calendar selected</p>
+<p><strong>Action:</strong> Manually triggers a schedule synchronization</p>
+<p><strong>Result:</strong></p>
+<ul>
+<li>Calculates new assignments based on current fairness state</li>
+<li>Updates Google Calendar events</li>
+<li>Refreshes the web interface</li>
+</ul>
+<p><strong>Use cases:</strong></p>
+<ul>
+<li>After changing configuration</li>
+<li>To fill in newly available dates</li>
+<li>After manually modifying events in Google Calendar</li>
+</ul>
+<h4 id="view-statistics">View Statistics<a class="headerlink" href="#view-statistics" title="Permanent link">&para;</a></h4>
+<p><strong>When:</strong> Authenticated</p>
+<p><strong>Action:</strong> Opens the statistics page</p>
+<p><strong>Result:</strong> Shows monthly assignment counts for the last 12 months</p>
+<h3 id="calendar-navigation">Calendar Navigation<a class="headerlink" href="#calendar-navigation" title="Permanent link">&para;</a></h3>
+<p>Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate between months:</p>
+<ul>
+<li><strong>← Previous</strong> - View the previous month</li>
+<li><strong>Next →</strong> - View the next month</li>
+</ul>
+<p>The current month and year are displayed in the center.</p>
+<h2 id="calendar-selection-page">Calendar Selection Page<a class="headerlink" href="#calendar-selection-page" title="Permanent link">&para;</a></h2>
+<p>The calendar selection page (<code>/calendars</code>) appears after initial authentication or when you click "Change Calendar".</p>
+<h3 id="calendar-list">Calendar List<a class="headerlink" href="#calendar-list" title="Permanent link">&para;</a></h3>
+<p>All calendars from your Google account are displayed:</p>
+<ul>
+<li><strong>Primary Calendar</strong> - Your main Google Calendar</li>
+<li><strong>Secondary Calendars</strong> - Other calendars you own or have write access to</li>
+<li><strong>Shared Calendars</strong> - Calendars shared with you (if you have write access)</li>
+</ul>
+<h3 id="selecting-a-calendar">Selecting a Calendar<a class="headerlink" href="#selecting-a-calendar" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Click on the calendar you want to use</li>
+<li>The application will:<ul>
+<li>Save your selection to the database</li>
+<li>Set up webhook notifications for this calendar</li>
+<li>Create initial night routine events</li>
+<li>Redirect you to the home page</li>
+</ul>
+</li>
+</ol>
+<h3 id="changing-calendars">Changing Calendars<a class="headerlink" href="#changing-calendars" title="Permanent link">&para;</a></h3>
+<p>To switch to a different calendar:</p>
+<ol>
+<li>From the home page, click "Change Calendar"</li>
+<li>Select a new calendar from the list</li>
+<li>The application will:<ul>
+<li><strong>Delete</strong> all existing night routine events from the old calendar</li>
+<li><strong>Create</strong> new events in the new calendar</li>
+<li><strong>Update</strong> webhook subscriptions</li>
+</ul>
+</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Calendar Switch Impact</p>
+<p>Switching calendars will remove all night routine events from the previous calendar. This action cannot be undone.</p>
+</div>
+<h2 id="statistics-page">Statistics Page<a class="headerlink" href="#statistics-page" title="Permanent link">&para;</a></h2>
+<p>The statistics page (<code>/statistics</code>) provides a historical view of assignment distribution.</p>
+<h3 id="monthly-breakdown">Monthly Breakdown<a class="headerlink" href="#monthly-breakdown" title="Permanent link">&para;</a></h3>
+<p>Displays a table showing:</p>
+<table>
+<thead>
+<tr>
+<th>Month</th>
+<th>Parent A</th>
+<th>Parent B</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jan 2024</td>
+<td>15</td>
+<td>16</td>
+<td>31</td>
+</tr>
+<tr>
+<td>Feb 2024</td>
+<td>14</td>
+<td>14</td>
+<td>28</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<h3 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Last 12 months</strong> - Shows up to 12 months of historical data</li>
+<li><strong>Only assigned months</strong> - Months without assignments are hidden</li>
+<li><strong>Fair distribution verification</strong> - Quickly see if assignments are balanced</li>
+<li><strong>Total counts</strong> - Sum of assignments per month</li>
+</ul>
+<h3 id="interpreting-statistics">Interpreting Statistics<a class="headerlink" href="#interpreting-statistics" title="Permanent link">&para;</a></h3>
+<p><strong>Balanced distribution:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Month     | Parent A | Parent B | Total
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>----------|----------|----------|------
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Jan 2024  | 15       | 16       | 31
+</span></code></pre></div>
+✅ Difference of 1 is normal for odd-day months</p>
+<p><strong>Imbalanced distribution:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Month     | Parent A | Parent B | Total
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>----------|----------|----------|------
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Jan 2024  | 20       | 11       | 31
+</span></code></pre></div>
+⚠️ Large difference may indicate:</p>
+<ul>
+<li>One parent has more unavailable days</li>
+<li>Manual overrides have skewed the distribution</li>
+<li>Configuration issues</li>
+</ul>
+<h2 id="api-endpoints">API Endpoints<a class="headerlink" href="#api-endpoints" title="Permanent link">&para;</a></h2>
+<p>While you typically interact through the web interface, the application also exposes API endpoints.</p>
+<h3 id="authentication-endpoints">Authentication Endpoints<a class="headerlink" href="#authentication-endpoints" title="Permanent link">&para;</a></h3>
+<h4 id="get-auth"><code>GET /auth</code><a class="headerlink" href="#get-auth" title="Permanent link">&para;</a></h4>
+<p>Initiates Google OAuth2 flow.</p>
+<p><strong>Usage:</strong> Automatically called when clicking "Connect Google Calendar"</p>
+<p><strong>Response:</strong> Redirects to Google OAuth consent screen</p>
+<h4 id="get-oauthcallback"><code>GET /oauth/callback</code><a class="headerlink" href="#get-oauthcallback" title="Permanent link">&para;</a></h4>
+<p>OAuth2 callback handler.</p>
+<p><strong>Usage:</strong> Automatic redirect from Google after authentication</p>
+<p><strong>Response:</strong> Redirects to calendar selection page</p>
+<h3 id="calendar-management">Calendar Management<a class="headerlink" href="#calendar-management" title="Permanent link">&para;</a></h3>
+<h4 id="get-calendars"><code>GET /calendars</code><a class="headerlink" href="#get-calendars" title="Permanent link">&para;</a></h4>
+<p>Lists available Google Calendars and allows selection.</p>
+<p><strong>Response:</strong> HTML page with calendar list</p>
+<h4 id="post-calendarsselect"><code>POST /calendars/select</code><a class="headerlink" href="#post-calendarsselect" title="Permanent link">&para;</a></h4>
+<p>Selects a calendar to use for night routine events.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>calendar_id</code> - The Google Calendar ID</li>
+</ul>
+<p><strong>Response:</strong> Redirects to home page</p>
+<h3 id="synchronization">Synchronization<a class="headerlink" href="#synchronization" title="Permanent link">&para;</a></h3>
+<h4 id="post-sync"><code>POST /sync</code><a class="headerlink" href="#post-sync" title="Permanent link">&para;</a></h4>
+<p>Manually triggers schedule synchronization.</p>
+<p><strong>Usage:</strong> Called when clicking "Sync Now" button</p>
+<p><strong>Response:</strong> Redirects back to home page</p>
+<h3 id="webhooks">Webhooks<a class="headerlink" href="#webhooks" title="Permanent link">&para;</a></h3>
+<h4 id="post-apiwebhookcalendar"><code>POST /api/webhook/calendar</code><a class="headerlink" href="#post-apiwebhookcalendar" title="Permanent link">&para;</a></h4>
+<p>Receives Google Calendar change notifications.</p>
+<p><strong>Usage:</strong> Called automatically by Google Calendar when events change</p>
+<p><strong>Authentication:</strong> Validates Google webhook signature</p>
+<p><strong>Response:</strong> 200 OK on success</p>
+<h2 id="responsive-design">Responsive Design<a class="headerlink" href="#responsive-design" title="Permanent link">&para;</a></h2>
+<p>The web interface is fully responsive and optimized for different screen sizes.</p>
+<h3 id="desktop-1024px">Desktop (1024px+)<a class="headerlink" href="#desktop-1024px" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Full calendar grid layout</li>
+<li>Hover tooltips for assignment details</li>
+<li>Side-by-side action buttons</li>
+<li>Wide statistics table</li>
+</ul>
+<h3 id="tablet-768px-1023px">Tablet (768px - 1023px)<a class="headerlink" href="#tablet-768px-1023px" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Adjusted calendar grid</li>
+<li>Tap-to-toggle assignment details</li>
+<li>Stacked action buttons</li>
+<li>Scrollable statistics table</li>
+</ul>
+<h3 id="mobile-768px">Mobile (&lt;768px)<a class="headerlink" href="#mobile-768px" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Compact calendar layout</li>
+<li>Touch-optimized controls</li>
+<li>Tap to show/hide decision reasons</li>
+<li>Full-width buttons</li>
+<li>Simplified navigation</li>
+</ul>
+<h2 id="browser-compatibility">Browser Compatibility<a class="headerlink" href="#browser-compatibility" title="Permanent link">&para;</a></h2>
+<p>The web interface supports modern browsers:</p>
+<ul>
+<li>✅ Chrome 90+</li>
+<li>✅ Firefox 88+</li>
+<li>✅ Safari 14+</li>
+<li>✅ Edge 90+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Internet Explorer</p>
+<p>Internet Explorer is not supported. Please use a modern browser.</p>
+</div>
+<h2 id="keyboard-shortcuts">Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permanent link">&para;</a></h2>
+<p>The interface supports basic keyboard navigation:</p>
+<table>
+<thead>
+<tr>
+<th>Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Tab</code></td>
+<td>Navigate between interactive elements</td>
+</tr>
+<tr>
+<td><code>Enter</code></td>
+<td>Activate buttons/links</td>
+</tr>
+<tr>
+<td><code>←</code> / <code>→</code></td>
+<td>Navigate calendar months (when focused)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="accessibility">Accessibility<a class="headerlink" href="#accessibility" title="Permanent link">&para;</a></h2>
+<p>The interface includes accessibility features:</p>
+<ul>
+<li><strong>Semantic HTML</strong> - Proper heading structure and landmarks</li>
+<li><strong>ARIA labels</strong> - Screen reader friendly</li>
+<li><strong>Keyboard navigation</strong> - All functions accessible without mouse</li>
+<li><strong>Color contrast</strong> - WCAG AA compliant</li>
+<li><strong>Focus indicators</strong> - Visible focus states</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="calendar-not-updating">Calendar Not Updating<a class="headerlink" href="#calendar-not-updating" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> Changes don't appear after clicking "Sync Now"</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Check browser console for errors (F12)</li>
+<li>Hard refresh the page (Ctrl+F5 or Cmd+Shift+R)</li>
+<li>Clear browser cache</li>
+<li>Check application logs for errors</li>
+</ol>
+<h3 id="assignment-details-not-showing-mobile">Assignment Details Not Showing (Mobile)<a class="headerlink" href="#assignment-details-not-showing-mobile" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> Tapping dates doesn't show decision reasons</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Ensure JavaScript is enabled</li>
+<li>Try tapping directly on the date number</li>
+<li>Refresh the page</li>
+<li>Check browser compatibility</li>
+</ol>
+<h3 id="webhook-notifications-not-working">Webhook Notifications Not Working<a class="headerlink" href="#webhook-notifications-not-working" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> Manual changes in Google Calendar don't reflect immediately</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Check application logs for webhook errors</li>
+<li>Verify <code>public_url</code> is accessible from the internet</li>
+<li>Test by manually clicking "Sync Now"</li>
+<li>Webhook may need to be renewed (happens automatically)</li>
+</ol>
+<h3 id="page-layout-issues">Page Layout Issues<a class="headerlink" href="#page-layout-issues" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> Calendar layout is broken or overlapping</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Clear browser cache</li>
+<li>Disable browser extensions</li>
+<li>Try a different browser</li>
+<li>Check browser console for CSS errors</li>
+</ol>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<h3 id="regular-checks">Regular Checks<a class="headerlink" href="#regular-checks" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Review the calendar weekly to ensure proper scheduling</li>
+<li>Check statistics monthly to verify fair distribution</li>
+<li>Sync manually after configuration changes</li>
+</ul>
+<h3 id="calendar-hygiene">Calendar Hygiene<a class="headerlink" href="#calendar-hygiene" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Don't manually delete night routine events in Google Calendar (change the parent instead)</li>
+<li>Use the web interface for changing calendars</li>
+<li>Let automatic sync handle routine updates</li>
+</ul>
+<h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Minimize frequent manual syncs (let automatic updates handle it)</li>
+<li>Use statistics page sparingly (it processes historical data)</li>
+<li>Clear old browser data periodically</li>
+</ul>
+<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../manual-overrides/">Learn about manual overrides</a></li>
+<li><a href="../../architecture/assignment-logic/">Understand the assignment logic</a></li>
+<li><a href="../../features/">Explore all features</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Belphemur/night-routine" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
