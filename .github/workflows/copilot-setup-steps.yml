@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup:
+  copilot-setup-steps:
     name: Setup Go and gopls
     runs-on: ubuntu-latest
     steps:
