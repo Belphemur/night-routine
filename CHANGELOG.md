@@ -1,3 +1,10 @@
+## [0.12.1](https://github.com/Belphemur/night-routine/compare/v0.12.0...v0.12.1) (2025-10-20)
+
+
+### Bug Fixes
+
+* Streamline README and point to GitHub Pages for full documentation ([#121](https://github.com/Belphemur/night-routine/issues/121)) ([19e76bb](https://github.com/Belphemur/night-routine/commit/19e76bb7261c8a644ba719e00bfd69662cf53c61))
+
 # [0.12.0](https://github.com/Belphemur/night-routine/compare/v0.11.0...v0.12.0) (2025-10-19)
 
 
