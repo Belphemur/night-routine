@@ -1,0 +1,118 @@
+site_name: Night Routine Scheduler
+site_description: A Go application that manages night routine scheduling between two parents with Google Calendar integration
+site_author: Belphemur
+site_url: https://belphemur.github.io/night-routine/
+
+repo_name: Belphemur/night-routine
+repo_url: https://github.com/Belphemur/night-routine
+edit_uri: edit/main/docs-site/
+
+docs_dir: docs-site
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: en
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+  - Features: features.md
+  - Installation:
+      - Docker Setup: installation/docker.md
+      - Docker Compose: installation/docker-compose.md
+      - Local Development: installation/local.md
+  - Configuration:
+      - Environment Variables: configuration/environment.md
+      - TOML Configuration: configuration/toml.md
+      - Google Calendar Setup: configuration/google-calendar.md
+  - User Guide:
+      - First-Time Setup: user-guide/setup.md
+      - Web Interface: user-guide/web-interface.md
+      - Manual Overrides: user-guide/manual-overrides.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Database Structure: architecture/database.md
+      - Assignment Logic: architecture/assignment-logic.md
+  - Development:
+      - Local Development: development/local.md
+      - Testing: development/testing.md
+      - Contributing: development/contributing.md
+  - API Reference: api-reference.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Belphemur/night-routine
+  version:
+    provider: mike

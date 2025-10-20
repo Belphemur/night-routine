@@ -36,6 +36,9 @@ bin/
 dist/
 _output/
 
+# MkDocs build output
+site/
+
 # Temporary files
 tmp/
 temp/
