@@ -54,8 +54,8 @@ Available tags:
 For easier self-hosting, you can use the provided `docker-compose.yml` file:
 
 ```bash
-# Downlaod file
-https://github.com/Belphemur/night-routine/blob/main/docker-compose.yml
+# Download file from:
+# https://github.com/Belphemur/night-routine/blob/main/docker-compose.yml
 
 # Create the config directory
 mkdir -p config
@@ -90,11 +90,14 @@ This will create the necessary directories for configuration and data persistenc
 ### Google Calendar Integration
 - **OAuth2 authentication** with secure token management
 - **Automatic event creation** with parent assignments
-- **Event descriptions** include assignment decision reasons
+  - Event title format: `[ParentName] 🌃👶Routine`
+  - Events are created as all-day events
+  - Event descriptions include assignment decision reasons
+  - No reminders to avoid notification fatigue
 - **Webhook support** for real-time calendar change notifications
 - **Manual override support** via calendar event title editing (configurable threshold)
-- **Automatic notification channel management** with expiration handling
-- **No reminders** on created events to avoid notification fatigue
+- **Automatic notification channel management** with expiration handling and renewal
+- **Intelligent event updates**: Updates existing events instead of deleting and recreating them
 
 ### Web Interface
 - **Home page** with:
@@ -367,7 +370,7 @@ The application uses SQLite for persistent storage:
 data/
 └── state.db  # SQLite database containing:
     ├── assignments           # Night routine assignments with decision reasons
-    ├── oauth_tokens          # Google OAuth2 tokens (encrypted)
+    ├── oauth_tokens          # Google OAuth2 tokens with automatic refresh
     ├── calendar_settings     # Selected calendar configuration
     └── notification_channels # Google Calendar webhook channels
 ```
