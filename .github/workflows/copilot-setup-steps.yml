@@ -1,0 +1,44 @@
+name: Copilot Setup Steps
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    name: Setup Go and gopls
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify Go installation
+        run: |
+          go version
+          go env
+
+      - name: Install gopls
+        run: |
+          go install golang.org/x/tools/gopls@latest
+
+      - name: Verify gopls installation
+        run: |
+          gopls version
+
+      - name: Download Go dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Setup complete
+        run: |
+          echo "✅ Go environment setup complete"
+          echo "✅ gopls (Go language server) installed"
+          echo "✅ Dependencies downloaded and verified"
