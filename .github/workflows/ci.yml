@@ -84,7 +84,7 @@ jobs:
           CGO_ENABLED=0 go build -ldflags="-X 'main.version=${{ steps.vars.outputs.version }}' -X 'main.commit=${{ steps.vars.outputs.commit }}' -X 'main.date=${{ steps.vars.outputs.date }}'" -o night-routine ./cmd/night-routine
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: night-routine
           path: night-routine
