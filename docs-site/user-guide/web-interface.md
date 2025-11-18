@@ -104,6 +104,77 @@ The home page provides several action buttons:
 
 **Result:** Shows monthly assignment counts for the last 12 months
 
+#### Settings
+
+**When:** Authenticated
+
+**Action:** Opens the settings page
+
+**Result:** Allows you to update parent names, availability, and schedule settings without restarting the application
+
+## Settings Page
+
+The settings page (`/settings`) provides a web interface for managing your configuration.
+
+### Configurable Settings
+
+The following settings can be updated via the web interface:
+
+#### Parent Names
+
+- **Parent A Name** - First parent's display name
+- **Parent B Name** - Second parent's display name
+
+Changes to parent names affect:
+
+- Future calendar event titles
+- Assignment display in the web interface
+- Statistics calculations
+
+!!! warning "Name Restrictions"
+    - Both names must be provided
+    - Names must be different from each other
+    - Changes apply immediately without restart
+
+#### Availability
+
+Select days when each parent is unavailable for night routine duties.
+
+- **Parent A Unavailable Days** - Days when Parent A can't do the routine
+- **Parent B Unavailable Days** - Days when Parent B can't do the routine
+
+**Valid days:** Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+
+!!! tip "Multiple Days"
+    Select multiple days by checking all applicable checkboxes. Leave all unchecked if parent is always available.
+
+#### Schedule Settings
+
+- **Update Frequency** - How often to automatically update (daily, weekly, monthly)
+- **Look Ahead Days** - Number of days in advance to schedule (1-365)
+- **Past Event Threshold Days** - Days in the past to accept manual changes (0-30)
+
+!!! info "Immediate Effect"
+    All settings changes take effect immediately. No application restart required. Consider clicking "Sync Now" on the home page after making changes.
+
+### Saving Settings
+
+1. Make your desired changes in the form
+2. Click the **Save Settings** button
+3. You'll see a success message confirming the save
+4. Settings are stored in the database and persist across restarts
+
+### Settings Validation
+
+The form validates your input before saving:
+
+- **Parent names** must not be empty or identical
+- **Update frequency** must be daily, weekly, or monthly
+- **Look ahead days** must be at least 1
+- **Past event threshold** cannot be negative
+
+If validation fails, you'll see an error message explaining what needs to be corrected
+
 ### Calendar Navigation
 
 Use the **Previous** and **Next** buttons to navigate between months:

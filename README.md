@@ -14,6 +14,12 @@ Managing night routine duties between parents can be challenging. This applicati
 
 The application ensures both parents share night routine duties fairly while maintaining flexibility for real-world scheduling needs.
 
+## Key Features
+
+- **Web-Based Settings** - Configure parent names, availability, and schedule settings through an easy-to-use web interface
+- **Smart Configuration** - Initial setup via TOML file, then manage settings through the UI without restarts
+- **Automatic Migration** - Seamlessly migrates existing configurations to database on upgrade
+
 ## Screenshots
 
 ### Setup Screen

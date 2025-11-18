@@ -2,6 +2,14 @@
 
 The main application configuration is stored in a TOML file. This file contains settings for the application, parents, scheduling, and service options.
 
+!!! info "Configuration Management"
+    Starting from version with database-backed configuration:
+    
+    - **Initial Setup**: Configuration values from the TOML file are used to seed the database on first run
+    - **Runtime Management**: Parent names, availability, and schedule settings can be updated via the [Web UI Settings page](/user-guide/web-interface/#settings)
+    - **File vs Database**: App-level settings (port, URLs, log level, state file) remain TOML-only and require restart. Parent, availability, and schedule settings are stored in the database and take effect immediately.
+    - **Automatic Migration**: When upgrading from an older version, your existing TOML configuration is automatically migrated to the database
+
 ## Configuration File Location
 
 The configuration file path is specified via the `CONFIG_FILE` environment variable:
@@ -110,11 +118,15 @@ public_url = "http://localhost:8080"
 
 ### `[parents]` - Parent Configuration
 
+!!! tip "Manage via Web UI"
+    After initial setup, parent names can be updated via the [Settings page](/user-guide/web-interface/#settings) without restarting the application.
+
 #### `parent_a` and `parent_b`
 
 **Type:** String  
-**Required:** Yes  
-**Default:** None
+**Required:** Yes (for initial seeding)  
+**Default:** None  
+**Configurable via UI:** Yes
 
 Names of the two parents who will be assigned night routine duties.
 
@@ -128,14 +140,21 @@ parent_b = "Bob"
     - Both names must be provided
     - Names must be different from each other
     - These names appear in calendar events as `[ParentName] 🌃👶Routine`
+    
+!!! info "After Initial Setup"
+    Once the database is seeded, changes to these values in the TOML file are ignored. Use the Settings page to update parent names.
 
 ### `[availability]` - Availability Constraints
+
+!!! tip "Manage via Web UI"
+    After initial setup, availability can be updated via the [Settings page](/user-guide/web-interface/#settings) without restarting the application.
 
 #### `parent_a_unavailable` and `parent_b_unavailable`
 
 **Type:** Array of strings  
 **Required:** No  
-**Default:** `[]` (empty - always available)
+**Default:** `[]` (empty - always available)  
+**Configurable via UI:** Yes
 
 Days of the week when each parent is unavailable for night routine duties.
 
@@ -176,12 +195,16 @@ parent_b_unavailable = ["Monday", "Thursday"]
 
 ### `[schedule]` - Scheduling Settings
 
+!!! tip "Manage via Web UI"
+    After initial setup, schedule settings can be updated via the [Settings page](/user-guide/web-interface/#settings) without restarting the application.
+
 #### `update_frequency`
 
 **Type:** String  
-**Required:** Yes  
+**Required:** Yes (for initial seeding)  
 **Default:** None  
-**Valid values:** `daily`, `weekly`, `monthly`
+**Valid values:** `daily`, `weekly`, `monthly`  
+**Configurable via UI:** Yes
 
 How often the schedule should be automatically updated.
 
@@ -200,9 +223,10 @@ update_frequency = "weekly"
 #### `look_ahead_days`
 
 **Type:** Integer  
-**Required:** Yes  
+**Required:** Yes (for initial seeding)  
 **Default:** None  
-**Range:** 1-365
+**Range:** 1-365  
+**Configurable via UI:** Yes
 
 Number of days in advance to schedule night routine assignments.
 
@@ -222,7 +246,8 @@ look_ahead_days = 30
 **Type:** Integer  
 **Required:** No  
 **Default:** 5  
-**Range:** 0-30
+**Range:** 0-30  
+**Configurable via UI:** Yes
 
 Number of days in the past to accept manual event changes via Google Calendar.
 
