@@ -27,7 +27,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 		Service: fileConfig.Service,
 		OAuth:   fileConfig.OAuth,
 	}
-	
+
 	// Load parent configuration from database
 	parentA, parentB, err := loader.GetParents()
 	if err != nil {
@@ -37,7 +37,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 		ParentA: parentA,
 		ParentB: parentB,
 	}
-	
+
 	// Load availability configuration from database
 	parentAUnavailable, parentBUnavailable, err := loader.GetAvailability()
 	if err != nil {
@@ -47,7 +47,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 		ParentAUnavailable: parentAUnavailable,
 		ParentBUnavailable: parentBUnavailable,
 	}
-	
+
 	// Load schedule configuration from database
 	updateFrequency, lookAheadDays, pastEventThresholdDays, err := loader.GetSchedule()
 	if err != nil {
@@ -59,7 +59,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 		LookAheadDays:          lookAheadDays,
 		PastEventThresholdDays: pastEventThresholdDays,
 	}
-	
+
 	return &RuntimeConfig{Config: mergedConfig}, nil
 }
 
@@ -91,12 +91,12 @@ func (l *DatabaseConfigLoader) GetAvailability() (parentAUnavailable, parentBUna
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	parentBUnavailable, err = l.store.GetAvailability("parent_b")
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	return parentAUnavailable, parentBUnavailable, nil
 }
 

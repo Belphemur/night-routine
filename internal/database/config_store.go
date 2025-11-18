@@ -48,7 +48,7 @@ func (s *ConfigStore) GetParents() (parentA, parentB string, err error) {
 		FROM config_parents
 		WHERE id = 1
 	`).Scan(&parentA, &parentB)
-	
+
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Msg("No parent configuration found in database")
 		return "", "", fmt.Errorf("no parent configuration found")
@@ -57,7 +57,7 @@ func (s *ConfigStore) GetParents() (parentA, parentB string, err error) {
 		s.logger.Error().Err(err).Msg("Failed to retrieve parent configuration")
 		return "", "", fmt.Errorf("failed to retrieve parent configuration: %w", err)
 	}
-	
+
 	s.logger.Debug().Str("parent_a", parentA).Str("parent_b", parentB).Msg("Parent configuration retrieved")
 	return parentA, parentB, nil
 }
@@ -71,7 +71,7 @@ func (s *ConfigStore) GetParentsFull() (*ConfigParents, error) {
 		FROM config_parents
 		WHERE id = 1
 	`).Scan(&config.ID, &config.ParentA, &config.ParentB, &config.CreatedAt, &config.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Msg("No parent configuration found in database")
 		return nil, nil
@@ -80,7 +80,7 @@ func (s *ConfigStore) GetParentsFull() (*ConfigParents, error) {
 		s.logger.Error().Err(err).Msg("Failed to retrieve parent configuration")
 		return nil, fmt.Errorf("failed to retrieve parent configuration: %w", err)
 	}
-	
+
 	s.logger.Debug().Str("parent_a", config.ParentA).Str("parent_b", config.ParentB).Msg("Full parent configuration retrieved")
 	return &config, nil
 }
@@ -93,7 +93,7 @@ func (s *ConfigStore) SaveParents(parentA, parentB string) error {
 	if parentA == parentB {
 		return fmt.Errorf("parent names must be different")
 	}
-	
+
 	s.logger.Debug().Str("parent_a", parentA).Str("parent_b", parentB).Msg("Saving parent configuration")
 	_, err := s.db.Exec(`
 		INSERT INTO config_parents (id, parent_a, parent_b, updated_at)
@@ -103,12 +103,12 @@ func (s *ConfigStore) SaveParents(parentA, parentB string) error {
 			parent_b = excluded.parent_b,
 			updated_at = CURRENT_TIMESTAMP
 	`, parentA, parentB)
-	
+
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to save parent configuration")
 		return fmt.Errorf("failed to save parent configuration: %w", err)
 	}
-	
+
 	s.logger.Info().Msg("Parent configuration saved successfully")
 	return nil
 }
@@ -118,7 +118,7 @@ func (s *ConfigStore) GetAvailability(parent string) ([]string, error) {
 	if parent != "parent_a" && parent != "parent_b" {
 		return nil, fmt.Errorf("invalid parent identifier: %s", parent)
 	}
-	
+
 	s.logger.Debug().Str("parent", parent).Msg("Retrieving availability configuration")
 	rows, err := s.db.Query(`
 		SELECT unavailable_day
@@ -131,7 +131,7 @@ func (s *ConfigStore) GetAvailability(parent string) ([]string, error) {
 		return nil, fmt.Errorf("failed to retrieve availability: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var days []string
 	for rows.Next() {
 		var day string
@@ -141,12 +141,12 @@ func (s *ConfigStore) GetAvailability(parent string) ([]string, error) {
 		}
 		days = append(days, day)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		s.logger.Error().Err(err).Msg("Error iterating availability rows")
 		return nil, fmt.Errorf("error iterating availability: %w", err)
 	}
-	
+
 	s.logger.Debug().Str("parent", parent).Int("count", len(days)).Msg("Availability retrieved")
 	return days, nil
 }
@@ -156,9 +156,9 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 	if parent != "parent_a" && parent != "parent_b" {
 		return fmt.Errorf("invalid parent identifier: %s", parent)
 	}
-	
+
 	s.logger.Debug().Str("parent", parent).Int("day_count", len(unavailableDays)).Msg("Saving availability configuration")
-	
+
 	// Start a transaction
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -166,14 +166,14 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
-	
+
 	// Delete existing availability for this parent
 	_, err = tx.Exec(`DELETE FROM config_availability WHERE parent = ?`, parent)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to delete existing availability")
 		return fmt.Errorf("failed to delete existing availability: %w", err)
 	}
-	
+
 	// Insert new availability
 	stmt, err := tx.Prepare(`INSERT INTO config_availability (parent, unavailable_day) VALUES (?, ?)`)
 	if err != nil {
@@ -181,19 +181,19 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 		return fmt.Errorf("failed to prepare insert: %w", err)
 	}
 	defer stmt.Close()
-	
+
 	for _, day := range unavailableDays {
 		if _, err := stmt.Exec(parent, day); err != nil {
 			s.logger.Error().Err(err).Str("day", day).Msg("Failed to insert availability")
 			return fmt.Errorf("failed to insert availability for %s: %w", day, err)
 		}
 	}
-	
+
 	if err := tx.Commit(); err != nil {
 		s.logger.Error().Err(err).Msg("Failed to commit transaction")
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	
+
 	s.logger.Info().Str("parent", parent).Msg("Availability configuration saved successfully")
 	return nil
 }
@@ -206,7 +206,7 @@ func (s *ConfigStore) GetSchedule() (updateFrequency string, lookAheadDays, past
 		FROM config_schedule
 		WHERE id = 1
 	`).Scan(&updateFrequency, &lookAheadDays, &pastEventThresholdDays)
-	
+
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Msg("No schedule configuration found in database")
 		return "", 0, 0, fmt.Errorf("no schedule configuration found")
@@ -215,7 +215,7 @@ func (s *ConfigStore) GetSchedule() (updateFrequency string, lookAheadDays, past
 		s.logger.Error().Err(err).Msg("Failed to retrieve schedule configuration")
 		return "", 0, 0, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
 	}
-	
+
 	s.logger.Debug().
 		Str("update_frequency", updateFrequency).
 		Int("look_ahead_days", lookAheadDays).
@@ -233,7 +233,7 @@ func (s *ConfigStore) GetScheduleFull() (*ConfigSchedule, error) {
 		FROM config_schedule
 		WHERE id = 1
 	`).Scan(&config.ID, &config.UpdateFrequency, &config.LookAheadDays, &config.PastEventThresholdDays, &config.CreatedAt, &config.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Msg("No schedule configuration found in database")
 		return nil, nil
@@ -242,7 +242,7 @@ func (s *ConfigStore) GetScheduleFull() (*ConfigSchedule, error) {
 		s.logger.Error().Err(err).Msg("Failed to retrieve schedule configuration")
 		return nil, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
 	}
-	
+
 	s.logger.Debug().
 		Str("update_frequency", config.UpdateFrequency).
 		Int("look_ahead_days", config.LookAheadDays).
@@ -263,13 +263,13 @@ func (s *ConfigStore) SaveSchedule(updateFrequency string, lookAheadDays, pastEv
 	if pastEventThresholdDays < 0 {
 		return fmt.Errorf("past event threshold days cannot be negative")
 	}
-	
+
 	s.logger.Debug().
 		Str("update_frequency", updateFrequency).
 		Int("look_ahead_days", lookAheadDays).
 		Int("past_event_threshold_days", pastEventThresholdDays).
 		Msg("Saving schedule configuration")
-	
+
 	_, err := s.db.Exec(`
 		INSERT INTO config_schedule (id, update_frequency, look_ahead_days, past_event_threshold_days, updated_at)
 		VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -279,12 +279,12 @@ func (s *ConfigStore) SaveSchedule(updateFrequency string, lookAheadDays, pastEv
 			past_event_threshold_days = excluded.past_event_threshold_days,
 			updated_at = CURRENT_TIMESTAMP
 	`, updateFrequency, lookAheadDays, pastEventThresholdDays)
-	
+
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to save schedule configuration")
 		return fmt.Errorf("failed to save schedule configuration: %w", err)
 	}
-	
+
 	s.logger.Info().Msg("Schedule configuration saved successfully")
 	return nil
 }
@@ -298,7 +298,7 @@ func (s *ConfigStore) HasConfiguration() (bool, error) {
 		s.logger.Error().Err(err).Msg("Failed to check configuration existence")
 		return false, fmt.Errorf("failed to check configuration: %w", err)
 	}
-	
+
 	exists := count > 0
 	s.logger.Debug().Bool("exists", exists).Msg("Configuration existence checked")
 	return exists, nil

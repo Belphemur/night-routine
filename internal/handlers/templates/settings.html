@@ -200,8 +200,7 @@
                 <div class="checkbox-group">
                     {{range .AllDaysOfWeek}}
                     <label>
-                        <input type="checkbox" name="parent_a_unavailable" value="{{.}}"
-                            {{range $.ParentAUnavailable}}{{if eq . $.AllDaysOfWeek}}checked{{end}}{{end}}>
+                        <input type="checkbox" name="parent_a_unavailable" value="{{.}}">
                         {{.}}
                     </label>
                     {{end}}
@@ -214,8 +213,7 @@
                 <div class="checkbox-group">
                     {{range $.AllDaysOfWeek}}
                     <label>
-                        <input type="checkbox" name="parent_b_unavailable" value="{{.}}"
-                            {{range $.ParentBUnavailable}}{{if eq . $}}checked{{end}}{{end}}>
+                        <input type="checkbox" name="parent_b_unavailable" value="{{.}}">
                         {{.}}
                     </label>
                     {{end}}
