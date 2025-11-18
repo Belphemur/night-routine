@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Night Routine - Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .error-message {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #c62828;
+        }
+
+        .success-message {
+            background-color: #e8f5e9;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #2e7d32;
+        }
+
+        .form-section {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .form-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            margin-top: 10px;
+        }
+
+        .checkbox-group label {
+            display: inline-block;
+            margin-right: 15px;
+            margin-bottom: 8px;
+            font-weight: normal;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .button:hover {
+            background-color: #1976d2;
+        }
+
+        .button-secondary {
+            background-color: #757575;
+        }
+
+        .button-secondary:hover {
+            background-color: #616161;
+        }
+
+        .button-save {
+            background-color: #4caf50;
+        }
+
+        .button-save:hover {
+            background-color: #388e3c;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .nav-links {
+            margin-bottom: 20px;
+        }
+
+        .warning-box {
+            background-color: #fff3e0;
+            border: 1px solid #ff9800;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            color: #e65100;
+        }
+
+        .warning-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Settings</h1>
+
+    <div class="nav-links">
+        <a href="/" class="button button-secondary">← Back to Home</a>
+    </div>
+
+    {{if .ErrorMessage}}
+    <div class="error-message">
+        <strong>Error:</strong> {{.ErrorMessage}}
+    </div>
+    {{end}}
+
+    {{if .SuccessMessage}}
+    <div class="success-message">
+        <strong>Success:</strong> {{.SuccessMessage}}
+    </div>
+    {{end}}
+
+    {{if not .IsAuthenticated}}
+    <div class="warning-box">
+        <strong>Authentication Required</strong>
+        You must connect your Google Calendar before accessing settings.
+        <a href="/auth">Connect Google Calendar</a>
+    </div>
+    {{else}}
+
+    <div class="warning-box">
+        <strong>Important:</strong>
+        Changes to settings may affect the fairness algorithm and existing schedule assignments.
+        Consider syncing the calendar after making changes.
+    </div>
+
+    <form action="/settings/update" method="POST">
+        <!-- Parent Configuration -->
+        <div class="form-section">
+            <h2>Parent Names</h2>
+            <p>Names of the two parents who will be assigned night routine duties.</p>
+
+            <div class="form-group">
+                <label for="parent_a">Parent A Name:</label>
+                <input type="text" id="parent_a" name="parent_a" value="{{.ParentA}}" required>
+                <div class="form-help">The name that will appear in calendar events.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="parent_b">Parent B Name:</label>
+                <input type="text" id="parent_b" name="parent_b" value="{{.ParentB}}" required>
+                <div class="form-help">The name that will appear in calendar events.</div>
+            </div>
+        </div>
+
+        <!-- Availability Configuration -->
+        <div class="form-section">
+            <h2>Availability</h2>
+            <p>Select days when each parent is unavailable for night routine duties.</p>
+
+            <div class="form-group">
+                <label>{{.ParentA}} - Unavailable Days:</label>
+                <div class="checkbox-group">
+                    {{range .AllDaysOfWeek}}
+                    <label>
+                        <input type="checkbox" name="parent_a_unavailable" value="{{.}}"
+                            {{range $.ParentAUnavailable}}{{if eq . $.AllDaysOfWeek}}checked{{end}}{{end}}>
+                        {{.}}
+                    </label>
+                    {{end}}
+                </div>
+                <div class="form-help">Leave unchecked if available all days.</div>
+            </div>
+
+            <div class="form-group">
+                <label>{{.ParentB}} - Unavailable Days:</label>
+                <div class="checkbox-group">
+                    {{range $.AllDaysOfWeek}}
+                    <label>
+                        <input type="checkbox" name="parent_b_unavailable" value="{{.}}"
+                            {{range $.ParentBUnavailable}}{{if eq . $}}checked{{end}}{{end}}>
+                        {{.}}
+                    </label>
+                    {{end}}
+                </div>
+                <div class="form-help">Leave unchecked if available all days.</div>
+            </div>
+        </div>
+
+        <!-- Schedule Configuration -->
+        <div class="form-section">
+            <h2>Schedule Settings</h2>
+            <p>Configure how the schedule is generated and updated.</p>
+
+            <div class="form-group">
+                <label for="update_frequency">Update Frequency:</label>
+                <select id="update_frequency" name="update_frequency" required>
+                    <option value="daily" {{if eq .UpdateFrequency "daily"}}selected{{end}}>Daily</option>
+                    <option value="weekly" {{if eq .UpdateFrequency "weekly"}}selected{{end}}>Weekly</option>
+                    <option value="monthly" {{if eq .UpdateFrequency "monthly"}}selected{{end}}>Monthly</option>
+                </select>
+                <div class="form-help">How often the schedule should be automatically updated.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="look_ahead_days">Look Ahead Days:</label>
+                <input type="number" id="look_ahead_days" name="look_ahead_days" value="{{.LookAheadDays}}" min="1"
+                    max="365" required>
+                <div class="form-help">Number of days in advance to schedule (recommended: 7-30).</div>
+            </div>
+
+            <div class="form-group">
+                <label for="past_event_threshold_days">Past Event Threshold (Days):</label>
+                <input type="number" id="past_event_threshold_days" name="past_event_threshold_days"
+                    value="{{.PastEventThresholdDays}}" min="0" max="30" required>
+                <div class="form-help">How many days in the past to accept manual calendar changes (0-30).</div>
+            </div>
+        </div>
+
+        <button type="submit" class="button button-save">Save Settings</button>
+        <a href="/" class="button button-secondary">Cancel</a>
+    </form>
+
+    <script>
+        // Dynamic checkbox handling for availability
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fix checkbox checking logic
+            const parentAChecked = [{{range .ParentAUnavailable}}"{{.}}",{{end}}];
+            const parentBChecked = [{{range .ParentBUnavailable}}"{{.}}",{{end}}];
+
+            document.querySelectorAll('input[name="parent_a_unavailable"]').forEach(function (checkbox) {
+                if (parentAChecked.includes(checkbox.value)) {
+                    checkbox.checked = true;
+                }
+            });
+
+            document.querySelectorAll('input[name="parent_b_unavailable"]').forEach(function (checkbox) {
+                if (parentBChecked.includes(checkbox.value)) {
+                    checkbox.checked = true;
+                }
+            });
+        });
+    </script>
+
+    {{end}}
+</body>
+
+</html>

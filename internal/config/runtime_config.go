@@ -7,12 +7,8 @@ import (
 // RuntimeConfig holds configuration loaded from database at runtime
 // This allows UI-configurable settings to be updated without restarting the app
 type RuntimeConfig struct {
-	*Config // Embed the original config for app-level settings
-	
-	// UI-configurable settings (loaded from database)
-	Parents      ParentsConfig
-	Availability AvailabilityConfig
-	Schedule     ScheduleConfig
+	// Complete merged configuration
+	Config *Config
 }
 
 // ConfigLoader interface for loading configuration from database
@@ -25,8 +21,11 @@ type ConfigLoader interface {
 // LoadRuntimeConfig loads runtime configuration from database
 // This merges file-based config (app settings) with database config (UI-configurable settings)
 func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig, error) {
-	rc := &RuntimeConfig{
-		Config: fileConfig,
+	// Create a new config with a copy of the file config
+	mergedConfig := &Config{
+		App:     fileConfig.App,
+		Service: fileConfig.Service,
+		OAuth:   fileConfig.OAuth,
 	}
 	
 	// Load parent configuration from database
@@ -34,7 +33,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 	if err != nil {
 		return nil, fmt.Errorf("failed to load parent configuration: %w", err)
 	}
-	rc.Parents = ParentsConfig{
+	mergedConfig.Parents = ParentsConfig{
 		ParentA: parentA,
 		ParentB: parentB,
 	}
@@ -44,7 +43,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 	if err != nil {
 		return nil, fmt.Errorf("failed to load availability configuration: %w", err)
 	}
-	rc.Availability = AvailabilityConfig{
+	mergedConfig.Availability = AvailabilityConfig{
 		ParentAUnavailable: parentAUnavailable,
 		ParentBUnavailable: parentBUnavailable,
 	}
@@ -54,14 +53,14 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 	if err != nil {
 		return nil, fmt.Errorf("failed to load schedule configuration: %w", err)
 	}
-	rc.Schedule = ScheduleConfig{
+	mergedConfig.Schedule = ScheduleConfig{
 		UpdateFrequency:        updateFrequency,
 		CalendarID:             fileConfig.Schedule.CalendarID, // CalendarID stays in token store
 		LookAheadDays:          lookAheadDays,
 		PastEventThresholdDays: pastEventThresholdDays,
 	}
 	
-	return rc, nil
+	return &RuntimeConfig{Config: mergedConfig}, nil
 }
 
 // DatabaseConfigLoader adapts ConfigStore to ConfigLoader interface
