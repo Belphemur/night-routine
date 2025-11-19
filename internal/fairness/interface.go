@@ -31,6 +31,8 @@ type TrackerInterface interface {
 	// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
 	UpdateAssignmentParent(id int64, parent string, override bool) error
 
+	UnlockAssignment(id int64) error
+
 	// GetLastAssignmentDate returns the date of the last assignment in the database
 	GetLastAssignmentDate() (time.Time, error)
 

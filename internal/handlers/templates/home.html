@@ -59,7 +59,6 @@
             background-color: #4caf50;
         }
 
-        /* --- Calendar Styles --- */
         .calendar-container {
             margin-top: 30px;
         }
@@ -68,7 +67,6 @@
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            /* Ensure columns are evenly spaced */
         }
 
         .calendar th,
@@ -78,11 +76,8 @@
             text-align: center;
             vertical-align: top;
             height: 80px;
-            /* Give cells some height */
             width: 14.28%;
-            /* 100% / 7 days */
             position: relative;
-            /* For tooltip positioning */
         }
 
         .calendar th {
@@ -105,37 +100,28 @@
             font-size: 0.8em;
             font-style: italic;
             display: none;
-            /* Hidden by default on desktop */
             margin-top: 2px;
             color: #777;
-            /* Muted color */
         }
 
-        /* Show decision reason on mobile devices */
         @media (max-width: 768px) {
             .calendar td .decision-reason {
                 display: block;
-                /* Always visible on mobile */
             }
         }
 
-        /* Show decision reason when calendar is in active state */
         .calendar.show-reasons .decision-reason {
             display: block;
         }
 
-        /* Ensure decision reason inherits parent cell styling for different parent types */
         .calendar td.ParentA .decision-reason {
             color: rgba(25, 118, 210, 0.7);
-            /* Muted blue */
         }
 
         .calendar td.ParentB .decision-reason {
             color: rgba(245, 124, 0, 0.7);
-            /* Muted orange */
         }
 
-        /* Tooltip styles for desktop */
         .calendar td .tooltip {
             visibility: hidden;
             position: absolute;
@@ -152,7 +138,6 @@
             transition: opacity 0.3s;
         }
 
-        /* Show tooltip on hover */
         @media (min-width: 769px) {
             .calendar td:hover .tooltip {
                 visibility: visible;
@@ -162,27 +147,19 @@
 
         .calendar td.ParentA {
             background-color: #e3f2fd;
-            /* Light blue background */
             color: #1976d2;
-            /* Darker blue text */
             border: 1px solid #bbdefb;
-            /* Slightly darker blue border */
         }
 
         .calendar td.ParentB {
             background-color: #fff3e0;
-            /* Light orange background */
             color: #f57c00;
-            /* Darker orange text */
             border: 1px solid #ffe0b2;
-            /* Slightly darker orange border */
         }
 
-        /* Keep the original assignment text visible */
         .calendar td.ParentA .assignment,
         .calendar td.ParentB .assignment {
             color: inherit;
-            /* Use the parent element's color */
         }
 
         .calendar td.padding-day {
@@ -192,21 +169,34 @@
 
         .calendar td.padding-day .assignment {
             color: #bbb;
-            /* Dim assignment text on padding days */
         }
 
         .calendar td.today {
             background-color: #fffde7;
-            /* Light yellow background for today */
             font-weight: bold;
         }
 
         .calendar td.today .day-number {
             color: #f57f17;
-            /* Highlight today's number */
         }
 
-        /* --- End Calendar Styles --- */
+        .calendar td.overridden {
+            position: relative;
+        }
+
+        .calendar td.overridden::after {
+            content: "🔒";
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .calendar td.overridden:hover {
+            cursor: pointer;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05));
+        }
     </style>
 </head>
 
@@ -247,7 +237,6 @@
         {{end}}
     </div>
 
-    <!-- Calendar Section -->
     {{if and .IsAuthenticated .CalendarWeeks}}
     <div class="calendar-container">
         <h2>Assignment Calendar: {{.CurrentMonth}}</h2>
@@ -267,8 +256,7 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}} {{if .Assignment}}{{.Assignment.ParentType.String}}{{end}}"
-                        data-date="{{.Date.Format "2006-01-02"}}">
+                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}}{{if .IsToday}} today{{end}}{{if .Assignment}} {{.Assignment.ParentType.String}}{{if eq .Assignment.DecisionReason "Override"}} overridden{{end}}{{end}}" data-date="{{.Date.Format "2006-01-02"}}"{{if .Assignment}} data-assignment-id="{{.Assignment.ID}}"{{end}}>
                         <span class="day-number">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>
@@ -285,39 +273,40 @@
         </table>
     </div>
     {{else if .IsAuthenticated}}
-    <!-- Optional: Show a message if authenticated but calendar data failed to load -->
-    <!-- <p>Could not load assignment calendar.</p> -->
     {{end}}
-    <!-- End Calendar Section -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const calendar = document.getElementById('assignment-calendar');
+            if (calendar) {
+                calendar.addEventListener('click', function () {
+                    calendar.classList.toggle('show-reasons');
+                });
+
+                calendar.addEventListener('dblclick', function (e) {
+                    const cell = e.target.closest('td.overridden');
+                    if (cell) {
+                        const assignmentId = cell.dataset.assignmentId;
+                        if (assignmentId && confirm('Unlock this event? It will be re-evaluated by the scheduler.')) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '/unlock';
+
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'assignment_id';
+                            input.value = assignmentId;
+
+                            form.appendChild(input);
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 
 </body>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Function to format date as YYYY-MM-DD (local timezone)
-        function getLocalDateString(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        const today = new Date();
-        const todayString = getLocalDateString(today);
-        const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
-
-        if (todayCell) {
-            todayCell.classList.add('today');
-        }
-
-        // Add click event to show all decision reasons
-        const calendar = document.getElementById('assignment-calendar');
-        if (calendar) {
-            calendar.addEventListener('click', function () {
-                calendar.classList.toggle('show-reasons');
-            });
-        }
-    });
-</script>
 
 </html>
