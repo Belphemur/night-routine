@@ -286,9 +286,7 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}} {{if .Assignment}}{{.Assignment.ParentType.String}} {{if eq .Assignment.DecisionReason "
-                        Override"}}overridden{{end}}{{end}}" data-date="{{.Date.Format " 2006-01-02"}}" {{if
-                        .Assignment}}data-assignment-id="{{.Assignment.ID}}" {{end}}>
+                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}} {{if .Assignment}}{{.Assignment.ParentType.String}} {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}{{end}}" data-date="{{.Date.Format "2006-01-02"}}" {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}" {{end}}>
                         <span class="day-number">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>

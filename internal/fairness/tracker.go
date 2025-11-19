@@ -235,7 +235,7 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 
 	return t.db.WithTransaction(ctx, func(tx *sql.Tx) error {
 		// Set override to false.
-		_, err := tx.ExecContext(ctx, `
+		result, err := tx.ExecContext(ctx, `
 		UPDATE assignments
 		SET override = 0, decision_reason = NULL, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
@@ -249,6 +249,18 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 			updateLogger.Error().Err(err).Msg("Failed to execute unlock query")
 			return fmt.Errorf("failed to unlock assignment: %w", err)
 		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			updateLogger.Error().Err(err).Msg("Failed to get rows affected")
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			updateLogger.Warn().Msg("No assignment found to unlock")
+			return fmt.Errorf("assignment not found")
+		}
+
 		return nil
 	})
 }
