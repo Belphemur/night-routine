@@ -93,6 +93,7 @@ nav:
       - Docker Compose: installation/docker-compose.md
       - Local Development: installation/local.md
   - Configuration:
+      - Settings UI: configuration/settings.md
       - Environment Variables: configuration/environment.md
       - TOML Configuration: configuration/toml.md
       - Google Calendar Setup: configuration/google-calendar.md

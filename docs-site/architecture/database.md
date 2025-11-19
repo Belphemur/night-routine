@@ -23,6 +23,74 @@ state_file = "data/state.db"
 
 ### Tables
 
+#### `config_parents`
+
+Stores parent names configuration (UI-configurable).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PRIMARY KEY | Always 1 (single row table) |
+| `parent_a` | TEXT NOT NULL | Parent A name |
+| `parent_b` | TEXT NOT NULL | Parent B name |
+| `created_at` | DATETIME | Creation timestamp |
+| `updated_at` | DATETIME | Last update timestamp |
+
+**Constraints:**
+- `parent_a` and `parent_b` must be different
+- Check constraint: `parent_a != parent_b`
+
+**Notes:**
+- Seeded from TOML file on first run
+- Updated via Settings page UI
+- Changes take effect immediately without restart
+
+#### `config_availability`
+
+Stores parent availability constraints (UI-configurable).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PRIMARY KEY | Auto-incrementing ID |
+| `parent` | TEXT NOT NULL | Parent identifier ('parent_a' or 'parent_b') |
+| `unavailable_day` | TEXT NOT NULL | Day of week parent is unavailable |
+| `created_at` | DATETIME | Creation timestamp |
+
+**Indexes:**
+- Primary key on `id`
+- Index on `parent` for fast lookups
+- Unique constraint on `(parent, unavailable_day)`
+
+**Valid Days:**
+- Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+
+**Notes:**
+- Seeded from TOML file on first run
+- Updated via Settings page UI
+- Empty availability means parent is always available
+
+#### `config_schedule`
+
+Stores schedule configuration (UI-configurable).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PRIMARY KEY | Always 1 (single row table) |
+| `update_frequency` | TEXT NOT NULL | Update frequency (daily/weekly/monthly) |
+| `look_ahead_days` | INTEGER NOT NULL | Days to schedule in advance |
+| `past_event_threshold_days` | INTEGER NOT NULL | Days in past to accept changes |
+| `created_at` | DATETIME | Creation timestamp |
+| `updated_at` | DATETIME | Last update timestamp |
+
+**Constraints:**
+- `update_frequency` must be 'daily', 'weekly', or 'monthly'
+- `look_ahead_days` must be > 0
+- `past_event_threshold_days` must be >= 0
+
+**Notes:**
+- Seeded from TOML file on first run
+- Updated via Settings page UI
+- Changes take effect immediately without restart
+
 #### `assignments`
 
 Stores night routine assignment history and fairness tracking.
@@ -107,6 +175,38 @@ Manages Google Calendar webhook notification channels.
 - Channels expire and must be renewed (typically every 7-30 days)
 - Application automatically manages channel lifecycle
 - Multiple channels may exist during renewal periods
+
+## Configuration Management
+
+### Database-Backed Configuration
+
+Starting from the version with database-backed configuration, certain settings are stored in the database rather than the TOML file:
+
+**Database-stored (UI-configurable):**
+- Parent names
+- Availability constraints
+- Schedule settings (frequency, look-ahead days, past event threshold)
+
+**TOML file only (requires restart):**
+- Application port
+- URLs (app_url, public_url)
+- Log level
+- State file path
+- OAuth credentials
+
+### Configuration Seeding
+
+On first run or after upgrade, the application automatically:
+
+1. Checks if configuration exists in database
+2. If not found, seeds from TOML file
+3. Once seeded, database becomes authoritative
+4. TOML changes are ignored (use Settings UI instead)
+
+This ensures:
+- Smooth upgrades from older versions
+- No data loss during migration
+- Single source of truth (database after seeding)
 
 ## Migrations
 
@@ -208,6 +308,21 @@ SELECT expiry FROM oauth_tokens;
 ```
 
 ### Common Queries
+
+**View current configuration:**
+```sql
+-- Parent names
+SELECT parent_a, parent_b, updated_at FROM config_parents;
+
+-- Availability
+SELECT parent, GROUP_CONCAT(unavailable_day, ', ') as unavailable_days
+FROM config_availability
+GROUP BY parent;
+
+-- Schedule settings
+SELECT update_frequency, look_ahead_days, past_event_threshold_days
+FROM config_schedule;
+```
 
 **Get current month's assignments:**
 ```sql

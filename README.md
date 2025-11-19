@@ -14,7 +14,45 @@ Managing night routine duties between parents can be challenging. This applicati
 
 The application ensures both parents share night routine duties fairly while maintaining flexibility for real-world scheduling needs.
 
+## Key Features
+
+### Configuration Management
+
+- **Web-Based Settings UI** - Intuitive interface for managing all runtime configuration
+  - Configure parent names that appear in calendar events
+  - Set availability constraints for each parent
+  - Adjust schedule frequency and planning horizon
+  - Changes take effect immediately without application restart
+
+- **Database-Backed Configuration** - Settings stored in SQLite database
+  - Persistent across application restarts
+  - Atomic transactions ensure consistency
+  - Database constraints validate data integrity
+  - Automatic backup and migration support
+
+- **Automatic Sync** - Settings changes trigger immediate calendar synchronization
+  - Schedule recalculates based on new constraints
+  - Calendar events updated automatically
+  - Fairness algorithm adjusts to new availability patterns
+
+- **Smart Initialization** - First-run setup made easy
+  - Initial configuration from TOML file seeds database
+  - Automatic migration from file-based to database configuration
+  - Seamless upgrade path preserves existing settings
+
+### Scheduling Intelligence
+
+- **Fair Distribution** - Sophisticated algorithm balances assignments between parents
+- **Availability Awareness** - Respects each parent's unavailable days  
+- **Transparency** - Every assignment includes a clear decision reason
+- **Flexibility** - Supports manual overrides when life happens
+- **Google Calendar Integration** - Seamlessly syncs with your existing calendar workflow
+
 ## Screenshots
+
+### Settings Page
+![Settings Page](docs/images/settings-page.png)
+_Configure parent names, availability constraints, and schedule settings through an intuitive web interface. Changes are saved to the database and automatically sync with your calendar._
 
 ### Setup Screen
 ![Setup Screen](docs/screenshots/Setup.png)

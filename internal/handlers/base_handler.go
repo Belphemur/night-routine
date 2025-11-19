@@ -18,16 +18,16 @@ var templateFS embed.FS
 
 // BaseHandler contains common handler functionality
 type BaseHandler struct {
-	Templates    *template.Template
-	TokenStore   *database.TokenStore
-	TokenManager *token.TokenManager
-	Config       *config.Config
-	Tracker      fairness.TrackerInterface
-	logger       zerolog.Logger
+	Templates     *template.Template
+	TokenStore    *database.TokenStore
+	TokenManager  *token.TokenManager
+	RuntimeConfig *config.RuntimeConfig
+	Tracker       fairness.TrackerInterface
+	logger        zerolog.Logger
 }
 
 // NewBaseHandler creates a common base handler with shared components
-func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface) (*BaseHandler, error) {
+func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
 
@@ -46,12 +46,12 @@ func NewBaseHandler(cfg *config.Config, tokenStore *database.TokenStore, tokenMa
 	logger.Debug().Msg("Templates parsed successfully")
 
 	return &BaseHandler{
-		Templates:    tmpl,
-		TokenStore:   tokenStore,
-		TokenManager: tokenManager,
-		Config:       cfg,
-		Tracker:      tracker,
-		logger:       logger,
+		Templates:     tmpl,
+		TokenStore:    tokenStore,
+		TokenManager:  tokenManager,
+		RuntimeConfig: runtimeCfg,
+		Tracker:       tracker,
+		logger:        logger,
 	}, nil
 }
 

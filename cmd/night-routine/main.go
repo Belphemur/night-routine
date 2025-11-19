@@ -118,6 +118,34 @@ func run(ctx context.Context) error {
 		return wrappedErr
 	}
 
+	// Initialize config store for database-backed configuration
+	configStore, err := database.NewConfigStore(db)
+	if err != nil {
+		wrappedErr := fmt.Errorf("failed to initialize config store: %w", err)
+		logger.Error().Err(wrappedErr).Msg("Config store initialization failed")
+		return wrappedErr
+	}
+
+	// Seed configuration from TOML file to database (runs only once on initial setup or upgrade)
+	configSeeder := database.NewConfigSeeder(configStore)
+	if err := configSeeder.SeedFromConfig(cfg); err != nil {
+		wrappedErr := fmt.Errorf("failed to seed configuration: %w", err)
+		logger.Error().Err(wrappedErr).Msg("Configuration seeding failed")
+		return wrappedErr
+	}
+
+	// Load runtime configuration from database (merges file config with DB config)
+	runtimeCfg, err := database.LoadRuntimeConfig(cfg, configStore)
+	if err != nil {
+		wrappedErr := fmt.Errorf("failed to load runtime configuration: %w", err)
+		logger.Error().Err(wrappedErr).Msg("Runtime configuration loading failed")
+		return wrappedErr
+	}
+	logger.Info().
+		Str("parent_a", runtimeCfg.Config.Parents.ParentA).
+		Str("parent_b", runtimeCfg.Config.Parents.ParentB).
+		Msg("Runtime configuration loaded from database")
+
 	// Initialize fairness tracker
 	tracker, err := fairness.New(db)
 	if err != nil {
@@ -136,8 +164,8 @@ func run(ctx context.Context) error {
 	// Initialize token manager
 	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
 
-	// Create scheduler
-	sched := scheduler.New(cfg, tracker)
+	// Create scheduler with runtime config (uses DB-backed values for parents/availability/schedule)
+	sched := scheduler.New(runtimeCfg.Config, tracker)
 
 	// Initialize calendar manager
 	calendarManager := calendar.NewManager(tokenStore, tokenManager, cfg.OAuth)
@@ -147,7 +175,7 @@ func run(ctx context.Context) error {
 	logger.Info().Msg("Calendar service created. Waiting for authentication/initialization...")
 
 	// Initialize base handler first, as other handlers depend on it
-	baseHandler, err := handlers.NewBaseHandler(cfg, tokenStore, tokenManager, tracker)
+	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
@@ -168,7 +196,7 @@ func run(ctx context.Context) error {
 	homeHandler.RegisterRoutes()
 
 	// Initialize calendar handler with the calendar manager
-	calendarHandler := handlers.NewCalendarHandler(baseHandler, cfg, calendarManager)
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, runtimeCfg, calendarManager)
 	calendarHandler.RegisterRoutes()
 
 	// Initialize sync handler with calendar service
@@ -178,6 +206,10 @@ func run(ctx context.Context) error {
 	// Initialize statistics handler
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
 	statisticsHandler.RegisterRoutes()
+
+	// Initialize settings handler with config store
+	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
+	settingsHandler.RegisterRoutes()
 
 	// Start HTTP server
 	srv := &http.Server{
@@ -193,7 +225,7 @@ func run(ctx context.Context) error {
 	}()
 
 	// Set up webhook handler using the calendar service (will be initialized later)
-	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, cfg, tokenManager, db)
+	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, db)
 	webhookHandler.RegisterRoutes()
 
 	// Check for existing token and initialize calendar service if found

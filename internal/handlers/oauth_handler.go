@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"golang.org/x/oauth2"
 	"net/http"
+
+	"golang.org/x/oauth2"
 )
 
 // OAuthHandler manages OAuth2 authentication and token storage
@@ -17,7 +18,7 @@ func NewOAuthHandler(baseHandler *BaseHandler) (*OAuthHandler, error) {
 	baseHandler.logger.Debug().Msg("Initializing OAuth handler")
 
 	// OAuthConfig is derived from the Config within BaseHandler
-	oauthConfig := baseHandler.Config.OAuth
+	oauthConfig := baseHandler.RuntimeConfig.Config.OAuth
 
 	return &OAuthHandler{
 		BaseHandler: baseHandler,

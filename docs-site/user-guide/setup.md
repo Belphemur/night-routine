@@ -291,7 +291,7 @@ Now that you've completed the initial setup:
 
 If you encounter issues:
 
-1. Check the [troubleshooting sections](../installation/docker.md#troubleshooting) in installation guides
+1. Check the troubleshooting sections in the [installation guides](../installation/docker.md)
 2. Review the logs for error messages
 3. Verify your configuration against the examples
 4. Open an issue on [GitHub](https://github.com/Belphemur/night-routine/issues) with:

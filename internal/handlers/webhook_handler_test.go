@@ -297,14 +297,16 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				BaseHandler: &BaseHandler{
 					TokenStore: nil,
 					Tracker:    mockTracker,
+					RuntimeConfig: &config.RuntimeConfig{
+						Config: &config.Config{
+							Schedule: config.ScheduleConfig{
+								LookAheadDays: tt.configLookAheadDays,
+							},
+						},
+					},
 				},
 				CalendarService: mockCalService,
 				Scheduler:       mockScheduler,
-				Config: &config.Config{
-					Schedule: config.ScheduleConfig{
-						LookAheadDays: tt.configLookAheadDays,
-					},
-				},
 			}
 
 			// Execute test
@@ -358,9 +360,11 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 	handler := &WebhookHandler{
 		BaseHandler: &BaseHandler{
 			Tracker: tracker,
+			RuntimeConfig: &config.RuntimeConfig{
+				Config: cfg,
+			},
 		},
 		Scheduler:       scheduler,
-		Config:          cfg,
 		DB:              db,
 		CalendarService: mockCalService,
 		logger:          logging.GetLogger("webhook-test"),
@@ -422,9 +426,11 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 		handlerWithFailingScheduler := &WebhookHandler{
 			BaseHandler: &BaseHandler{
 				Tracker: tracker,
+				RuntimeConfig: &config.RuntimeConfig{
+					Config: cfg,
+				},
 			},
 			Scheduler: mockScheduler,
-			Config:    cfg,
 			DB:        db,
 		}
 
@@ -671,7 +677,7 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 			ctx := context.Background()
 
 			// Calculate the assignment date based on days ago
-			assignmentDate := now.AddDate(0, 0, -tt.assignmentDaysAgo).Truncate(24 * time.Hour)
+			assignmentDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -tt.assignmentDaysAgo)
 
 			// Create assignment in the database
 			assignment, err := tracker.RecordAssignment("OriginalParent", assignmentDate, false, fairness.DecisionReasonTotalCount)
@@ -704,10 +710,12 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 			handler := &WebhookHandler{
 				BaseHandler: &BaseHandler{
 					Tracker: tracker,
+					RuntimeConfig: &config.RuntimeConfig{
+						Config: cfg,
+					},
 				},
 				Scheduler:       scheduler,
 				CalendarService: mockCalService,
-				Config:          cfg,
 				DB:              db,
 				logger:          logging.GetLogger("webhook-test"),
 			}
