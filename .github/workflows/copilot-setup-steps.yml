@@ -33,13 +33,10 @@ jobs:
           gopls version
 
       - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-      - name: Verify golangci-lint installation
-        run: |
-          golangci-lint version
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --version
 
       - name: Download Go dependencies
         run: |
