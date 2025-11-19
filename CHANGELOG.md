@@ -1,3 +1,10 @@
+# [0.13.0](https://github.com/Belphemur/night-routine/compare/v0.12.8...v0.13.0) (2025-11-19)
+
+
+### Features
+
+* settings menu ([#139](https://github.com/Belphemur/night-routine/issues/139)) ([017bbb2](https://github.com/Belphemur/night-routine/commit/017bbb215710d5ea45d50793d7b3fb93fc33da33))
+
 ## [0.12.8](https://github.com/Belphemur/night-routine/compare/v0.12.7...v0.12.8) (2025-11-11)
 
 
