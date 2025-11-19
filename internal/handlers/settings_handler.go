@@ -280,7 +280,14 @@ func (h *SettingsHandler) triggerSync(ctx context.Context, logger zerolog.Logger
 	// Generate and sync schedule
 	logger.Info().Msg("Generating schedule for automatic sync")
 	now := time.Now()
-	end := now.AddDate(0, 0, h.Config.Schedule.LookAheadDays)
+
+	// Fetch lookAheadDays from database to use the latest settings
+	_, lookAheadDays, _, err := h.configStore.GetSchedule()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to fetch lookAheadDays from database")
+		return fmt.Errorf("failed to fetch lookAheadDays: %w", err)
+	}
+	end := now.AddDate(0, 0, lookAheadDays)
 
 	assignments, err := h.scheduler.GenerateSchedule(now, end, time.Now())
 	if err != nil {
