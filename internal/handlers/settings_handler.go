@@ -16,6 +16,28 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Error and success message mappings for settings page
+var (
+	settingsErrorMessages = map[string]string{
+		"invalid_password":         "Invalid password. Please try again.",
+		"missing_fields":           "Please fill in all required fields.",
+		"update_failed":            "Failed to update settings. Please try again.",
+		"parent_names_empty":       "Parent names cannot be empty.",
+		"parent_names_too_long":    "Parent names must be 256 characters or less.",
+		"parent_names_identical":   "Parent names must be different.",
+		"invalid_day":              "Invalid day of week selected.",
+		"invalid_look_ahead":       "Look ahead days must be between 1 and 365.",
+		"invalid_past_threshold":   "Past event threshold must be between 0 and 30.",
+		"invalid_update_frequency": "Invalid update frequency selected.",
+		"load_failed":              "Failed to load configuration. Please try again.",
+	}
+
+	settingsSuccessMessages = map[string]string{
+		"settings_saved":   "Settings saved successfully! Calendar will be automatically synced.",
+		"password_changed": "Password changed successfully.",
+	}
+)
+
 // SettingsHandler manages settings page functionality
 type SettingsHandler struct {
 	*BaseHandler
@@ -57,12 +79,38 @@ type SettingsPageData struct {
 	AllDaysOfWeek          []string
 }
 
+// getErrorMessage returns the error message for a given code, or a default message
+func getErrorMessage(code string) string {
+	if msg, ok := settingsErrorMessages[code]; ok {
+		return msg
+	}
+	return "An unknown error occurred."
+}
+
+// getSuccessMessage returns the success message for a given code, or a default message
+func getSuccessMessage(code string) string {
+	if msg, ok := settingsSuccessMessages[code]; ok {
+		return msg
+	}
+	return "Success."
+}
+
 // handleSettings shows the settings page
 func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.logger.With().Str("handler", "handleSettings").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling settings page request")
 
-	// Always allow access to settings (no authentication check needed)
+	// Check if password authentication is required
+	authenticated := r.URL.Query().Get("auth") == "1"
+	if !authenticated {
+		// Show password prompt
+		data := SettingsPageData{
+			IsAuthenticated: false,
+			AllDaysOfWeek:   getAllDaysOfWeek(),
+		}
+		h.RenderTemplate(w, "settings.html", data)
+		return
+	}
 
 	// Get current configuration
 	parentA, parentB, err := h.configStore.GetParents()
@@ -99,9 +147,17 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Process messages
-	errorMessage := r.URL.Query().Get("error")
-	successMessage := r.URL.Query().Get("success")
+	// Process messages - translate error/success codes to user-friendly messages
+	errorCode := r.URL.Query().Get("error")
+	successCode := r.URL.Query().Get("success")
+
+	var errorMessage, successMessage string
+	if errorCode != "" {
+		errorMessage = getErrorMessage(errorCode)
+	}
+	if successCode != "" {
+		successMessage = getSuccessMessage(successCode)
+	}
 
 	data := SettingsPageData{
 		IsAuthenticated:        true, // Always authenticated for settings
@@ -126,17 +182,23 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	handlerLogger := h.logger.With().Str("handler", "handleUpdateSettings").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling settings update request")
 
-	// No authentication check - settings are always accessible
-
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/settings", http.StatusSeeOther)
 		return
 	}
 
-	// Parse form data
+	// Parse form data first to check password
 	if err := r.ParseForm(); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to parse form")
-		http.Redirect(w, r, "/settings?error=Invalid+form+data", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=invalid_form", http.StatusSeeOther)
+		return
+	}
+
+	// Check password
+	submittedPassword := r.FormValue("password")
+	if submittedPassword != h.Config.App.SettingsPassword {
+		handlerLogger.Warn().Msg("Invalid settings password attempt")
+		http.Redirect(w, r, "/settings?error=invalid_password", http.StatusSeeOther)
 		return
 	}
 
@@ -150,7 +212,7 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 		http.Redirect(w, r, "/settings?error=empty_parent_names", http.StatusSeeOther)
 		return
 	}
-	if len(parentA) > 100 || len(parentB) > 100 {
+	if len(parentA) > 256 || len(parentB) > 256 {
 		handlerLogger.Error().Msg("Parent names too long")
 		http.Redirect(w, r, "/settings?error=parent_names_too_long", http.StatusSeeOther)
 		return

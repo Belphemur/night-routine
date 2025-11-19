@@ -24,9 +24,10 @@ type Config struct {
 
 // ApplicationConfig holds the application configuration
 type ApplicationConfig struct {
-	Port      int    `toml:"port"`       // Port to listen on
-	AppUrl    string `toml:"app_url"`    // Application URL for internal use (OAuth, etc.)
-	PublicUrl string `toml:"public_url"` // Public URL for external access (webhooks)
+	Port             int    `toml:"port"`              // Port to listen on
+	AppUrl           string `toml:"app_url"`           // Application URL for internal use (OAuth, etc.)
+	PublicUrl        string `toml:"public_url"`        // Public URL for external access (webhooks)
+	SettingsPassword string `toml:"settings_password"` // Password to protect settings page (default: admin)
 }
 
 // ParentsConfig holds the parent names
@@ -62,6 +63,7 @@ func Load(path string) (*Config, error) {
 	// Set defaults before decoding
 	cfg.Service.ManualSyncOnStartup = true  // Default to true
 	cfg.Schedule.PastEventThresholdDays = 5 // Default to 5 days
+	cfg.App.SettingsPassword = "admin"      // Default password
 
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return nil, err

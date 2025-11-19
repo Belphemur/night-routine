@@ -20,3 +20,4 @@ manual_sync_on_startup = false # Optional: Perform a schedule sync immediately o
 port = 8888  # The port to run the application on
 app_url = "http://localhost:8888"  # Internal application URL used for OAuth and general application routes
 public_url = "http://localhost:8888"  # Public URL used for webhooks and external integrations
+settings_password = "admin"  # Password to protect the settings page (default: admin)
