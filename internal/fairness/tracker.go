@@ -237,7 +237,7 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 		// Set override to false.
 		_, err := tx.ExecContext(ctx, `
 		UPDATE assignments
-		SET override = 0, updated_at = CURRENT_TIMESTAMP
+		SET override = 0, decision_reason = NULL, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		`, id)
 
