@@ -225,7 +225,7 @@ func run(ctx context.Context) error {
 	}()
 
 	// Set up webhook handler using the calendar service (will be initialized later)
-	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, cfg, tokenManager, db)
+	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, runtimeCfg, tokenManager, db)
 	webhookHandler.RegisterRoutes()
 
 	// Check for existing token and initialize calendar service if found

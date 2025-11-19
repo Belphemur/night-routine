@@ -27,19 +27,19 @@ type WebhookHandler struct {
 	*BaseHandler
 	CalendarService calendar.CalendarService
 	Scheduler       Scheduler.SchedulerInterface
-	Config          *config.Config
+	RuntimeConfig   *config.RuntimeConfig
 	TokenManager    *token.TokenManager
 	DB              *database.DB
 	logger          zerolog.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler
-func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, config *config.Config, tokenManager *token.TokenManager, db *database.DB) *WebhookHandler {
+func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, runtimeConfig *config.RuntimeConfig, tokenManager *token.TokenManager, db *database.DB) *WebhookHandler {
 	return &WebhookHandler{
 		BaseHandler:     baseHandler,
 		CalendarService: calendarService,
 		Scheduler:       scheduler,
-		Config:          config,
+		RuntimeConfig:   runtimeConfig,
 		TokenManager:    tokenManager,
 		DB:              db,
 		logger:          logging.GetLogger("webhook"),
@@ -136,7 +136,7 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 	procLogger.Debug().Msg("Valid token obtained")
 
 	// Create a calendar client
-	client := h.Config.OAuth.Client(ctx, token)
+	client := h.RuntimeConfig.Config.OAuth.Client(ctx, token)
 	calendarSvc, err := gcalendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		procLogger.Error().Err(err).Msg("Failed to create Google Calendar service client")
@@ -237,12 +237,21 @@ func (h *WebhookHandler) processEventsWithinTransaction(ctx context.Context, eve
 		}
 
 		// Check if the assignment is within the configurable past event threshold
-		thresholdDays := h.Config.Schedule.PastEventThresholdDays
-		thresholdDate := time.Now().Truncate(24*time.Hour).AddDate(0, 0, -thresholdDays)
-		if assignment.Date.Before(thresholdDate) {
+		thresholdDays := h.RuntimeConfig.Config.Schedule.PastEventThresholdDays
+		now := time.Now()
+		thresholdDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -thresholdDays)
+
+		// Ensure assignment date is compared in the same timezone/location
+		// We use the Year/Month/Day from the assignment date to construct a new date in the local timezone
+		// This avoids issues where DB returns UTC time which shifts the day when converted to Local
+		y, m, d := assignment.Date.Date()
+		assignmentDate := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+
+		if assignmentDate.Before(thresholdDate) {
 			eventLogger.Warn().
 				Int("threshold_days", thresholdDays).
 				Str("threshold_date", thresholdDate.Format("2006-01-02")).
+				Str("assignment_date", assignmentDate.Format("2006-01-02")).
 				Msg("Rejecting override attempt for past assignment outside threshold")
 			continue
 		}
@@ -298,7 +307,7 @@ func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.
 	endDate := lastAssignmentDate
 	if endDate.IsZero() || endDate.Before(fromDate) {
 		// Use the same look-ahead period as defined in the config, starting from 'fromDate'
-		lookAheadDays := h.Config.Schedule.LookAheadDays
+		lookAheadDays := h.RuntimeConfig.Config.Schedule.LookAheadDays
 		endDate = fromDate.AddDate(0, 0, lookAheadDays)
 		recalcLogger.Debug().Int("look_ahead_days", lookAheadDays).Time("end_date", endDate).Msg("Calculated end date based on look-ahead days")
 	} else {
