@@ -278,55 +278,55 @@ func TestConfigSeeder_PreservesDatabaseState(t *testing.T) {
 }
 
 func TestConfigSeeder_SeedFromConfig_ParentsSeedError(t *testing.T) {
-seeder, _, cleanup := setupTestSeeder(t)
-defer cleanup()
+	seeder, _, cleanup := setupTestSeeder(t)
+	defer cleanup()
 
-// Create invalid config with same parent names
-cfg := &config.Config{
-Parents: config.ParentsConfig{
-ParentA: "SameName",
-ParentB: "SameName", // This will fail validation
-},
-Availability: config.AvailabilityConfig{
-ParentAUnavailable: []string{},
-ParentBUnavailable: []string{},
-},
-Schedule: config.ScheduleConfig{
-UpdateFrequency:        "weekly",
-LookAheadDays:          30,
-PastEventThresholdDays: 5,
-},
-}
+	// Create invalid config with same parent names
+	cfg := &config.Config{
+		Parents: config.ParentsConfig{
+			ParentA: "SameName",
+			ParentB: "SameName", // This will fail validation
+		},
+		Availability: config.AvailabilityConfig{
+			ParentAUnavailable: []string{},
+			ParentBUnavailable: []string{},
+		},
+		Schedule: config.ScheduleConfig{
+			UpdateFrequency:        "weekly",
+			LookAheadDays:          30,
+			PastEventThresholdDays: 5,
+		},
+	}
 
-// Seed should fail
-err := seeder.SeedFromConfig(cfg)
-assert.Error(t, err)
-assert.Contains(t, err.Error(), "failed to seed parent configuration")
+	// Seed should fail
+	err := seeder.SeedFromConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to seed parent configuration")
 }
 
 func TestConfigSeeder_SeedFromConfig_ScheduleSeedError(t *testing.T) {
-seeder, _, cleanup := setupTestSeeder(t)
-defer cleanup()
+	seeder, _, cleanup := setupTestSeeder(t)
+	defer cleanup()
 
-// Create config with invalid schedule
-cfg := &config.Config{
-Parents: config.ParentsConfig{
-ParentA: "Alice",
-ParentB: "Bob",
-},
-Availability: config.AvailabilityConfig{
-ParentAUnavailable: []string{},
-ParentBUnavailable: []string{},
-},
-Schedule: config.ScheduleConfig{
-UpdateFrequency:        "invalid", // Invalid frequency
-LookAheadDays:          30,
-PastEventThresholdDays: 5,
-},
-}
+	// Create config with invalid schedule
+	cfg := &config.Config{
+		Parents: config.ParentsConfig{
+			ParentA: "Alice",
+			ParentB: "Bob",
+		},
+		Availability: config.AvailabilityConfig{
+			ParentAUnavailable: []string{},
+			ParentBUnavailable: []string{},
+		},
+		Schedule: config.ScheduleConfig{
+			UpdateFrequency:        "invalid", // Invalid frequency
+			LookAheadDays:          30,
+			PastEventThresholdDays: 5,
+		},
+	}
 
-// Seed should fail on schedule
-err := seeder.SeedFromConfig(cfg)
-assert.Error(t, err)
-assert.Contains(t, err.Error(), "failed to seed schedule configuration")
+	// Seed should fail on schedule
+	err := seeder.SeedFromConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to seed schedule configuration")
 }

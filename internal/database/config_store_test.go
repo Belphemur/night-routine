@@ -345,70 +345,70 @@ func TestConfigStore_GetScheduleFull(t *testing.T) {
 }
 
 func TestConfigStore_GetParents_NoData(t *testing.T) {
-store, cleanup := setupTestConfigStore(t)
-defer cleanup()
+	store, cleanup := setupTestConfigStore(t)
+	defer cleanup()
 
-// Try to get parents before any are saved
-_, _, err := store.GetParents()
-assert.Error(t, err)
-assert.Contains(t, err.Error(), "no parent configuration found")
+	// Try to get parents before any are saved
+	_, _, err := store.GetParents()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no parent configuration found")
 }
 
 func TestConfigStore_GetParentsFull_NoData(t *testing.T) {
-store, cleanup := setupTestConfigStore(t)
-defer cleanup()
+	store, cleanup := setupTestConfigStore(t)
+	defer cleanup()
 
-// Try to get full parents before any are saved
-config, err := store.GetParentsFull()
-assert.NoError(t, err)
-assert.Nil(t, config)
+	// Try to get full parents before any are saved
+	config, err := store.GetParentsFull()
+	assert.NoError(t, err)
+	assert.Nil(t, config)
 }
 
 func TestConfigStore_GetSchedule_NoData(t *testing.T) {
-store, cleanup := setupTestConfigStore(t)
-defer cleanup()
+	store, cleanup := setupTestConfigStore(t)
+	defer cleanup()
 
-// Try to get schedule before any is saved
-_, _, _, err := store.GetSchedule()
-assert.Error(t, err)
-assert.Contains(t, err.Error(), "no schedule configuration found")
+	// Try to get schedule before any is saved
+	_, _, _, err := store.GetSchedule()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no schedule configuration found")
 }
 
 func TestConfigStore_GetScheduleFull_NoData(t *testing.T) {
-store, cleanup := setupTestConfigStore(t)
-defer cleanup()
+	store, cleanup := setupTestConfigStore(t)
+	defer cleanup()
 
-// Try to get full schedule before any is saved
-config, err := store.GetScheduleFull()
-assert.NoError(t, err)
-assert.Nil(t, config)
+	// Try to get full schedule before any is saved
+	config, err := store.GetScheduleFull()
+	assert.NoError(t, err)
+	assert.Nil(t, config)
 }
 
 func TestConfigStore_SaveAvailability_Transaction(t *testing.T) {
-store, cleanup := setupTestConfigStore(t)
-defer cleanup()
+	store, cleanup := setupTestConfigStore(t)
+	defer cleanup()
 
-// Save initial availability
-err := store.SaveAvailability("parent_a", []string{"Monday", "Wednesday"})
-require.NoError(t, err)
+	// Save initial availability
+	err := store.SaveAvailability("parent_a", []string{"Monday", "Wednesday"})
+	require.NoError(t, err)
 
-// Update with different days
-err = store.SaveAvailability("parent_a", []string{"Friday"})
-require.NoError(t, err)
+	// Update with different days
+	err = store.SaveAvailability("parent_a", []string{"Friday"})
+	require.NoError(t, err)
 
-// Verify only new days exist
-days, err := store.GetAvailability("parent_a")
-require.NoError(t, err)
-assert.Len(t, days, 1)
-assert.Equal(t, []string{"Friday"}, days)
+	// Verify only new days exist
+	days, err := store.GetAvailability("parent_a")
+	require.NoError(t, err)
+	assert.Len(t, days, 1)
+	assert.Equal(t, []string{"Friday"}, days)
 }
 
 func TestConfigStore_GetAvailability_QueryError(t *testing.T) {
-store, cleanup := setupTestConfigStore(t)
-defer cleanup()
+	store, cleanup := setupTestConfigStore(t)
+	defer cleanup()
 
-// Test with empty database - should return empty list
-days, err := store.GetAvailability("parent_a")
-require.NoError(t, err)
-assert.Empty(t, days)
+	// Test with empty database - should return empty list
+	days, err := store.GetAvailability("parent_a")
+	require.NoError(t, err)
+	assert.Empty(t, days)
 }
