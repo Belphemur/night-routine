@@ -1,3 +1,19 @@
+# [0.14.0](https://github.com/Belphemur/night-routine/compare/v0.13.0...v0.14.0) (2025-11-19)
+
+
+### Bug Fixes
+
+* **decision:** clean up the decision reason when unlocking ([de4f511](https://github.com/Belphemur/night-routine/commit/de4f5117cc552a544e2c66841d1c5ebb71703a81))
+* **home:** clean up the formatting ([23f0467](https://github.com/Belphemur/night-routine/commit/23f0467c95fd3d1744ee14bca015204c43103ae2))
+* **home:** Enhance calendar styling with decision reasons, tooltips, and dynamic current day highlight. ([0e35de9](https://github.com/Belphemur/night-routine/commit/0e35de9174eb2bb580c600c9682f1a892dc9eb0b))
+* **home:** fix home template and remove isToday ([82d84d6](https://github.com/Belphemur/night-routine/commit/82d84d6fd3a95de5d7a84a5d7591325ef969574c))
+
+
+### Features
+
+* Add assignment unlock functionality and centralize authentication logic in base handler. ([a06d919](https://github.com/Belphemur/night-routine/commit/a06d919567fa59d6b94656a7ecaa0a65af9bcc70))
+* **modal:** have a good modal for confirming unlocking event ([f6d9395](https://github.com/Belphemur/night-routine/commit/f6d9395bac74510899e3f9f3dccda2b182b181f8))
+
 # [0.13.0](https://github.com/Belphemur/night-routine/compare/v0.12.8...v0.13.0) (2025-11-19)
 
 
