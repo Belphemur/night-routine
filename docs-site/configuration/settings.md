@@ -273,5 +273,5 @@ Invalid inputs are rejected with clear error messages indicating what needs to b
 
 - [TOML Configuration](toml.md) - File-based configuration reference
 - [Web Interface](../user-guide/web-interface.md) - Using the web UI
-- [Fairness Algorithm](../architecture/fairness-algorithm.md) - How availability affects assignments
+- [Assignment Logic](../architecture/assignment-logic.md) - How availability affects assignments
 - [Database Schema](../architecture/database.md) - Configuration table structure

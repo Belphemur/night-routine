@@ -6,7 +6,7 @@ The main application configuration is stored in a TOML file. This file contains 
     Starting from version with database-backed configuration:
     
     - **Initial Setup**: Configuration values from the TOML file are used to seed the database on first run
-    - **Runtime Management**: Parent names, availability, and schedule settings can be updated via the [Web UI Settings page](/user-guide/web-interface/#settings)
+    - **Runtime Management**: Parent names, availability, and schedule settings can be updated via the [Web UI Settings page](../user-guide/web-interface.md#settings)
     - **File vs Database**: App-level settings (port, URLs, log level, state file) remain TOML-only and require restart. Parent, availability, and schedule settings are stored in the database and take effect immediately.
     - **Automatic Migration**: When upgrading from an older version, your existing TOML configuration is automatically migrated to the database
 
@@ -119,7 +119,7 @@ public_url = "http://localhost:8080"
 ### `[parents]` - Parent Configuration
 
 !!! tip "Manage via Web UI"
-    After initial setup, parent names can be updated via the [Settings page](/user-guide/web-interface/#settings) without restarting the application.
+    After initial setup, parent names can be updated via the [Settings page](../user-guide/web-interface.md#settings) without restarting the application.
 
 #### `parent_a` and `parent_b`
 
@@ -147,7 +147,7 @@ parent_b = "Bob"
 ### `[availability]` - Availability Constraints
 
 !!! tip "Manage via Web UI"
-    After initial setup, availability can be updated via the [Settings page](/user-guide/web-interface/#settings) without restarting the application.
+    After initial setup, availability can be updated via the [Settings page](../user-guide/web-interface.md#settings) without restarting the application.
 
 #### `parent_a_unavailable` and `parent_b_unavailable`
 
@@ -196,7 +196,7 @@ parent_b_unavailable = ["Monday", "Thursday"]
 ### `[schedule]` - Scheduling Settings
 
 !!! tip "Manage via Web UI"
-    After initial setup, schedule settings can be updated via the [Settings page](/user-guide/web-interface/#settings) without restarting the application.
+    After initial setup, schedule settings can be updated via the [Settings page](../user-guide/web-interface.md#settings) without restarting the application.
 
 #### `update_frequency`
 
