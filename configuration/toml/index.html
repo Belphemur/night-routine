@@ -298,7 +298,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../environment/" class="md-tabs__link">
+        <a href="../settings/" class="md-tabs__link">
           
   
   
@@ -689,6 +689,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2077,6 +2105,16 @@
 
 <h1 id="toml-configuration">TOML Configuration<a class="headerlink" href="#toml-configuration" title="Permanent link">&para;</a></h1>
 <p>The main application configuration is stored in a TOML file. This file contains settings for the application, parents, scheduling, and service options.</p>
+<div class="admonition info">
+<p class="admonition-title">Configuration Management</p>
+<p>Starting from version with database-backed configuration:</p>
+<ul>
+<li><strong>Initial Setup</strong>: Configuration values from the TOML file are used to seed the database on first run</li>
+<li><strong>Runtime Management</strong>: Parent names, availability, and schedule settings can be updated via the <a href="../../user-guide/web-interface/#settings">Web UI Settings page</a></li>
+<li><strong>File vs Database</strong>: App-level settings (port, URLs, log level, state file) remain TOML-only and require restart. Parent, availability, and schedule settings are stored in the database and take effect immediately.</li>
+<li><strong>Automatic Migration</strong>: When upgrading from an older version, your existing TOML configuration is automatically migrated to the database</li>
+</ul>
+</div>
 <h2 id="configuration-file-location">Configuration File Location<a class="headerlink" href="#configuration-file-location" title="Permanent link">&para;</a></h2>
 <p>The configuration file path is specified via the <code>CONFIG_FILE</code> environment variable:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CONFIG_FILE</span><span class="o">=</span><span class="s2">&quot;configs/routine.toml&quot;</span>
@@ -2160,10 +2198,15 @@
 </span></code></pre></div></p>
 </div>
 <h3 id="parents-parent-configuration"><code>[parents]</code> - Parent Configuration<a class="headerlink" href="#parents-parent-configuration" title="Permanent link">&para;</a></h3>
+<div class="admonition tip">
+<p class="admonition-title">Manage via Web UI</p>
+<p>After initial setup, parent names can be updated via the <a href="../../user-guide/web-interface/#settings">Settings page</a> without restarting the application.</p>
+</div>
 <h4 id="parent_a-and-parent_b"><code>parent_a</code> and <code>parent_b</code><a class="headerlink" href="#parent_a-and-parent_b" title="Permanent link">&para;</a></h4>
 <p><strong>Type:</strong> String<br />
-<strong>Required:</strong> Yes<br />
-<strong>Default:</strong> None</p>
+<strong>Required:</strong> Yes (for initial seeding)<br />
+<strong>Default:</strong> None<br />
+<strong>Configurable via UI:</strong> Yes</p>
 <p>Names of the two parents who will be assigned night routine duties.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[parents]</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Alice&quot;</span>
@@ -2177,11 +2220,20 @@
 <li>These names appear in calendar events as <code>[ParentName] 🌃👶Routine</code></li>
 </ul>
 </div>
+<div class="admonition info">
+<p class="admonition-title">After Initial Setup</p>
+<p>Once the database is seeded, changes to these values in the TOML file are ignored. Use the Settings page to update parent names.</p>
+</div>
 <h3 id="availability-availability-constraints"><code>[availability]</code> - Availability Constraints<a class="headerlink" href="#availability-availability-constraints" title="Permanent link">&para;</a></h3>
+<div class="admonition tip">
+<p class="admonition-title">Manage via Web UI</p>
+<p>After initial setup, availability can be updated via the <a href="../../user-guide/web-interface/#settings">Settings page</a> without restarting the application.</p>
+</div>
 <h4 id="parent_a_unavailable-and-parent_b_unavailable"><code>parent_a_unavailable</code> and <code>parent_b_unavailable</code><a class="headerlink" href="#parent_a_unavailable-and-parent_b_unavailable" title="Permanent link">&para;</a></h4>
 <p><strong>Type:</strong> Array of strings<br />
 <strong>Required:</strong> No<br />
-<strong>Default:</strong> <code>[]</code> (empty - always available)</p>
+<strong>Default:</strong> <code>[]</code> (empty - always available)<br />
+<strong>Configurable via UI:</strong> Yes</p>
 <p>Days of the week when each parent is unavailable for night routine duties.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[availability]</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Friday&quot;</span><span class="p">]</span>
@@ -2217,11 +2269,16 @@
 </div>
 </div>
 <h3 id="schedule-scheduling-settings"><code>[schedule]</code> - Scheduling Settings<a class="headerlink" href="#schedule-scheduling-settings" title="Permanent link">&para;</a></h3>
+<div class="admonition tip">
+<p class="admonition-title">Manage via Web UI</p>
+<p>After initial setup, schedule settings can be updated via the <a href="../../user-guide/web-interface/#settings">Settings page</a> without restarting the application.</p>
+</div>
 <h4 id="update_frequency"><code>update_frequency</code><a class="headerlink" href="#update_frequency" title="Permanent link">&para;</a></h4>
 <p><strong>Type:</strong> String<br />
-<strong>Required:</strong> Yes<br />
+<strong>Required:</strong> Yes (for initial seeding)<br />
 <strong>Default:</strong> None<br />
-<strong>Valid values:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code></p>
+<strong>Valid values:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code><br />
+<strong>Configurable via UI:</strong> Yes</p>
 <p>How often the schedule should be automatically updated.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[schedule]</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;weekly&quot;</span>
@@ -2237,9 +2294,10 @@
 </div>
 <h4 id="look_ahead_days"><code>look_ahead_days</code><a class="headerlink" href="#look_ahead_days" title="Permanent link">&para;</a></h4>
 <p><strong>Type:</strong> Integer<br />
-<strong>Required:</strong> Yes<br />
+<strong>Required:</strong> Yes (for initial seeding)<br />
 <strong>Default:</strong> None<br />
-<strong>Range:</strong> 1-365</p>
+<strong>Range:</strong> 1-365<br />
+<strong>Configurable via UI:</strong> Yes</p>
 <p>Number of days in advance to schedule night routine assignments.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">[schedule]</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
@@ -2257,7 +2315,8 @@
 <p><strong>Type:</strong> Integer<br />
 <strong>Required:</strong> No<br />
 <strong>Default:</strong> 5<br />
-<strong>Range:</strong> 0-30</p>
+<strong>Range:</strong> 0-30<br />
+<strong>Configurable via UI:</strong> Yes</p>
 <p>Number of days in the past to accept manual event changes via Google Calendar.</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">[schedule]</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">past_event_threshold_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span>

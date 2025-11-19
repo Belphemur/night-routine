@@ -296,7 +296,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../configuration/environment/" class="md-tabs__link">
+        <a href="../../configuration/settings/" class="md-tabs__link">
           
   
   
@@ -694,6 +694,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../configuration/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../configuration/environment/" class="md-nav__link">
         
   
@@ -1058,8 +1086,108 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Page
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configurable-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configurable Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parent-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Availability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saving-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saving Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Validation
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2051,8 +2179,108 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Page
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings Page">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configurable-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configurable Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parent-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parent Names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Availability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#saving-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saving Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Validation
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2663,6 +2891,70 @@
 <p><strong>When:</strong> Authenticated</p>
 <p><strong>Action:</strong> Opens the statistics page</p>
 <p><strong>Result:</strong> Shows monthly assignment counts for the last 12 months</p>
+<h4 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h4>
+<p><strong>When:</strong> Authenticated</p>
+<p><strong>Action:</strong> Opens the settings page</p>
+<p><strong>Result:</strong> Allows you to update parent names, availability, and schedule settings without restarting the application</p>
+<h2 id="settings-page">Settings Page<a class="headerlink" href="#settings-page" title="Permanent link">&para;</a></h2>
+<p>The settings page (<code>/settings</code>) provides a web interface for managing your configuration.</p>
+<h3 id="configurable-settings">Configurable Settings<a class="headerlink" href="#configurable-settings" title="Permanent link">&para;</a></h3>
+<p>The following settings can be updated via the web interface:</p>
+<h4 id="parent-names">Parent Names<a class="headerlink" href="#parent-names" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Parent A Name</strong> - First parent's display name</li>
+<li><strong>Parent B Name</strong> - Second parent's display name</li>
+</ul>
+<p>Changes to parent names affect:</p>
+<ul>
+<li>Future calendar event titles</li>
+<li>Assignment display in the web interface</li>
+<li>Statistics calculations</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Name Restrictions</p>
+<ul>
+<li>Both names must be provided</li>
+<li>Names must be different from each other</li>
+<li>Changes apply immediately without restart</li>
+</ul>
+</div>
+<h4 id="availability">Availability<a class="headerlink" href="#availability" title="Permanent link">&para;</a></h4>
+<p>Select days when each parent is unavailable for night routine duties.</p>
+<ul>
+<li><strong>Parent A Unavailable Days</strong> - Days when Parent A can't do the routine</li>
+<li><strong>Parent B Unavailable Days</strong> - Days when Parent B can't do the routine</li>
+</ul>
+<p><strong>Valid days:</strong> Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday</p>
+<div class="admonition tip">
+<p class="admonition-title">Multiple Days</p>
+<p>Select multiple days by checking all applicable checkboxes. Leave all unchecked if parent is always available.</p>
+</div>
+<h4 id="schedule-settings">Schedule Settings<a class="headerlink" href="#schedule-settings" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Update Frequency</strong> - How often to automatically update (daily, weekly, monthly)</li>
+<li><strong>Look Ahead Days</strong> - Number of days in advance to schedule (1-365)</li>
+<li><strong>Past Event Threshold Days</strong> - Days in the past to accept manual changes (0-30)</li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Immediate Effect</p>
+<p>All settings changes take effect immediately. No application restart required. Consider clicking "Sync Now" on the home page after making changes.</p>
+</div>
+<h3 id="saving-settings">Saving Settings<a class="headerlink" href="#saving-settings" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Make your desired changes in the form</li>
+<li>Click the <strong>Save Settings</strong> button</li>
+<li>You'll see a success message confirming the save</li>
+<li>Settings are stored in the database and persist across restarts</li>
+</ol>
+<h3 id="settings-validation">Settings Validation<a class="headerlink" href="#settings-validation" title="Permanent link">&para;</a></h3>
+<p>The form validates your input before saving:</p>
+<ul>
+<li><strong>Parent names</strong> must not be empty or identical</li>
+<li><strong>Update frequency</strong> must be daily, weekly, or monthly</li>
+<li><strong>Look ahead days</strong> must be at least 1</li>
+<li><strong>Past event threshold</strong> cannot be negative</li>
+</ul>
+<p>If validation fails, you'll see an error message explaining what needs to be corrected</p>
 <h3 id="calendar-navigation">Calendar Navigation<a class="headerlink" href="#calendar-navigation" title="Permanent link">&para;</a></h3>
 <p>Use the <strong>Previous</strong> and <strong>Next</strong> buttons to navigate between months:</p>
 <ul>
