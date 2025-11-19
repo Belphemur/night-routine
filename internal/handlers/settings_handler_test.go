@@ -112,26 +112,26 @@ func TestSettingsHandler_HandleSettings_WithErrors(t *testing.T) {
 	handler, _, _, cleanup := setupTestSettingsHandler(t)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/settings?error=test+error", nil)
+	req := httptest.NewRequest(http.MethodGet, "/settings?error="+ErrCodeInvalidFormData, nil)
 	w := httptest.NewRecorder()
 
 	handler.handleSettings(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "test error")
+	assert.Contains(t, w.Body.String(), ErrorMessages[ErrCodeInvalidFormData])
 }
 
 func TestSettingsHandler_HandleSettings_WithSuccess(t *testing.T) {
 	handler, _, _, cleanup := setupTestSettingsHandler(t)
 	defer cleanup()
 
-	req := httptest.NewRequest(http.MethodGet, "/settings?success=test+success", nil)
+	req := httptest.NewRequest(http.MethodGet, "/settings?success="+SuccessCodeSettingsUpdated, nil)
 	w := httptest.NewRecorder()
 
 	handler.handleSettings(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "test success")
+	assert.Contains(t, w.Body.String(), SuccessMessages[SuccessCodeSettingsUpdated])
 }
 
 func TestSettingsHandler_HandleUpdateSettings_Success(t *testing.T) {
@@ -194,7 +194,7 @@ func TestSettingsHandler_HandleUpdateSettings_InvalidFormData(t *testing.T) {
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Invalid")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeInvalidFormData)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_InvalidLookAheadDays(t *testing.T) {
@@ -215,7 +215,7 @@ func TestSettingsHandler_HandleUpdateSettings_InvalidLookAheadDays(t *testing.T)
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Look+ahead+days+must+be+between")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeInvalidLookAheadDays)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_InvalidThresholdDays(t *testing.T) {
@@ -236,7 +236,7 @@ func TestSettingsHandler_HandleUpdateSettings_InvalidThresholdDays(t *testing.T)
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Past+event+threshold+must+be+between")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeInvalidPastEventThreshold)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_ParentsSaveFails(t *testing.T) {
@@ -257,7 +257,7 @@ func TestSettingsHandler_HandleUpdateSettings_ParentsSaveFails(t *testing.T) {
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Failed+to+save+parent")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeFailedSaveParent)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_ScheduleSaveFails(t *testing.T) {
@@ -278,7 +278,7 @@ func TestSettingsHandler_HandleUpdateSettings_ScheduleSaveFails(t *testing.T) {
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Failed+to+save+schedule")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeFailedSaveSchedule)
 }
 
 func TestSettingsHandler_GetAllDaysOfWeek(t *testing.T) {
@@ -405,7 +405,7 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 	// Accept either success or sync failure message since we don't have calendar service in test
 	assert.True(t,
 		strings.Contains(location, "/settings?success=") ||
-			strings.Contains(location, "sync+failed"),
+			strings.Contains(location, "success="+SuccessCodeSettingsUpdatedSyncFailed),
 		"Expected success or sync failure redirect, got: %s", location)
 }
 
@@ -429,7 +429,7 @@ func TestSettingsHandler_HandleUpdateSettings_InvalidDayOfWeek(t *testing.T) {
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Invalid+day+of+week")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeInvalidDayOfWeek)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_LookAheadDaysOutOfBounds(t *testing.T) {
@@ -450,7 +450,7 @@ func TestSettingsHandler_HandleUpdateSettings_LookAheadDaysOutOfBounds(t *testin
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Look+ahead+days+must+be+between")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeInvalidLookAheadDays)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_ThresholdDaysOutOfBounds(t *testing.T) {
@@ -471,5 +471,5 @@ func TestSettingsHandler_HandleUpdateSettings_ThresholdDaysOutOfBounds(t *testin
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Past+event+threshold+must+be+between")
+	assert.Contains(t, w.Header().Get("Location"), "error="+ErrCodeInvalidPastEventThreshold)
 }

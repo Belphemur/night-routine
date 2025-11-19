@@ -113,33 +113,18 @@ func (h *HomeHandler) getSelectedCalendarID(logger zerolog.Logger) string {
 
 // processMessages extracts and translates error/success codes from query parameters.
 func (h *HomeHandler) processMessages(r *http.Request, logger zerolog.Logger) (errorMessage, successMessage string) {
-	errorParam := r.URL.Query().Get("error")
-	successParam := r.URL.Query().Get("success")
-	logger.Debug().Str("error_param", errorParam).Str("success_param", successParam).Msg("Checked query parameters")
+	errorCode := r.URL.Query().Get("error")
+	successCode := r.URL.Query().Get("success")
+	logger.Debug().Str("error_code", errorCode).Str("success_code", successCode).Msg("Checked query parameters")
 
-	if errorParam != "" {
-		switch errorParam {
-		case "calendar_client_error":
-			errorMessage = "Failed to connect to Google Calendar. Please try authenticating again."
-		case "calendar_fetch_error":
-			errorMessage = "Failed to fetch your calendars. Please try authenticating again."
-		case "sync_error":
-			errorMessage = "Failed to sync schedule. Please try again."
-		case "authentication_required":
-			errorMessage = "Authentication required. Please connect your Google Calendar first."
-		case "calendar_selection_required":
-			errorMessage = "Please select a calendar first."
-		case "calendar_generation_error": // Kept this case for potential future use if redirecting on error
-			errorMessage = "Failed to generate the assignment calendar. Please check logs or try again later."
-		default:
-			errorMessage = "An unknown error occurred."
-		}
-		logger.Warn().Str("error_code", errorParam).Str("error_message", errorMessage).Msg("Processing error message")
+	if errorCode != "" {
+		errorMessage = GetErrorMessage(errorCode)
+		logger.Warn().Str("error_code", errorCode).Str("error_message", errorMessage).Msg("Processing error message")
 	}
 
-	if successParam == "sync_complete" {
-		successMessage = "Schedule successfully synced with Google Calendar."
-		logger.Info().Str("success_code", successParam).Str("success_message", successMessage).Msg("Processing success message")
+	if successCode != "" {
+		successMessage = GetSuccessMessage(successCode)
+		logger.Info().Str("success_code", successCode).Str("success_message", successMessage).Msg("Processing success message")
 	}
 	return errorMessage, successMessage
 }

@@ -100,8 +100,13 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Process messages
-	errorMessage := r.URL.Query().Get("error")
-	successMessage := r.URL.Query().Get("success")
+	errorMessage := GetErrorMessage(r.URL.Query().Get("error"))
+	successMessage := GetSuccessMessage(r.URL.Query().Get("success"))
+
+	// Only show unknown error if there was actually an error param
+	if r.URL.Query().Get("error") == "" {
+		errorMessage = ""
+	}
 
 	data := SettingsPageData{
 		IsAuthenticated:        true, // Always authenticated for settings
@@ -136,7 +141,7 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to parse form")
-		http.Redirect(w, r, "/settings?error=Invalid+form+data", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeInvalidFormData, http.StatusSeeOther)
 		return
 	}
 
@@ -152,14 +157,14 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	for _, day := range parentAUnavailable {
 		if !constants.IsValidDayOfWeek(day) {
 			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent A availability")
-			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
+			http.Redirect(w, r, "/settings?error="+ErrCodeInvalidDayOfWeek, http.StatusSeeOther)
 			return
 		}
 	}
 	for _, day := range parentBUnavailable {
 		if !constants.IsValidDayOfWeek(day) {
 			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent B availability")
-			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
+			http.Redirect(w, r, "/settings?error="+ErrCodeInvalidDayOfWeek, http.StatusSeeOther)
 			return
 		}
 	}
@@ -173,14 +178,14 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	lookAheadDays, err := strconv.Atoi(lookAheadDaysStr)
 	if err != nil || lookAheadDays < 1 || lookAheadDays > 365 {
 		handlerLogger.Error().Err(err).Str("value", lookAheadDaysStr).Msg("Invalid look ahead days")
-		http.Redirect(w, r, "/settings?error=Look+ahead+days+must+be+between+1+and+365", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeInvalidLookAheadDays, http.StatusSeeOther)
 		return
 	}
 
 	pastEventThresholdDays, err := strconv.Atoi(pastEventThresholdDaysStr)
 	if err != nil || pastEventThresholdDays < 0 || pastEventThresholdDays > 30 {
 		handlerLogger.Error().Err(err).Str("value", pastEventThresholdDaysStr).Msg("Invalid past event threshold days")
-		http.Redirect(w, r, "/settings?error=Past+event+threshold+must+be+between+0+and+30", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeInvalidPastEventThreshold, http.StatusSeeOther)
 		return
 	}
 
@@ -195,27 +200,27 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	// Save parent configuration
 	if err := h.configStore.SaveParents(parentA, parentB); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save parent configuration")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+parent+names", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeFailedSaveParent, http.StatusSeeOther)
 		return
 	}
 
 	// Save availability configuration
 	if err := h.configStore.SaveAvailability("parent_a", parentAUnavailable); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save parent A availability")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+availability", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeFailedSaveAvailability, http.StatusSeeOther)
 		return
 	}
 
 	if err := h.configStore.SaveAvailability("parent_b", parentBUnavailable); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save parent B availability")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+availability", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeFailedSaveAvailability, http.StatusSeeOther)
 		return
 	}
 
 	// Save schedule configuration
 	if err := h.configStore.SaveSchedule(updateFrequency, lookAheadDays, pastEventThresholdDays); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save schedule configuration")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+schedule+settings", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error="+ErrCodeFailedSaveSchedule, http.StatusSeeOther)
 		return
 	}
 
@@ -224,11 +229,11 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	// Trigger automatic sync after settings update
 	if err := h.triggerSync(r.Context(), handlerLogger); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to trigger automatic sync after settings update")
-		http.Redirect(w, r, "/settings?success=Settings+updated+but+sync+failed.+Please+sync+manually", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?success="+SuccessCodeSettingsUpdatedSyncFailed, http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/settings?success=Settings+updated+and+schedule+synced+successfully", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings?success="+SuccessCodeSettingsUpdated, http.StatusSeeOther)
 }
 
 // triggerSync triggers an automatic schedule sync

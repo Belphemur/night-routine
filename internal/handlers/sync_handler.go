@@ -45,12 +45,12 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Log the error before redirecting
 		handlerLogger.Error().Err(err).Msg("Failed to check token existence")
-		http.Redirect(w, r, "/?error=authentication_required", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error="+ErrCodeAuthRequired, http.StatusSeeOther)
 		return
 	}
 	if !hasToken {
 		handlerLogger.Warn().Msg("No token found, redirecting for authentication")
-		http.Redirect(w, r, "/?error=authentication_required", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error="+ErrCodeAuthRequired, http.StatusSeeOther)
 		return
 	}
 	handlerLogger.Debug().Msg("Token exists")
@@ -60,12 +60,12 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	token, err := h.TokenManager.GetValidToken(r.Context())
 	if err != nil {
 		handlerLogger.Warn().Err(err).Msg("Failed to validate token, redirecting for authentication")
-		http.Redirect(w, r, "/?error=authentication_required", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error="+ErrCodeAuthRequired, http.StatusSeeOther)
 		return
 	}
 	if token == nil { // Should not happen if GetValidToken doesn't return error, but check anyway
 		handlerLogger.Error().Msg("Token is nil after validation without error, redirecting for authentication")
-		http.Redirect(w, r, "/?error=authentication_required", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error="+ErrCodeAuthRequired, http.StatusSeeOther)
 		return
 	}
 	handlerLogger.Debug().Msg("Token is valid")
@@ -75,12 +75,12 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	calendarID, err := h.TokenStore.GetSelectedCalendar()
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get selected calendar from store")
-		http.Redirect(w, r, "/?error=sync_error", http.StatusSeeOther) // Generic sync error
+		http.Redirect(w, r, "/?error="+ErrCodeSyncFailed, http.StatusSeeOther) // Generic sync error
 		return
 	}
 	if calendarID == "" {
 		handlerLogger.Warn().Msg("No calendar selected, redirecting")
-		http.Redirect(w, r, "/?error=calendar_selection_required", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error="+ErrCodeCalendarSelectionRequired, http.StatusSeeOther)
 		return
 	}
 	handlerLogger.Debug().Str("calendar_id", calendarID).Msg("Calendar is selected")
@@ -90,7 +90,7 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 		handlerLogger.Info().Msg("Calendar service not initialized, attempting initialization")
 		if err := h.CalendarService.Initialize(r.Context()); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to initialize calendar service during manual sync")
-			http.Redirect(w, r, "/?error=sync_error", http.StatusSeeOther)
+			http.Redirect(w, r, "/?error="+ErrCodeSyncFailed, http.StatusSeeOther)
 			return
 		}
 		handlerLogger.Info().Msg("Calendar service initialized successfully")
@@ -101,13 +101,13 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	if err := h.updateSchedule(r.Context()); err != nil {
 		// Error is already logged within updateSchedule
 		handlerLogger.Error().Err(err).Msg("Schedule update process failed")
-		http.Redirect(w, r, "/?error=sync_error", http.StatusSeeOther)
+		http.Redirect(w, r, "/?error="+ErrCodeSyncFailed, http.StatusSeeOther)
 		return
 	}
 	handlerLogger.Info().Msg("Schedule update process completed successfully")
 
 	// Redirect back to home with success message
-	http.Redirect(w, r, "/?success=sync_complete", http.StatusSeeOther)
+	http.Redirect(w, r, "/?success="+SuccessCodeSyncComplete, http.StatusSeeOther)
 }
 
 // updateSchedule generates and syncs a new schedule
