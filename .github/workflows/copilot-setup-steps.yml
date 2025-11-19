@@ -36,7 +36,6 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
-          args: --version
 
       - name: Download Go dependencies
         run: |
