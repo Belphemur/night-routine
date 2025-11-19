@@ -13,7 +13,6 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/belphemur/night-routine/internal/calendar"
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
@@ -27,19 +26,17 @@ type WebhookHandler struct {
 	*BaseHandler
 	CalendarService calendar.CalendarService
 	Scheduler       Scheduler.SchedulerInterface
-	RuntimeConfig   *config.RuntimeConfig
 	TokenManager    *token.TokenManager
 	DB              *database.DB
 	logger          zerolog.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler
-func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, runtimeConfig *config.RuntimeConfig, tokenManager *token.TokenManager, db *database.DB) *WebhookHandler {
+func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, tokenManager *token.TokenManager, db *database.DB) *WebhookHandler {
 	return &WebhookHandler{
 		BaseHandler:     baseHandler,
 		CalendarService: calendarService,
 		Scheduler:       scheduler,
-		RuntimeConfig:   runtimeConfig,
 		TokenManager:    tokenManager,
 		DB:              db,
 		logger:          logging.GetLogger("webhook"),

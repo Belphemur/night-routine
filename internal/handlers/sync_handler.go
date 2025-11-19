@@ -117,8 +117,8 @@ func (h *SyncHandler) updateSchedule(ctx context.Context) error {
 
 	// Calculate date range
 	now := time.Now()
-	end := now.AddDate(0, 0, h.Config.Schedule.LookAheadDays)
-	updateLogger.Debug().Time("start_date", now).Time("end_date", end).Int("lookahead_days", h.Config.Schedule.LookAheadDays).Msg("Calculated date range")
+	end := now.AddDate(0, 0, h.RuntimeConfig.Config.Schedule.LookAheadDays)
+	updateLogger.Debug().Time("start_date", now).Time("end_date", end).Int("lookahead_days", h.RuntimeConfig.Config.Schedule.LookAheadDays).Msg("Calculated date range")
 
 	// Generate schedule
 	updateLogger.Debug().Msg("Generating schedule")
@@ -139,7 +139,7 @@ func (h *SyncHandler) updateSchedule(ctx context.Context) error {
 	}
 
 	updateLogger.Info().
-		Int("days", h.Config.Schedule.LookAheadDays).
+		Int("days", h.RuntimeConfig.Config.Schedule.LookAheadDays).
 		Int("assignments", len(assignments)).
 		Msg("Schedule update and sync completed successfully")
 	return nil

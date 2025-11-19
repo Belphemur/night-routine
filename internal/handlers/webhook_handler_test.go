@@ -297,16 +297,16 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 				BaseHandler: &BaseHandler{
 					TokenStore: nil,
 					Tracker:    mockTracker,
-				},
-				CalendarService: mockCalService,
-				Scheduler:       mockScheduler,
-				RuntimeConfig: &config.RuntimeConfig{
-					Config: &config.Config{
-						Schedule: config.ScheduleConfig{
-							LookAheadDays: tt.configLookAheadDays,
+					RuntimeConfig: &config.RuntimeConfig{
+						Config: &config.Config{
+							Schedule: config.ScheduleConfig{
+								LookAheadDays: tt.configLookAheadDays,
+							},
 						},
 					},
 				},
+				CalendarService: mockCalService,
+				Scheduler:       mockScheduler,
 			}
 
 			// Execute test
@@ -360,11 +360,11 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 	handler := &WebhookHandler{
 		BaseHandler: &BaseHandler{
 			Tracker: tracker,
+			RuntimeConfig: &config.RuntimeConfig{
+				Config: cfg,
+			},
 		},
-		Scheduler: scheduler,
-		RuntimeConfig: &config.RuntimeConfig{
-			Config: cfg,
-		},
+		Scheduler:       scheduler,
 		DB:              db,
 		CalendarService: mockCalService,
 		logger:          logging.GetLogger("webhook-test"),
@@ -426,12 +426,12 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 		handlerWithFailingScheduler := &WebhookHandler{
 			BaseHandler: &BaseHandler{
 				Tracker: tracker,
+				RuntimeConfig: &config.RuntimeConfig{
+					Config: cfg,
+				},
 			},
 			Scheduler: mockScheduler,
-			RuntimeConfig: &config.RuntimeConfig{
-				Config: cfg,
-			},
-			DB: db,
+			DB:        db,
 		}
 
 		// Create test event that will cause scheduler to fail
@@ -710,14 +710,14 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 			handler := &WebhookHandler{
 				BaseHandler: &BaseHandler{
 					Tracker: tracker,
+					RuntimeConfig: &config.RuntimeConfig{
+						Config: cfg,
+					},
 				},
 				Scheduler:       scheduler,
 				CalendarService: mockCalService,
-				RuntimeConfig: &config.RuntimeConfig{
-					Config: cfg,
-				},
-				DB:     db,
-				logger: logging.GetLogger("webhook-test"),
+				DB:              db,
+				logger:          logging.GetLogger("webhook-test"),
 			}
 
 			// Create test event with changed parent name

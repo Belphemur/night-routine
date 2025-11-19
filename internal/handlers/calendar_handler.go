@@ -12,16 +12,16 @@ import (
 type CalendarHandler struct {
 	*BaseHandler
 	CalendarManager *calendar.Manager
-	Config          *config.Config
+	RuntimeConfig   *config.RuntimeConfig
 }
 
 // NewCalendarHandler creates a new calendar handler
-func NewCalendarHandler(baseHandler *BaseHandler, cfg *config.Config, calendarManager *calendar.Manager) *CalendarHandler {
+func NewCalendarHandler(baseHandler *BaseHandler, runtimeCfg *config.RuntimeConfig, calendarManager *calendar.Manager) *CalendarHandler {
 	// Logger is inherited from BaseHandler
 	return &CalendarHandler{
 		BaseHandler:     baseHandler,
 		CalendarManager: calendarManager,
-		Config:          cfg,
+		RuntimeConfig:   runtimeCfg,
 	}
 }
 

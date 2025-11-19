@@ -7,7 +7,7 @@
 *.dll
 *.so
 *.dylib
-night-routine
+/night-routine
 
 # Test binary, built with `go test -c`
 *.test

@@ -175,7 +175,7 @@ func run(ctx context.Context) error {
 	logger.Info().Msg("Calendar service created. Waiting for authentication/initialization...")
 
 	// Initialize base handler first, as other handlers depend on it
-	baseHandler, err := handlers.NewBaseHandler(cfg, tokenStore, tokenManager, tracker)
+	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
@@ -196,7 +196,7 @@ func run(ctx context.Context) error {
 	homeHandler.RegisterRoutes()
 
 	// Initialize calendar handler with the calendar manager
-	calendarHandler := handlers.NewCalendarHandler(baseHandler, cfg, calendarManager)
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, runtimeCfg, calendarManager)
 	calendarHandler.RegisterRoutes()
 
 	// Initialize sync handler with calendar service
@@ -225,7 +225,7 @@ func run(ctx context.Context) error {
 	}()
 
 	// Set up webhook handler using the calendar service (will be initialized later)
-	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, runtimeCfg, tokenManager, db)
+	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, db)
 	webhookHandler.RegisterRoutes()
 
 	// Check for existing token and initialize calendar service if found
