@@ -32,6 +32,15 @@ jobs:
         run: |
           gopls version
 
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Verify golangci-lint installation
+        run: |
+          golangci-lint version
+
       - name: Download Go dependencies
         run: |
           go mod download
@@ -41,4 +50,5 @@ jobs:
         run: |
           echo "✅ Go environment setup complete"
           echo "✅ gopls (Go language server) installed"
+          echo "✅ golangci-lint installed"
           echo "✅ Dependencies downloaded and verified"
