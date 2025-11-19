@@ -7,7 +7,8 @@ import (
 	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 )
 
-// UnlockHandler manages unlocking of overridden assignments
+// UnlockHandler manages unlocking of overridden assignments by removing the override flag,
+// allowing them to be re-evaluated by the scheduler.
 type UnlockHandler struct {
 	*BaseHandler
 	Scheduler *scheduler.Scheduler
