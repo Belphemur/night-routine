@@ -158,23 +158,43 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	parentAUnavailable := r.Form["parent_a_unavailable"]
 	parentBUnavailable := r.Form["parent_b_unavailable"]
 
+	// Validate unavailable days
+	validDays := map[string]bool{
+		"Monday": true, "Tuesday": true, "Wednesday": true,
+		"Thursday": true, "Friday": true, "Saturday": true, "Sunday": true,
+	}
+	for _, day := range parentAUnavailable {
+		if !validDays[day] {
+			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent A availability")
+			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
+			return
+		}
+	}
+	for _, day := range parentBUnavailable {
+		if !validDays[day] {
+			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent B availability")
+			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
+			return
+		}
+	}
+
 	// Extract schedule settings
 	updateFrequency := r.FormValue("update_frequency")
 	lookAheadDaysStr := r.FormValue("look_ahead_days")
 	pastEventThresholdDaysStr := r.FormValue("past_event_threshold_days")
 
-	// Validate and convert numeric values
+	// Validate and convert numeric values with upper bounds
 	lookAheadDays, err := strconv.Atoi(lookAheadDaysStr)
-	if err != nil || lookAheadDays < 1 {
+	if err != nil || lookAheadDays < 1 || lookAheadDays > 365 {
 		handlerLogger.Error().Err(err).Str("value", lookAheadDaysStr).Msg("Invalid look ahead days")
-		http.Redirect(w, r, "/settings?error=Invalid+look+ahead+days", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=Look+ahead+days+must+be+between+1+and+365", http.StatusSeeOther)
 		return
 	}
 
 	pastEventThresholdDays, err := strconv.Atoi(pastEventThresholdDaysStr)
-	if err != nil || pastEventThresholdDays < 0 {
+	if err != nil || pastEventThresholdDays < 0 || pastEventThresholdDays > 30 {
 		handlerLogger.Error().Err(err).Str("value", pastEventThresholdDaysStr).Msg("Invalid past event threshold days")
-		http.Redirect(w, r, "/settings?error=Invalid+past+event+threshold+days", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=Past+event+threshold+must+be+between+0+and+30", http.StatusSeeOther)
 		return
 	}
 

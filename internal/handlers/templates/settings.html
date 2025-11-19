@@ -259,9 +259,9 @@
     <script>
         // Dynamic checkbox handling for availability
         document.addEventListener('DOMContentLoaded', function () {
-            // Fix checkbox checking logic
-            const parentAChecked = [{{range .ParentAUnavailable}}"{{.}}",{{end}}];
-            const parentBChecked = [{{range .ParentBUnavailable}}"{{.}}",{{end}}];
+            // Fix checkbox checking logic - using proper JSON encoding to prevent XSS
+            const parentAChecked = {{js .ParentAUnavailable}};
+            const parentBChecked = {{js .ParentBUnavailable}};
 
             document.querySelectorAll('input[name="parent_a_unavailable"]').forEach(function (checkbox) {
                 if (parentAChecked.includes(checkbox.value)) {

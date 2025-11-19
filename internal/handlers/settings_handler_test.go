@@ -210,7 +210,7 @@ func TestSettingsHandler_HandleUpdateSettings_InvalidLookAheadDays(t *testing.T)
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Invalid+look+ahead")
+	assert.Contains(t, w.Header().Get("Location"), "error=Look+ahead+days+must+be+between")
 }
 
 func TestSettingsHandler_HandleUpdateSettings_InvalidThresholdDays(t *testing.T) {
@@ -231,7 +231,7 @@ func TestSettingsHandler_HandleUpdateSettings_InvalidThresholdDays(t *testing.T)
 	handler.handleUpdateSettings(w, req)
 
 	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Contains(t, w.Header().Get("Location"), "error=Invalid+past+event")
+	assert.Contains(t, w.Header().Get("Location"), "error=Past+event+threshold+must+be+between")
 }
 
 func TestSettingsHandler_HandleUpdateSettings_ParentsSaveFails(t *testing.T) {
@@ -375,4 +375,69 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 	// Should redirect to auth
 	assert.Equal(t, http.StatusSeeOther, w.Code)
 	assert.Equal(t, "/auth", w.Header().Get("Location"))
+}
+
+func TestSettingsHandler_HandleUpdateSettings_InvalidDayOfWeek(t *testing.T) {
+	handler, _, _, cleanup := setupTestSettingsHandler(t)
+	defer cleanup()
+
+	formData := url.Values{}
+	formData.Set("parent_a", "TestA")
+	formData.Set("parent_b", "TestB")
+	formData.Add("parent_a_unavailable", "Monday")
+	formData.Add("parent_a_unavailable", "InvalidDay") // Invalid day
+	formData.Set("update_frequency", "daily")
+	formData.Set("look_ahead_days", "30")
+	formData.Set("past_event_threshold_days", "5")
+
+	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler.handleUpdateSettings(w, req)
+
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Contains(t, w.Header().Get("Location"), "error=Invalid+day+of+week")
+}
+
+func TestSettingsHandler_HandleUpdateSettings_LookAheadDaysOutOfBounds(t *testing.T) {
+	handler, _, _, cleanup := setupTestSettingsHandler(t)
+	defer cleanup()
+
+	formData := url.Values{}
+	formData.Set("parent_a", "TestA")
+	formData.Set("parent_b", "TestB")
+	formData.Set("update_frequency", "daily")
+	formData.Set("look_ahead_days", "999") // > 365
+	formData.Set("past_event_threshold_days", "5")
+
+	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler.handleUpdateSettings(w, req)
+
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Contains(t, w.Header().Get("Location"), "error=Look+ahead+days+must+be+between")
+}
+
+func TestSettingsHandler_HandleUpdateSettings_ThresholdDaysOutOfBounds(t *testing.T) {
+	handler, _, _, cleanup := setupTestSettingsHandler(t)
+	defer cleanup()
+
+	formData := url.Values{}
+	formData.Set("parent_a", "TestA")
+	formData.Set("parent_b", "TestB")
+	formData.Set("update_frequency", "daily")
+	formData.Set("look_ahead_days", "30")
+	formData.Set("past_event_threshold_days", "50") // > 30
+
+	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler.handleUpdateSettings(w, req)
+
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Contains(t, w.Header().Get("Location"), "error=Past+event+threshold+must+be+between")
 }

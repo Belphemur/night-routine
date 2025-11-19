@@ -184,7 +184,17 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 	}
 	defer stmt.Close()
 
+	// Validate day values
+	validDays := map[string]bool{
+		"Monday": true, "Tuesday": true, "Wednesday": true,
+		"Thursday": true, "Friday": true, "Saturday": true, "Sunday": true,
+	}
+
 	for _, day := range unavailableDays {
+		if !validDays[day] {
+			s.logger.Error().Str("day", day).Msg("Invalid day of week")
+			return fmt.Errorf("invalid day of week: %s", day)
+		}
 		if _, err := stmt.Exec(parent, day); err != nil {
 			s.logger.Error().Err(err).Str("day", day).Msg("Failed to insert availability")
 			return fmt.Errorf("failed to insert availability for %s: %w", day, err)

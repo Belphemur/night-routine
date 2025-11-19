@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS config_parents (
 CREATE TABLE IF NOT EXISTS config_availability (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     parent TEXT NOT NULL CHECK (parent IN ('parent_a', 'parent_b')),
-    unavailable_day TEXT NOT NULL,
+    unavailable_day TEXT NOT NULL CHECK (unavailable_day IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(parent, unavailable_day)
 );
