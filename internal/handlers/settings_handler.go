@@ -144,6 +144,18 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	parentA := strings.TrimSpace(r.FormValue("parent_a"))
 	parentB := strings.TrimSpace(r.FormValue("parent_b"))
 
+	// Validate parent names
+	if len(parentA) == 0 || len(parentB) == 0 {
+		handlerLogger.Error().Msg("Parent names cannot be empty")
+		http.Redirect(w, r, "/settings?error=empty_parent_names", http.StatusSeeOther)
+		return
+	}
+	if len(parentA) > 100 || len(parentB) > 100 {
+		handlerLogger.Error().Msg("Parent names too long")
+		http.Redirect(w, r, "/settings?error=parent_names_too_long", http.StatusSeeOther)
+		return
+	}
+
 	// Extract availability (checkboxes)
 	parentAUnavailable := r.Form["parent_a_unavailable"]
 	parentBUnavailable := r.Form["parent_b_unavailable"]
@@ -152,14 +164,14 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	for _, day := range parentAUnavailable {
 		if !constants.IsValidDayOfWeek(day) {
 			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent A availability")
-			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
+			http.Redirect(w, r, "/settings?error=invalid_day", http.StatusSeeOther)
 			return
 		}
 	}
 	for _, day := range parentBUnavailable {
 		if !constants.IsValidDayOfWeek(day) {
 			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent B availability")
-			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
+			http.Redirect(w, r, "/settings?error=invalid_day", http.StatusSeeOther)
 			return
 		}
 	}
@@ -173,14 +185,14 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	lookAheadDays, err := strconv.Atoi(lookAheadDaysStr)
 	if err != nil || lookAheadDays < 1 || lookAheadDays > 365 {
 		handlerLogger.Error().Err(err).Str("value", lookAheadDaysStr).Msg("Invalid look ahead days")
-		http.Redirect(w, r, "/settings?error=Look+ahead+days+must+be+between+1+and+365", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=invalid_look_ahead_days", http.StatusSeeOther)
 		return
 	}
 
 	pastEventThresholdDays, err := strconv.Atoi(pastEventThresholdDaysStr)
 	if err != nil || pastEventThresholdDays < 0 || pastEventThresholdDays > 30 {
 		handlerLogger.Error().Err(err).Str("value", pastEventThresholdDaysStr).Msg("Invalid past event threshold days")
-		http.Redirect(w, r, "/settings?error=Past+event+threshold+must+be+between+0+and+30", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=invalid_past_event_threshold", http.StatusSeeOther)
 		return
 	}
 
@@ -195,20 +207,20 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	// Save parent configuration
 	if err := h.configStore.SaveParents(parentA, parentB); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save parent configuration")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+parent+names", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=save_failed", http.StatusSeeOther)
 		return
 	}
 
 	// Save availability configuration
 	if err := h.configStore.SaveAvailability("parent_a", parentAUnavailable); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save parent A availability")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+availability", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=save_failed", http.StatusSeeOther)
 		return
 	}
 
 	if err := h.configStore.SaveAvailability("parent_b", parentBUnavailable); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save parent B availability")
-		http.Redirect(w, r, "/settings?error=Failed+to+save+availability", http.StatusSeeOther)
+		http.Redirect(w, r, "/settings?error=save_failed", http.StatusSeeOther)
 		return
 	}
 

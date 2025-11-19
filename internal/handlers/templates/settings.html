@@ -147,13 +147,22 @@
 
     {{if .ErrorMessage}}
     <div class="error-message">
-        <strong>Error:</strong> {{.ErrorMessage}}
+        <strong>Error:</strong>
+        {{if eq .ErrorMessage "empty_parent_names"}}Parent names cannot be empty.
+        {{else if eq .ErrorMessage "parent_names_too_long"}}Parent names are too long (max 100 characters).
+        {{else if eq .ErrorMessage "invalid_day"}}Invalid day of week selected.
+        {{else if eq .ErrorMessage "invalid_look_ahead_days"}}Look ahead days must be between 1 and 365.
+        {{else if eq .ErrorMessage "invalid_past_event_threshold"}}Past event threshold must be between 0 and 30 days.
+        {{else if eq .ErrorMessage "save_failed"}}Failed to save settings. Please try again.
+        {{else}}An error occurred. Please try again.{{end}}
     </div>
     {{end}}
 
     {{if .SuccessMessage}}
     <div class="success-message">
-        <strong>Success:</strong> {{.SuccessMessage}}
+        <strong>Success:</strong>
+        {{if eq .SuccessMessage "settings_saved"}}Settings saved successfully. Calendar will be synced automatically.
+        {{else}}Settings updated successfully.{{end}}
     </div>
     {{end}}
 
