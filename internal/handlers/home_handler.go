@@ -43,7 +43,7 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.logger.With().Str("handler", "handleHome").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling home page request")
 
-	isAuthenticated := h.BaseHandler.CheckAuthentication(r.Context(), handlerLogger)
+	isAuthenticated := h.CheckAuthentication(r.Context(), handlerLogger)
 	calendarID := h.getSelectedCalendarID(handlerLogger)
 	errorMessage, successMessage := h.processMessages(r, handlerLogger)
 

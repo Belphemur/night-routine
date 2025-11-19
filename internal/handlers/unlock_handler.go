@@ -38,7 +38,7 @@ func (h *UnlockHandler) handleUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.BaseHandler.CheckAuthentication(r.Context(), handlerLogger) {
+	if !h.CheckAuthentication(r.Context(), handlerLogger) {
 		handlerLogger.Warn().Msg("Unauthenticated access attempt to unlock")
 		http.Redirect(w, r, "/?error="+ErrCodeUnauthorized, http.StatusSeeOther)
 		return

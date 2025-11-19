@@ -587,23 +587,6 @@ func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, n
 	return stats, nil
 }
 
-// calculateFirstDayOfRange determines the first day of the month, nMonths ago from 'now'.
-// For example, if nMonths is 12 and 'now' is 2025-05-15, it returns 2024-06-01.
-// If nMonths is 1 and 'now' is 2025-05-15, it returns 2025-05-01.
-func calculateFirstDayOfRange(now time.Time, nMonths int) time.Time {
-	if nMonths <= 0 {
-		// Default to current month if nMonths is invalid, though the calling function expects nMonths > 0
-		nMonths = 1
-	}
-	// To get the Nth month ago, we subtract (nMonths - 1) from the current month.
-	// Example: nMonths = 12 (last 12 months including current). We want to go back 11 months from current.
-	// If now is May 2025, 11 months ago is June 2024. The range starts June 1, 2024.
-	// Example: nMonths = 1 (current month). We want to go back 0 months.
-	// If now is May 2025, 0 months ago is May 2025. The range starts May 1, 2025.
-	targetMonth := now.AddDate(0, -(nMonths - 1), 0)
-	return time.Date(targetMonth.Year(), targetMonth.Month(), 1, 0, 0, 0, 0, now.Location())
-}
-
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
