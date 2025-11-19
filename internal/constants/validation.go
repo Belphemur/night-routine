@@ -17,3 +17,9 @@ var ValidDaysOfWeek = map[string]bool{
 func IsValidDayOfWeek(day string) bool {
 	return ValidDaysOfWeek[day]
 }
+
+// GetAllDaysOfWeek returns all days of the week in order
+// This provides a consistent ordered list for UI components
+func GetAllDaysOfWeek() []string {
+	return []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+}

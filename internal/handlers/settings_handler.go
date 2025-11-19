@@ -1,26 +1,38 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
+	"github.com/belphemur/night-routine/internal/fairness/scheduler"
+	"github.com/belphemur/night-routine/internal/token"
 	"github.com/rs/zerolog"
 )
 
 // SettingsHandler manages settings page functionality
 type SettingsHandler struct {
 	*BaseHandler
-	configStore *database.ConfigStore
+	configStore     *database.ConfigStore
+	scheduler       *scheduler.Scheduler
+	tokenManager    *token.TokenManager
+	calendarService *calendar.Service
 }
 
 // NewSettingsHandler creates a new settings page handler
-func NewSettingsHandler(baseHandler *BaseHandler, configStore *database.ConfigStore) *SettingsHandler {
+func NewSettingsHandler(baseHandler *BaseHandler, configStore *database.ConfigStore, sched *scheduler.Scheduler, tokenMgr *token.TokenManager, calSvc *calendar.Service) *SettingsHandler {
 	return &SettingsHandler{
-		BaseHandler: baseHandler,
-		configStore: configStore,
+		BaseHandler:     baseHandler,
+		configStore:     configStore,
+		scheduler:       sched,
+		tokenManager:    tokenMgr,
+		calendarService: calSvc,
 	}
 }
 
@@ -45,37 +57,19 @@ type SettingsPageData struct {
 	AllDaysOfWeek          []string
 }
 
-// checkAuthentication verifies if the user has a valid session token
-func (h *SettingsHandler) checkAuthentication(logger zerolog.Logger) bool {
-	logger.Debug().Msg("Checking token existence")
-	hasToken, err := h.TokenManager.HasToken()
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to check token existence")
-		return false
-	}
-	if !hasToken {
-		logger.Debug().Msg("No token found")
-		return false
-	}
-
-	logger.Debug().Msg("Token exists, user is authenticated")
-	return true
-}
-
 // handleSettings shows the settings page
 func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.logger.With().Str("handler", "handleSettings").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling settings page request")
 
-	// Check authentication
-	isAuthenticated := h.checkAuthentication(handlerLogger)
+	// Always allow access to settings (no authentication check needed)
 
 	// Get current configuration
 	parentA, parentB, err := h.configStore.GetParents()
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get parent configuration")
 		h.RenderTemplate(w, "settings.html", SettingsPageData{
-			IsAuthenticated: isAuthenticated,
+			IsAuthenticated: true, // Always authenticated for settings
 			ErrorMessage:    "Failed to load configuration. Please try again.",
 			AllDaysOfWeek:   getAllDaysOfWeek(),
 		})
@@ -98,7 +92,7 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get schedule configuration")
 		h.RenderTemplate(w, "settings.html", SettingsPageData{
-			IsAuthenticated: isAuthenticated,
+			IsAuthenticated: true, // Always authenticated for settings
 			ErrorMessage:    "Failed to load configuration. Please try again.",
 			AllDaysOfWeek:   getAllDaysOfWeek(),
 		})
@@ -110,7 +104,7 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 	successMessage := r.URL.Query().Get("success")
 
 	data := SettingsPageData{
-		IsAuthenticated:        isAuthenticated,
+		IsAuthenticated:        true, // Always authenticated for settings
 		ParentA:                parentA,
 		ParentB:                parentB,
 		ParentAUnavailable:     parentAUnavailable,
@@ -132,12 +126,7 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	handlerLogger := h.logger.With().Str("handler", "handleUpdateSettings").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling settings update request")
 
-	// Check authentication
-	if !h.checkAuthentication(handlerLogger) {
-		handlerLogger.Warn().Msg("Unauthenticated user attempting to update settings")
-		http.Redirect(w, r, "/auth", http.StatusSeeOther)
-		return
-	}
+	// No authentication check - settings are always accessible
 
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/settings", http.StatusSeeOther)
@@ -231,10 +220,85 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	}
 
 	handlerLogger.Info().Msg("Configuration updated successfully")
-	http.Redirect(w, r, "/settings?success=Settings+updated+successfully", http.StatusSeeOther)
+
+	// Trigger automatic sync after settings update
+	if err := h.triggerSync(r.Context(), handlerLogger); err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to trigger automatic sync after settings update")
+		http.Redirect(w, r, "/settings?success=Settings+updated+but+sync+failed.+Please+sync+manually", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/settings?success=Settings+updated+and+schedule+synced+successfully", http.StatusSeeOther)
+}
+
+// triggerSync triggers an automatic schedule sync
+func (h *SettingsHandler) triggerSync(ctx context.Context, logger zerolog.Logger) error {
+	logger.Info().Msg("Triggering automatic sync after settings update")
+
+	// Check if we have a token
+	hasToken, err := h.tokenManager.HasToken()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to check token existence")
+		return fmt.Errorf("failed to check token: %w", err)
+	}
+	if !hasToken {
+		logger.Warn().Msg("No token found, skipping automatic sync")
+		return fmt.Errorf("no authentication token available")
+	}
+
+	// Verify token is valid
+	token, err := h.tokenManager.GetValidToken(ctx)
+	if err != nil {
+		logger.Warn().Err(err).Msg("Failed to validate token, skipping automatic sync")
+		return fmt.Errorf("invalid token: %w", err)
+	}
+	if token == nil {
+		logger.Error().Msg("Token is nil after validation")
+		return fmt.Errorf("token validation failed")
+	}
+
+	// Check if a calendar is selected
+	calendarID, err := h.TokenStore.GetSelectedCalendar()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to get selected calendar")
+		return fmt.Errorf("failed to get calendar: %w", err)
+	}
+	if calendarID == "" {
+		logger.Warn().Msg("No calendar selected, skipping automatic sync")
+		return fmt.Errorf("no calendar selected")
+	}
+
+	// Ensure calendar service is initialized
+	if !h.calendarService.IsInitialized() {
+		logger.Info().Msg("Initializing calendar service for automatic sync")
+		if err := h.calendarService.Initialize(ctx); err != nil {
+			logger.Error().Err(err).Msg("Failed to initialize calendar service")
+			return fmt.Errorf("failed to initialize calendar service: %w", err)
+		}
+	}
+
+	// Generate and sync schedule
+	logger.Info().Msg("Generating schedule for automatic sync")
+	now := time.Now()
+	end := now.AddDate(0, 0, h.Config.Schedule.LookAheadDays)
+
+	assignments, err := h.scheduler.GenerateSchedule(now, end, time.Now())
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to generate schedule")
+		return fmt.Errorf("failed to generate schedule: %w", err)
+	}
+
+	logger.Info().Int("assignments", len(assignments)).Msg("Syncing schedule with calendar")
+	if err := h.calendarService.SyncSchedule(ctx, assignments); err != nil {
+		logger.Error().Err(err).Msg("Failed to sync schedule with calendar")
+		return fmt.Errorf("failed to sync calendar: %w", err)
+	}
+
+	logger.Info().Msg("Automatic sync completed successfully")
+	return nil
 }
 
 // getAllDaysOfWeek returns all days of the week for the UI
 func getAllDaysOfWeek() []string {
-	return []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+	return constants.GetAllDaysOfWeek()
 }

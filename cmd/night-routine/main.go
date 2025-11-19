@@ -208,7 +208,7 @@ func run(ctx context.Context) error {
 	statisticsHandler.RegisterRoutes()
 
 	// Initialize settings handler with config store
-	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore)
+	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
 	settingsHandler.RegisterRoutes()
 
 	// Start HTTP server

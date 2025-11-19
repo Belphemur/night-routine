@@ -157,18 +157,10 @@
     </div>
     {{end}}
 
-    {{if not .IsAuthenticated}}
-    <div class="warning-box">
-        <strong>Authentication Required</strong>
-        You must connect your Google Calendar before accessing settings.
-        <a href="/auth">Connect Google Calendar</a>
-    </div>
-    {{else}}
-
     <div class="warning-box">
         <strong>Important:</strong>
-        Changes to settings may affect the fairness algorithm and existing schedule assignments.
-        Consider syncing the calendar after making changes.
+        Changes to settings will affect the fairness algorithm and existing schedule assignments.
+        The calendar will be automatically synced after saving changes.
     </div>
 
     <form action="/settings/update" method="POST">
@@ -277,7 +269,6 @@
         });
     </script>
 
-    {{end}}
 </body>
 
 </html>

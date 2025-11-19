@@ -43,3 +43,31 @@ func TestValidDaysOfWeek(t *testing.T) {
 		assert.True(t, ValidDaysOfWeek[day], "Day %s should be in ValidDaysOfWeek", day)
 	}
 }
+
+func TestGetAllDaysOfWeek(t *testing.T) {
+	days := GetAllDaysOfWeek()
+
+	// Check we have exactly 7 days
+	assert.Len(t, days, 7, "Should return exactly 7 days")
+
+	// Check the order is correct
+	expectedOrder := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+	assert.Equal(t, expectedOrder, days, "Days should be in correct order")
+
+	// Check all days are valid
+	for _, day := range days {
+		assert.True(t, IsValidDayOfWeek(day), "Day %s should be valid", day)
+	}
+
+	// Check all valid days are included
+	for day := range ValidDaysOfWeek {
+		found := false
+		for _, d := range days {
+			if d == day {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Valid day %s should be in returned list", day)
+	}
+}
