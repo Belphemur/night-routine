@@ -165,7 +165,9 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 		s.logger.Error().Err(err).Msg("Failed to begin transaction")
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback() // Rollback is safe to call even after Commit
+	}()
 
 	// Delete existing availability for this parent
 	_, err = tx.Exec(`DELETE FROM config_availability WHERE parent = ?`, parent)
