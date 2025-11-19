@@ -32,6 +32,12 @@ jobs:
         run: |
           gopls version
 
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --version
+
       - name: Download Go dependencies
         run: |
           go mod download
@@ -41,4 +47,5 @@ jobs:
         run: |
           echo "✅ Go environment setup complete"
           echo "✅ gopls (Go language server) installed"
+          echo "✅ golangci-lint installed"
           echo "✅ Dependencies downloaded and verified"
