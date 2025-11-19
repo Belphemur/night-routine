@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"time"
 
@@ -44,7 +43,7 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.logger.With().Str("handler", "handleHome").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling home page request")
 
-	isAuthenticated := h.checkAuthentication(r.Context(), handlerLogger)
+	isAuthenticated := h.CheckAuthentication(r.Context(), handlerLogger)
 	calendarID := h.getSelectedCalendarID(handlerLogger)
 	errorMessage, successMessage := h.processMessages(r, handlerLogger)
 
@@ -68,35 +67,6 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 	handlerLogger.Debug().Msg("Rendering home template")
 	h.RenderTemplate(w, "home.html", data)
-}
-
-// checkAuthentication verifies if the user has a valid session token.
-func (h *HomeHandler) checkAuthentication(ctx context.Context, logger zerolog.Logger) bool {
-	logger.Debug().Msg("Checking token existence")
-	hasToken, err := h.TokenManager.HasToken()
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to check token existence")
-		// Treat as unauthenticated if check fails
-		return false
-	}
-	if !hasToken {
-		logger.Debug().Msg("No token found")
-		return false
-	}
-
-	logger.Debug().Msg("Attempting to validate existing token")
-	token, err := h.TokenManager.GetValidToken(ctx)
-	if err == nil && token != nil && token.Valid() {
-		logger.Debug().Msg("Token is valid")
-		return true
-	}
-
-	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to get/validate token, treating as unauthenticated")
-	} else {
-		logger.Debug().Msg("Token is nil or invalid, treating as unauthenticated")
-	}
-	return false
 }
 
 // getSelectedCalendarID retrieves the currently selected Google Calendar ID.

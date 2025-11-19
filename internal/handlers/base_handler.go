@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"embed"
 	"html/template"
 	"net/http"
@@ -67,4 +68,31 @@ func (h *BaseHandler) RenderTemplate(w http.ResponseWriter, name string, data in
 			http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		}
 	}
+}
+
+// CheckAuthentication checks if the user is authenticated
+func (h *BaseHandler) CheckAuthentication(ctx context.Context, logger zerolog.Logger) bool {
+	logger.Debug().Msg("Checking authentication status")
+	hasToken, err := h.TokenManager.HasToken()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to check token existence")
+		return false
+	}
+	if !hasToken {
+		logger.Debug().Msg("No token found")
+		return false
+	}
+
+	token, err := h.TokenManager.GetValidToken(ctx)
+	if err != nil {
+		logger.Warn().Err(err).Msg("Failed to validate token")
+		return false
+	}
+	if token == nil {
+		logger.Debug().Msg("Token is nil")
+		return false
+	}
+
+	logger.Debug().Msg("User is authenticated")
+	return true
 }

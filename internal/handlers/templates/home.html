@@ -207,6 +207,112 @@
         }
 
         /* --- End Calendar Styles --- */
+
+        /* Overridden event style */
+        .calendar td.overridden {
+            position: relative;
+        }
+
+        .calendar td.overridden::after {
+            content: "🔒";
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .calendar td.overridden:hover {
+            cursor: pointer;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05));
+        }
+
+        /* Modal dialog styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-dialog {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .modal-header {
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .modal-button-primary {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .modal-button-primary:hover {
+            background-color: #1976d2;
+        }
+
+        .modal-button-primary:focus {
+            outline: 2px solid #2196f3;
+            outline-offset: 2px;
+        }
+
+        .modal-button-secondary {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .modal-button-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        .modal-button-secondary:focus {
+            outline: 2px solid #666;
+            outline-offset: 2px;
+        }
     </style>
 </head>
 
@@ -267,8 +373,21 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="{{if not .IsCurrentMonth}}padding-day{{end}} {{if .Assignment}}{{.Assignment.ParentType.String}}{{end}}"
-                        data-date="{{.Date.Format "2006-01-02"}}">
+                    <td
+                        class="
+                            {{- if not .IsCurrentMonth -}}
+                                padding-day
+                            {{- end -}}
+                            {{- if .Assignment -}}
+                                {{.Assignment.ParentType.String}}
+                                {{- if eq .Assignment.DecisionReason "Override" -}}
+                                    overridden
+                                {{- end -}}
+                            {{- end -}}
+                        "
+                        data-date="{{.Date.Format "2006-01-02"}}"
+                        {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
+                    >
                         <span class="day-number">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="assignment">{{.Assignment.Parent}}</span>
@@ -289,6 +408,28 @@
     <!-- <p>Could not load assignment calendar.</p> -->
     {{end}}
     <!-- End Calendar Section -->
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="unlock-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Unlock Event</h2>
+            </div>
+            <div class="modal-body">
+                <p id="modal-description">
+                    Unlock this event? It will be re-evaluated by the scheduler.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-button modal-button-secondary" id="modal-cancel" aria-label="Cancel unlock">
+                    Cancel
+                </button>
+                <button type="button" class="modal-button modal-button-primary" id="modal-confirm" aria-label="Confirm unlock">
+                    Unlock
+                </button>
+            </div>
+        </div>
+    </div>
 
 </body>
 
@@ -316,7 +457,101 @@
             calendar.addEventListener('click', function () {
                 calendar.classList.toggle('show-reasons');
             });
+
+            // Double click to unlock overridden events
+            calendar.addEventListener('dblclick', function (e) {
+                const cell = e.target.closest('td.overridden');
+                if (cell) {
+                    const assignmentId = cell.dataset.assignmentId;
+                    if (assignmentId) {
+                        showUnlockModal(assignmentId);
+                    }
+                }
+            });
         }
+
+        // Modal management functions
+        const modal = document.getElementById('unlock-modal');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalConfirm = document.getElementById('modal-confirm');
+        let currentAssignmentId = null;
+        let previousActiveElement = null;
+
+        function showUnlockModal(assignmentId) {
+            currentAssignmentId = assignmentId;
+            previousActiveElement = document.activeElement;
+            modal.classList.add('show');
+            // Focus the confirm button for accessibility
+            modalConfirm.focus();
+        }
+
+        function hideUnlockModal() {
+            modal.classList.remove('show');
+            currentAssignmentId = null;
+            // Restore focus to the previously focused element
+            if (previousActiveElement) {
+                previousActiveElement.focus();
+            }
+        }
+
+        function unlockAssignment() {
+            if (currentAssignmentId) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/unlock';
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'assignment_id';
+                input.value = currentAssignmentId;
+
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Modal event listeners
+        modalCancel.addEventListener('click', hideUnlockModal);
+        modalConfirm.addEventListener('click', function() {
+            unlockAssignment();
+            hideUnlockModal();
+        });
+
+        // Close modal on overlay click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                hideUnlockModal();
+            }
+        });
+
+        // Keyboard accessibility: Escape key to close, Enter to confirm
+        modal.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideUnlockModal();
+            }
+        });
+
+        // Trap focus within modal when open
+        modal.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                const focusableElements = modal.querySelectorAll('button');
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
+        });
     });
 </script>
 

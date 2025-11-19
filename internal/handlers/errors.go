@@ -16,6 +16,10 @@ const (
 	ErrCodeCalendarFetchError        = "calendar_fetch_error"
 	ErrCodeCalendarGenerationError   = "calendar_generation_error"
 	ErrCodeUnknown                   = "unknown_error"
+	ErrCodeUnauthorized              = "unauthorized"
+	ErrCodeMissingAssignmentID       = "missing_assignment_id"
+	ErrCodeInvalidAssignmentID       = "invalid_assignment_id"
+	ErrCodeUnlockFailed              = "unlock_failed"
 )
 
 // Success Codes
@@ -23,6 +27,7 @@ const (
 	SuccessCodeSettingsUpdated           = "settings_updated"
 	SuccessCodeSettingsUpdatedSyncFailed = "settings_updated_sync_failed"
 	SuccessCodeSyncComplete              = "sync_complete"
+	SuccessCodeAssignmentUnlocked        = "assignment_unlocked"
 )
 
 // ErrorMessages maps error codes to user-friendly messages
@@ -41,6 +46,10 @@ var ErrorMessages = map[string]string{
 	ErrCodeCalendarFetchError:        "Failed to fetch your calendars. Please try authenticating again.",
 	ErrCodeCalendarGenerationError:   "Failed to generate the assignment calendar. Please check logs or try again later.",
 	ErrCodeUnknown:                   "An unknown error occurred.",
+	ErrCodeUnauthorized:              "You must be logged in to perform this action.",
+	ErrCodeMissingAssignmentID:       "No assignment specified.",
+	ErrCodeInvalidAssignmentID:       "Invalid assignment ID.",
+	ErrCodeUnlockFailed:              "Failed to unlock assignment. Please try again.",
 }
 
 // SuccessMessages maps success codes to user-friendly messages
@@ -48,6 +57,7 @@ var SuccessMessages = map[string]string{
 	SuccessCodeSettingsUpdated:           "Settings updated and schedule synced successfully.",
 	SuccessCodeSettingsUpdatedSyncFailed: "Settings updated but sync failed. Please sync manually.",
 	SuccessCodeSyncComplete:              "Schedule successfully synced with Google Calendar.",
+	SuccessCodeAssignmentUnlocked:        "Assignment unlocked successfully.",
 }
 
 // GetErrorMessage returns the message for a given error code

@@ -84,6 +84,11 @@ func (m *MockTracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Tim
 	return args.Get(0).([]fairness.MonthlyStatRow), args.Error(1)
 }
 
+func (m *MockTracker) UnlockAssignment(id int64) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
 // MockCalendarService is a mock implementation of the calendar.CalendarService interface
 type MockCalendarService struct {
 	mock.Mock

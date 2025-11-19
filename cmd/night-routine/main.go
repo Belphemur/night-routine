@@ -181,35 +181,28 @@ func run(ctx context.Context) error {
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
 		return wrappedErr
 	}
+	homeHandler := handlers.NewHomeHandler(baseHandler, sched)
 
-	// Initialize OAuth handler using the base handler
 	oauthHandler, err := handlers.NewOAuthHandler(baseHandler)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize OAuth handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("OAuth handler initialization failed")
 		return wrappedErr
 	}
-	oauthHandler.RegisterRoutes()
-
-	// Initialize home handler
-	homeHandler := handlers.NewHomeHandler(baseHandler, sched)
-	homeHandler.RegisterRoutes()
-
-	// Initialize calendar handler with the calendar manager
 	calendarHandler := handlers.NewCalendarHandler(baseHandler, runtimeCfg, calendarManager)
-	calendarHandler.RegisterRoutes()
-
-	// Initialize sync handler with calendar service
 	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc)
-	syncHandler.RegisterRoutes()
-
-	// Initialize statistics handler
-	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
-	statisticsHandler.RegisterRoutes()
-
-	// Initialize settings handler with config store
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
+	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
+	unlockHandler := handlers.NewUnlockHandler(baseHandler, sched)
+
+	// Register routes
+	homeHandler.RegisterRoutes()
+	oauthHandler.RegisterRoutes()
+	calendarHandler.RegisterRoutes()
+	syncHandler.RegisterRoutes()
 	settingsHandler.RegisterRoutes()
+	statisticsHandler.RegisterRoutes()
+	unlockHandler.RegisterRoutes()
 
 	// Start HTTP server
 	srv := &http.Server{
