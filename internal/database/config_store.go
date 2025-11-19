@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/rs/zerolog"
 )
@@ -185,13 +186,8 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 	defer stmt.Close()
 
 	// Validate day values
-	validDays := map[string]bool{
-		"Monday": true, "Tuesday": true, "Wednesday": true,
-		"Thursday": true, "Friday": true, "Saturday": true, "Sunday": true,
-	}
-
 	for _, day := range unavailableDays {
-		if !validDays[day] {
+		if !constants.IsValidDayOfWeek(day) {
 			s.logger.Error().Str("day", day).Msg("Invalid day of week")
 			return fmt.Errorf("invalid day of week: %s", day)
 		}

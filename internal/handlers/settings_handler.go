@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/rs/zerolog"
 )
@@ -159,19 +160,15 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	parentBUnavailable := r.Form["parent_b_unavailable"]
 
 	// Validate unavailable days
-	validDays := map[string]bool{
-		"Monday": true, "Tuesday": true, "Wednesday": true,
-		"Thursday": true, "Friday": true, "Saturday": true, "Sunday": true,
-	}
 	for _, day := range parentAUnavailable {
-		if !validDays[day] {
+		if !constants.IsValidDayOfWeek(day) {
 			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent A availability")
 			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
 			return
 		}
 	}
 	for _, day := range parentBUnavailable {
-		if !validDays[day] {
+		if !constants.IsValidDayOfWeek(day) {
 			handlerLogger.Error().Str("invalid_day", day).Msg("Invalid day in parent B availability")
 			http.Redirect(w, r, "/settings?error=Invalid+day+of+week", http.StatusSeeOther)
 			return
