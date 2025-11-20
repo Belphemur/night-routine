@@ -168,8 +168,8 @@
 {{define "scripts"}}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const parentAChecked = [{{range $i, $v := .ParentAUnavailable}}{{if $i}},{{end}}"{{$v}}"{{end}}];
-        const parentBChecked = [{{range $i, $v := .ParentBUnavailable}}{{if $i}},{{end}}"{{$v}}"{{end}}];
+        const parentAChecked = {{js .ParentAUnavailable}};
+        const parentBChecked = {{js .ParentBUnavailable}};
 
         document.querySelectorAll('input[name="parent_a_unavailable"]').forEach(function (checkbox) {
             if (parentAChecked.includes(checkbox.value)) {
