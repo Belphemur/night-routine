@@ -36,6 +36,7 @@ type BaseHandler struct {
 	Tracker       fairness.TrackerInterface
 	logger        zerolog.Logger
 	cssETag       string // Cached ETag for CSS file
+	cssContent    []byte // Cached CSS file content
 }
 
 // NewBaseHandler creates a common base handler with shared components
@@ -62,7 +63,7 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 	}
 	logger.Debug().Msg("Templates parsed successfully")
 
-	// Pre-calculate ETag for CSS file
+	// Pre-load and cache CSS file with ETag
 	css, err := assetsFS.ReadFile("assets/css/tailwind.css")
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to read Tailwind CSS for ETag calculation")
@@ -72,7 +73,7 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 	// Calculate SHA-256 hash for ETag
 	hash := sha256.Sum256(css)
 	etag := hex.EncodeToString(hash[:])
-	logger.Debug().Str("etag", etag).Msg("Calculated ETag for CSS file")
+	logger.Debug().Str("etag", etag).Int("content_size", len(css)).Msg("Cached CSS file with ETag")
 
 	return &BaseHandler{
 		tmpl:          tmpl, // Updated field name
@@ -82,6 +83,7 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		Tracker:       tracker,
 		logger:        logger,
 		cssETag:       etag,
+		cssContent:    css,
 	}, nil
 }
 
@@ -156,19 +158,12 @@ func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	css, err := assetsFS.ReadFile("assets/css/tailwind.css")
-	if err != nil {
-		h.logger.Error().Err(err).Msg("Failed to read Tailwind CSS")
-		http.Error(w, "CSS file not found", http.StatusNotFound)
-		return
-	}
-
 	// Set cache headers and ETag
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	w.Header().Set("ETag", h.cssETag)
 
-	if _, err := w.Write(css); err != nil {
+	if _, err := w.Write(h.cssContent); err != nil {
 		h.logger.Error().Err(err).Msg("Failed to write CSS response")
 	}
 }
