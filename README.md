@@ -59,8 +59,8 @@ The application features a completely modernized user interface with:
 - **Improved accessibility** - Better touch targets and keyboard navigation
 - **Mobile-first design** - Fully responsive across all device sizes
 
-![Home Page - Modern Design](https://github.com/user-attachments/assets/77145ffe-888c-4cd9-b65e-cd37fd1193b4)
-_Modern home dashboard with gradient background, navigation bar, and card-based layout. The UI features smooth animations and contemporary design patterns._
+![Home Page - Modern Design](docs/screenshots/2025-modern/home-page-modernized.png)
+_Modern home dashboard with streamlined navigation (Home, Stats, Settings), gradient background, and card-based layout. Calendar management accessible via "Change Calendar" button. The UI features smooth animations and contemporary design patterns._
 
 ### Previous Screenshots
 

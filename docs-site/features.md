@@ -60,7 +60,10 @@ Users can override assignments by editing event titles directly in Google Calend
 
 The application features a completely redesigned user interface with contemporary aesthetics:
 
-- **Navigation Bar** - Clean, persistent navigation with emoji icons and intuitive layout
+![Modern Home Dashboard](../docs/screenshots/2025-modern/home-page-modernized.png)
+*Modern home dashboard with streamlined navigation, gradient background, and card-based layout*
+
+- **Navigation Bar** - Streamlined navigation with Home, Stats, and Settings (Calendar management via dedicated button on home page)
 - **Gradient Backgrounds** - Beautiful gradient color schemes for visual appeal
 - **Card-Based Layouts** - Modern card designs with shadows, borders, and hover effects
 - **Smooth Animations** - Scale and shadow transitions on interactive elements
@@ -81,7 +84,8 @@ The application features a completely redesigned user interface with contemporar
     - Lock icons (🔒) for manual overrides with unlock functionality
 - **Quick Action Buttons**:
     - Gradient connect button with hover effects (when not authenticated)
-    - Grid layout of action buttons (Change Calendar, Sync Now, Statistics, Settings)
+    - Essential action buttons (Change Calendar, Sync Now)
+    - Statistics and Settings accessible via navigation bar
     - Icon-enhanced buttons for better visual recognition
     - Smooth hover animations and shadow effects
 
