@@ -42,9 +42,25 @@ jobs:
           go mod download
           go mod verify
 
+      - name: Set up Node LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Verify Node installation
+        run: |
+          node --version
+          npm --version
+
       - name: Setup complete
         run: |
           echo "✅ Go environment setup complete"
           echo "✅ gopls (Go language server) installed"
           echo "✅ golangci-lint installed"
           echo "✅ Dependencies downloaded and verified"
+          echo "✅ Node LTS installed"
+          echo "✅ npm dependencies installed"
