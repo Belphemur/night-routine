@@ -195,8 +195,8 @@
         const todayCell = document.querySelector(`#assignment-calendar td[data-date="${todayString}"]`);
 
         if (todayCell) {
-            // Use Tailwind ring utilities for highlighting to prevent layout shifts
-            todayCell.classList.add('ring-4', 'ring-emerald-500', 'ring-inset');
+            // Add custom today-cell class for styling
+            todayCell.classList.add('today-cell');
         }
 
         // Calendar interaction management
