@@ -4,21 +4,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/belphemur/night-routine/internal/fairness/scheduler"
+	"github.com/belphemur/night-routine/internal/fairness"
 )
 
 // UnlockHandler manages unlocking of overridden assignments by removing the override flag,
 // allowing them to be re-evaluated by the scheduler.
 type UnlockHandler struct {
 	*BaseHandler
-	Scheduler *scheduler.Scheduler
+	Tracker fairness.TrackerInterface
 }
 
 // NewUnlockHandler creates a new unlock handler
-func NewUnlockHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler) *UnlockHandler {
+func NewUnlockHandler(baseHandler *BaseHandler, tracker fairness.TrackerInterface) *UnlockHandler {
 	return &UnlockHandler{
 		BaseHandler: baseHandler,
-		Scheduler:   scheduler,
+		Tracker:     tracker,
 	}
 }
 
@@ -67,7 +67,27 @@ func (h *UnlockHandler) handleUnlock(w http.ResponseWriter, r *http.Request) {
 	handlerLogger = handlerLogger.With().Int64("assignment_id", assignmentID).Logger()
 	handlerLogger.Debug().Msg("Attempting to unlock assignment")
 
-	if err := h.Scheduler.UnlockAssignment(assignmentID); err != nil {
+	assignment, err := h.Tracker.GetAssignmentByID(assignmentID)
+	if err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to get assignment")
+		http.Redirect(w, r, "/?error="+ErrCodeUnlockFailed, http.StatusSeeOther)
+		return
+	}
+
+	if assignment == nil {
+		handlerLogger.Warn().Msg("Assignment not found")
+		http.Redirect(w, r, "/?error="+ErrCodeInvalidAssignmentID, http.StatusSeeOther)
+		return
+	}
+
+	// Check if the assignment is actually overridden
+	if !assignment.Override {
+		handlerLogger.Warn().Bool("override", assignment.Override).Msg("Attempted to unlock non-overridden assignment")
+		http.Redirect(w, r, "/?error="+ErrCodeNotOverridden, http.StatusSeeOther)
+		return
+	}
+
+	if err := h.Tracker.UnlockAssignment(assignmentID); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to unlock assignment")
 		http.Redirect(w, r, "/?error="+ErrCodeUnlockFailed, http.StatusSeeOther)
 		return

@@ -20,6 +20,7 @@ const (
 	ErrCodeMissingAssignmentID       = "missing_assignment_id"
 	ErrCodeInvalidAssignmentID       = "invalid_assignment_id"
 	ErrCodeUnlockFailed              = "unlock_failed"
+	ErrCodeNotOverridden             = "not_overridden"
 )
 
 // Success Codes
@@ -50,6 +51,7 @@ var ErrorMessages = map[string]string{
 	ErrCodeMissingAssignmentID:       "No assignment specified.",
 	ErrCodeInvalidAssignmentID:       "Invalid assignment ID.",
 	ErrCodeUnlockFailed:              "Failed to unlock assignment. Please try again.",
+	ErrCodeNotOverridden:             "Cannot unlock an assignment that hasn't been manually overridden.",
 }
 
 // SuccessMessages maps success codes to user-friendly messages
