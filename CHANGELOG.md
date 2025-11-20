@@ -1,3 +1,10 @@
+## [0.15.1](https://github.com/Belphemur/night-routine/compare/v0.15.0...v0.15.1) (2025-11-20)
+
+
+### Bug Fixes
+
+* add robust validation and tests for unlocking assignments, refactor unlock handler dependencies, and refine home page UI. ([#150](https://github.com/Belphemur/night-routine/issues/150)) ([7c8075a](https://github.com/Belphemur/night-routine/commit/7c8075a175c528016647c607f46ec247262c8abd))
+
 # [0.15.0](https://github.com/Belphemur/night-routine/compare/v0.14.1...v0.15.0) (2025-11-20)
 
 
