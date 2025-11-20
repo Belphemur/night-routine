@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Night Routine - Statistics</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             max-width: 900px;
@@ -11,31 +17,57 @@
             padding: 0 20px;
         }
 
+        @media (max-width: 768px) {
+            body {
+                margin: 10px auto;
+                padding: 0 10px;
+            }
+        }
+
         h1,
         h2 {
             color: #333;
         }
 
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 20px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            min-width: 600px;
         }
 
         th,
         td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 10px;
             text-align: left;
         }
 
         th {
             background-color: #f2f2f2;
             text-align: center;
+            font-weight: bold;
         }
 
         td {
             text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            th,
+            td {
+                padding: 8px 4px;
+                font-size: 0.9em;
+            }
+
+            table {
+                min-width: 100%;
+            }
         }
 
         .error-message {
@@ -50,11 +82,26 @@
         .home-link {
             display: inline-block;
             margin-top: 20px;
-            padding: 10px 15px;
+            padding: 12px 24px;
             background-color: #2196f3;
             color: white;
             text-decoration: none;
             border-radius: 4px;
+            min-height: 44px;
+            min-width: 44px;
+            touch-action: manipulation;
+            text-align: center;
+        }
+
+        .home-link:hover {
+            background-color: #1976d2;
+        }
+
+        @media (max-width: 768px) {
+            .home-link {
+                display: block;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -71,6 +118,7 @@
     <h2>Monthly Assignments (Last 12 Months)</h2>
 
     {{if .ParentsStats}}
+    <div class="table-container">
     <table>
         <thead>
             <tr>
@@ -91,8 +139,10 @@
             {{end}}
         </tbody>
     </table>
+    </div>
     {{else if not .ErrorMessage}}
     {{/* Only show "No data" if there wasn't a specific error message already shown */}}
+    <div class="table-container">
     <table>
         <thead>
             <tr>
@@ -111,6 +161,7 @@
             </tr>
         </tbody>
     </table>
+    </div>
     {{end}}
 
     <a href="/" class="home-link">Back to Home</a>
