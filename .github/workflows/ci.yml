@@ -72,16 +72,16 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "lts/*"
           cache: "pnpm"
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Install Node.js dependencies
         run: pnpm install --frozen-lockfile

@@ -72,17 +72,17 @@ jobs:
           version: latest
           install-only: true
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       # Set up Node.js (for semantic-release)
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "lts/*" # Use a Long Term Support version
           cache: "pnpm" # Cache pnpm dependencies
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       # Install semantic-release and plugins
       - name: Install semantic-release dependencies
