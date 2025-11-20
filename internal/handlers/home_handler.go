@@ -30,12 +30,12 @@ func (h *HomeHandler) RegisterRoutes() {
 
 // HomePageData contains data for the home page template
 type HomePageData struct {
-	IsAuthenticated bool
-	CalendarID      string
-	ErrorMessage    string
-	SuccessMessage  string
-	CurrentMonth    string
-	CalendarWeeks   [][]viewhelpers.CalendarDay
+	BasePageData
+	CalendarID     string
+	ErrorMessage   string
+	SuccessMessage string
+	CurrentMonth   string
+	CalendarWeeks  [][]viewhelpers.CalendarDay
 }
 
 // handleHome shows the main page with auth status and potentially the calendar
@@ -48,10 +48,10 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	errorMessage, successMessage := h.processMessages(r, handlerLogger)
 
 	data := HomePageData{
-		IsAuthenticated: isAuthenticated,
-		CalendarID:      calendarID,
-		ErrorMessage:    errorMessage,
-		SuccessMessage:  successMessage,
+		BasePageData:   h.NewBasePageData(r, isAuthenticated),
+		CalendarID:     calendarID,
+		ErrorMessage:   errorMessage,
+		SuccessMessage: successMessage,
 	}
 
 	if isAuthenticated {

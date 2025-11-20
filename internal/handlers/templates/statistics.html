@@ -1,127 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
+{{define "title"}}Night Routine - Statistics{{end}}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Night Routine - Statistics</title>
-    <link href="/static/css/tailwind.css" rel="stylesheet">
-</head>
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Statistics</h2>
+    <p class="text-slate-600 text-lg">Night routine assignment distribution</p>
+</div>
 
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen flex flex-col">
-    <!-- Navigation Bar -->
-    <nav class="bg-white shadow-lg border-b border-slate-200">
-        <div class="container mx-auto px-4 py-4 max-w-7xl">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🌙</span>
-                    <h1 class="text-2xl font-bold text-slate-900">Night Routine</h1>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a href="/" class="text-slate-700 hover:bg-slate-100 font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
-                        🏠 Home
-                    </a>
-                    <a href="/statistics" class="bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-200 transition-colors duration-200">
-                        📊 Stats
-                    </a>
-                    <a href="/settings" class="text-slate-700 hover:bg-slate-100 font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
-                        ⚙️ Settings
-                    </a>
-                </div>
-            </div>
+{{if .ErrorMessage}}
+<div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
+    <span class="text-2xl">⚠️</span>
+    <div>
+        <strong class="font-bold block mb-1">Error</strong>
+        <span>{{.ErrorMessage}}</span>
+    </div>
+</div>
+{{end}}
+
+<div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
+    <div class="flex items-center gap-3 mb-6">
+        <span class="text-3xl">📈</span>
+        <div>
+            <h3 class="text-2xl font-bold text-slate-900">Monthly Assignments</h3>
+            <p class="text-slate-600">Last 12 months distribution</p>
         </div>
-    </nav>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 container mx-auto px-4 py-8 max-w-6xl">
-        <div class="mb-8">
-            <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Statistics</h2>
-            <p class="text-slate-600 text-lg">Night routine assignment distribution</p>
-        </div>
-
-        {{if .ErrorMessage}}
-        <div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
-            <span class="text-2xl">⚠️</span>
-            <div>
-                <strong class="font-bold block mb-1">Error</strong>
-                <span>{{.ErrorMessage}}</span>
-            </div>
-        </div>
-        {{end}}
-
-        <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-            <div class="flex items-center gap-3 mb-6">
-                <span class="text-3xl">📈</span>
-                <div>
-                    <h3 class="text-2xl font-bold text-slate-900">Monthly Assignments</h3>
-                    <p class="text-slate-600">Last 12 months distribution</p>
-                </div>
-            </div>
-
-            {{if .ParentsStats}}
-            <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
-                <table class="w-full min-w-full border-collapse">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-indigo-100 to-blue-100">
-                            <th class="border border-slate-200 px-4 py-4 text-center font-bold text-slate-900 rounded-tl-xl">Parent</th>
-                            {{range .MonthHeaders}}
-                            <th class="border border-slate-200 px-4 py-4 text-center font-bold text-slate-900">{{.}}</th>
-                            {{end}}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{range $parentStat := .ParentsStats}}
-                        <tr class="hover:bg-slate-50 transition-colors duration-150">
-                            <td class="border border-slate-200 px-4 py-4 text-center font-semibold text-slate-900 bg-slate-50">{{$parentStat.ParentName}}</td>
-                            {{range $.MonthHeaders}}
-                            <td class="border border-slate-200 px-4 py-4 text-center text-slate-700">
-                                <span class="inline-block bg-indigo-100 text-indigo-900 px-3 py-1 rounded-lg font-semibold">
-                                    {{index $parentStat.MonthlyCounts .}}
-                                </span>
-                            </td>
-                            {{end}}
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
-            </div>
-            {{else if not .ErrorMessage}}
-            <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-indigo-100 to-blue-100">
-                            <th class="border border-slate-200 px-4 py-4 text-center font-bold rounded-tl-xl">Parent</th>
-                            {{range .MonthHeaders}}
-                            <th class="border border-slate-200 px-4 py-4 text-center font-bold">{{.}}</th>
-                            {{end}}
-                            {{if not .MonthHeaders}}
-                            <th class="border border-slate-200 px-4 py-4 text-center font-bold">Month</th>
-                            {{end}}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="{{add (len .MonthHeaders) 1}}" class="border border-slate-200 px-4 py-12 text-center">
-                                <div class="flex flex-col items-center gap-3">
-                                    <span class="text-5xl">📊</span>
-                                    <p class="text-slate-500 text-lg">No statistics data available yet</p>
-                                    <p class="text-slate-400 text-sm">Data will appear once assignments are created</p>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            {{end}}
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
-        <div class="container mx-auto px-4 max-w-7xl">
-            <p class="text-center text-slate-600 text-sm">© 2025 Night Routine - Keeping families organized</p>
-        </div>
-    </footer>
-</body>
-
-</html>
+    {{if .ParentsStats}}
+    <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
+        <table class="w-full min-w-full border-collapse">
+            <thead>
+                <tr class="bg-gradient-to-r from-indigo-100 to-blue-100">
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold text-slate-900 rounded-tl-xl">
+                        Parent</th>
+                    {{range .MonthHeaders}}
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold text-slate-900">{{.}}</th>
+                    {{end}}
+                </tr>
+            </thead>
+            <tbody>
+                {{range $parentStat := .ParentsStats}}
+                <tr class="hover:bg-slate-50 transition-colors duration-150">
+                    <td class="border border-slate-200 px-4 py-4 text-center font-semibold text-slate-900 bg-slate-50">
+                        {{$parentStat.ParentName}}</td>
+                    {{range $.MonthHeaders}}
+                    <td class="border border-slate-200 px-4 py-4 text-center text-slate-700">
+                        <span class="inline-block bg-indigo-100 text-indigo-900 px-3 py-1 rounded-lg font-semibold">
+                            {{index $parentStat.MonthlyCounts .}}
+                        </span>
+                    </td>
+                    {{end}}
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else if not .ErrorMessage}}
+    <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="bg-gradient-to-r from-indigo-100 to-blue-100">
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold rounded-tl-xl">Parent</th>
+                    {{range .MonthHeaders}}
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold">{{.}}</th>
+                    {{end}}
+                    {{if not .MonthHeaders}}
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold">Month</th>
+                    {{end}}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="{{add (len .MonthHeaders) 1}}" class="border border-slate-200 px-4 py-12 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <span class="text-5xl">📊</span>
+                            <p class="text-slate-500 text-lg">No statistics data available yet</p>
+                            <p class="text-slate-400 text-sm">Data will appear once assignments are created</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+</div>
+{{end}}

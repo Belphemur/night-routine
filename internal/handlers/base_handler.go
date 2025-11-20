@@ -5,8 +5,11 @@ package handlers
 import (
 	"context"
 	"embed"
+	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/database"
@@ -24,7 +27,7 @@ var assetsFS embed.FS
 
 // BaseHandler contains common handler functionality
 type BaseHandler struct {
-	Templates     *template.Template
+	tmpl          *template.Template
 	TokenStore    *database.TokenStore
 	TokenManager  *token.TokenManager
 	RuntimeConfig *config.RuntimeConfig
@@ -42,17 +45,22 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		"add": func(a, b int) int {
 			return a + b
 		},
+		"js": func(v interface{}) template.JS {
+			a, _ := json.Marshal(v)
+			return template.JS(a)
+		},
 	}
 
-	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
+	// Parse only layout.html initially
+	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/layout.html")
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse templates")
-		return nil, err
+		return nil, fmt.Errorf("failed to parse templates: %w", err)
 	}
 	logger.Debug().Msg("Templates parsed successfully")
 
 	return &BaseHandler{
-		Templates:     tmpl,
+		tmpl:          tmpl, // Updated field name
 		TokenStore:    tokenStore,
 		TokenManager:  tokenManager,
 		RuntimeConfig: runtimeCfg,
@@ -61,17 +69,30 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 	}, nil
 }
 
-// RenderTemplate is a helper method to render HTML templates
+// RenderTemplate renders a template with the given data
 func (h *BaseHandler) RenderTemplate(w http.ResponseWriter, name string, data interface{}) {
-	// Add template name to logger context for this call
-	renderLogger := h.logger.With().Str("template_name", name).Logger()
-	renderLogger.Debug().Msg("Executing template")
-	if err := h.Templates.ExecuteTemplate(w, name, data); err != nil {
-		renderLogger.Error().Err(err).Msg("Template execution error")
-		// Avoid writing partial templates if header hasn't been written
-		if w.Header().Get("Content-Type") == "" {
-			http.Error(w, "Failed to render template", http.StatusInternalServerError)
-		}
+	h.logger.Debug().Str("template_name", name).Msg("Executing template")
+
+	// Clone the base template (which contains layout.html)
+	tmpl, err := h.tmpl.Clone()
+	if err != nil {
+		h.logger.Error().Err(err).Msg("Failed to clone template")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse the specific page template into the clone
+	_, err = tmpl.ParseFS(templateFS, "templates/"+name)
+	if err != nil {
+		h.logger.Error().Err(err).Str("template", name).Msg("Failed to parse page template")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		h.logger.Error().Err(err).Str("template", name).Msg("Failed to execute template")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
@@ -122,5 +143,21 @@ func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	if _, err := w.Write(css); err != nil {
 		h.logger.Error().Err(err).Msg("Failed to write CSS response")
+	}
+}
+
+// BasePageData contains common data for all pages
+type BasePageData struct {
+	CurrentYear     int
+	CurrentPath     string
+	IsAuthenticated bool
+}
+
+// NewBasePageData creates a new BasePageData with common fields populated
+func (h *BaseHandler) NewBasePageData(r *http.Request, isAuthenticated bool) BasePageData {
+	return BasePageData{
+		CurrentYear:     time.Now().Year(),
+		CurrentPath:     r.URL.Path,
+		IsAuthenticated: isAuthenticated,
 	}
 }

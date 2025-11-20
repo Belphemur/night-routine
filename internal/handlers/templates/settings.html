@@ -1,220 +1,187 @@
-<!DOCTYPE html>
-<html lang="en">
+{{define "title"}}Night Routine - Settings{{end}}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Night Routine - Settings</title>
-    <link href="/static/css/tailwind.css" rel="stylesheet">
-</head>
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Settings</h2>
+    <p class="text-slate-600 text-lg">Configure your night routine preferences</p>
+</div>
 
-<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen flex flex-col">
-    <!-- Navigation Bar -->
-    <nav class="bg-white shadow-lg border-b border-slate-200">
-        <div class="container mx-auto px-4 py-4 max-w-7xl">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🌙</span>
-                    <h1 class="text-2xl font-bold text-slate-900">Night Routine</h1>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a href="/" class="text-slate-700 hover:bg-slate-100 font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
-                        🏠 Home
-                    </a>
-                    <a href="/statistics" class="text-slate-700 hover:bg-slate-100 font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
-                        📊 Stats
-                    </a>
-                    <a href="/settings" class="bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-lg hover:bg-indigo-200 transition-colors duration-200">
-                        ⚙️ Settings
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+<!-- Alerts -->
+{{if .ErrorMessage}}
+<div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
+    <span class="text-2xl">⚠️</span>
+    <div>
+        <strong class="font-bold block mb-1">Error</strong>
+        <span>{{.ErrorMessage}}</span>
+    </div>
+</div>
+{{end}}
 
-    <!-- Main Content -->
-    <main class="flex-1 container mx-auto px-4 py-8 max-w-5xl">
-        <div class="mb-8">
-            <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Settings</h2>
-            <p class="text-slate-600 text-lg">Configure your night routine preferences</p>
-        </div>
+{{if .SuccessMessage}}
+<div class="bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
+    <span class="text-2xl">✓</span>
+    <div>
+        <strong class="font-bold block mb-1">Success</strong>
+        <span>{{.SuccessMessage}}</span>
+    </div>
+</div>
+{{end}}
 
-        <!-- Alerts -->
-        {{if .ErrorMessage}}
-        <div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
-            <span class="text-2xl">⚠️</span>
+<div
+    class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 text-amber-900 px-6 py-4 rounded-xl mb-6 flex items-start gap-3">
+    <span class="text-2xl">💡</span>
+    <div>
+        <strong class="block font-bold mb-2">Important Information</strong>
+        <p>Changes to settings will affect the fairness algorithm and existing schedule assignments. The calendar will
+            be automatically synced after saving changes.</p>
+    </div>
+</div>
+
+<form action="/settings/update" method="POST" class="flex flex-col gap-6">
+    <!-- Parent Configuration -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
+        <div class="flex items-center gap-3 mb-6">
+            <span class="text-3xl">👥</span>
             <div>
-                <strong class="font-bold block mb-1">Error</strong>
-                <span>{{.ErrorMessage}}</span>
+                <h3 class="text-2xl font-bold text-slate-900">Parent Names</h3>
+                <p class="text-slate-600">Names that will appear in calendar events</p>
             </div>
         </div>
-        {{end}}
 
-        {{if .SuccessMessage}}
-        <div class="bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
-            <span class="text-2xl">✓</span>
+        <div class="flex flex-col gap-5">
             <div>
-                <strong class="font-bold block mb-1">Success</strong>
-                <span>{{.SuccessMessage}}</span>
+                <label for="parent_a" class="block text-sm font-semibold text-slate-700 mb-2">Parent A Name</label>
+                <input type="text" id="parent_a" name="parent_a" value="{{.ParentA}}" required
+                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
+                <p class="text-sm text-slate-500 mt-2">First parent's name for scheduling</p>
             </div>
-        </div>
-        {{end}}
 
-        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 text-amber-900 px-6 py-4 rounded-xl mb-6 flex items-start gap-3">
-            <span class="text-2xl">💡</span>
             <div>
-                <strong class="block font-bold mb-2">Important Information</strong>
-                <p>Changes to settings will affect the fairness algorithm and existing schedule assignments. The calendar will be automatically synced after saving changes.</p>
+                <label for="parent_b" class="block text-sm font-semibold text-slate-700 mb-2">Parent B Name</label>
+                <input type="text" id="parent_b" name="parent_b" value="{{.ParentB}}" required
+                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
+                <p class="text-sm text-slate-500 mt-2">Second parent's name for scheduling</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Availability Configuration -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
+        <div class="flex items-center gap-3 mb-6">
+            <span class="text-3xl">📆</span>
+            <div>
+                <h3 class="text-2xl font-bold text-slate-900">Availability</h3>
+                <p class="text-slate-600">Select unavailable days for each parent</p>
             </div>
         </div>
 
-        <form action="/settings/update" method="POST" class="flex flex-col gap-6">
-            <!-- Parent Configuration -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="text-3xl">👥</span>
-                    <div>
-                        <h3 class="text-2xl font-bold text-slate-900">Parent Names</h3>
-                        <p class="text-slate-600">Names that will appear in calendar events</p>
-                    </div>
+        <div class="flex flex-col gap-6">
+            <div>
+                <label class="block text-lg font-semibold text-slate-800 mb-4">{{.ParentA}} - Unavailable Days</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {{range .AllDaysOfWeek}}
+                    <label
+                        class="flex items-center py-3 px-4 bg-slate-50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-all duration-200 border-2 border-transparent hover:border-indigo-200">
+                        <input type="checkbox" id="parent_a_{{.}}" name="parent_a_unavailable" value="{{.}}"
+                            class="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                        <span class="ml-3 text-slate-700 font-medium">{{.}}</span>
+                    </label>
+                    {{end}}
                 </div>
-
-                <div class="flex flex-col gap-5">
-                    <div>
-                        <label for="parent_a" class="block text-sm font-semibold text-slate-700 mb-2">Parent A Name</label>
-                        <input type="text" id="parent_a" name="parent_a" value="{{.ParentA}}" required
-                            class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
-                        <p class="text-sm text-slate-500 mt-2">First parent's name for scheduling</p>
-                    </div>
-
-                    <div>
-                        <label for="parent_b" class="block text-sm font-semibold text-slate-700 mb-2">Parent B Name</label>
-                        <input type="text" id="parent_b" name="parent_b" value="{{.ParentB}}" required
-                            class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
-                        <p class="text-sm text-slate-500 mt-2">Second parent's name for scheduling</p>
-                    </div>
-                </div>
+                <p class="text-sm text-slate-500 mt-3">Leave unchecked if available all days</p>
             </div>
 
-            <!-- Availability Configuration -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="text-3xl">📆</span>
-                    <div>
-                        <h3 class="text-2xl font-bold text-slate-900">Availability</h3>
-                        <p class="text-slate-600">Select unavailable days for each parent</p>
-                    </div>
+            <div>
+                <label class="block text-lg font-semibold text-slate-800 mb-4">{{.ParentB}} - Unavailable Days</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {{range $.AllDaysOfWeek}}
+                    <label
+                        class="flex items-center py-3 px-4 bg-slate-50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-all duration-200 border-2 border-transparent hover:border-indigo-200">
+                        <input type="checkbox" id="parent_b_{{.}}" name="parent_b_unavailable" value="{{.}}"
+                            class="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                        <span class="ml-3 text-slate-700 font-medium">{{.}}</span>
+                    </label>
+                    {{end}}
                 </div>
-
-                <div class="flex flex-col gap-6">
-                    <div>
-                        <label class="block text-lg font-semibold text-slate-800 mb-4">{{.ParentA}} - Unavailable Days</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {{range .AllDaysOfWeek}}
-                            <label class="flex items-center py-3 px-4 bg-slate-50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-all duration-200 border-2 border-transparent hover:border-indigo-200">
-                                <input type="checkbox" id="parent_a_{{.}}" name="parent_a_unavailable" value="{{.}}"
-                                    class="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
-                                <span class="ml-3 text-slate-700 font-medium">{{.}}</span>
-                            </label>
-                            {{end}}
-                        </div>
-                        <p class="text-sm text-slate-500 mt-3">Leave unchecked if available all days</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-lg font-semibold text-slate-800 mb-4">{{.ParentB}} - Unavailable Days</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {{range $.AllDaysOfWeek}}
-                            <label class="flex items-center py-3 px-4 bg-slate-50 hover:bg-indigo-50 rounded-xl cursor-pointer transition-all duration-200 border-2 border-transparent hover:border-indigo-200">
-                                <input type="checkbox" id="parent_b_{{.}}" name="parent_b_unavailable" value="{{.}}"
-                                    class="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
-                                <span class="ml-3 text-slate-700 font-medium">{{.}}</span>
-                            </label>
-                            {{end}}
-                        </div>
-                        <p class="text-sm text-slate-500 mt-3">Leave unchecked if available all days</p>
-                    </div>
-                </div>
+                <p class="text-sm text-slate-500 mt-3">Leave unchecked if available all days</p>
             </div>
-
-            <!-- Schedule Configuration -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="text-3xl">⏰</span>
-                    <div>
-                        <h3 class="text-2xl font-bold text-slate-900">Schedule Settings</h3>
-                        <p class="text-slate-600">Configure schedule generation and updates</p>
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-5">
-                    <div>
-                        <label for="update_frequency" class="block text-sm font-semibold text-slate-700 mb-2">Update Frequency</label>
-                        <select id="update_frequency" name="update_frequency" required
-                            class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
-                            <option value="daily" {{if eq .UpdateFrequency "daily"}}selected{{end}}>Daily</option>
-                            <option value="weekly" {{if eq .UpdateFrequency "weekly"}}selected{{end}}>Weekly</option>
-                            <option value="monthly" {{if eq .UpdateFrequency "monthly"}}selected{{end}}>Monthly</option>
-                        </select>
-                        <p class="text-sm text-slate-500 mt-2">How often to automatically update the schedule</p>
-                    </div>
-
-                    <div>
-                        <label for="look_ahead_days" class="block text-sm font-semibold text-slate-700 mb-2">Look Ahead Days</label>
-                        <input type="number" id="look_ahead_days" name="look_ahead_days" value="{{.LookAheadDays}}" min="1" max="365" required
-                            class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
-                        <p class="text-sm text-slate-500 mt-2">Days in advance to schedule (recommended: 7-30)</p>
-                    </div>
-
-                    <div>
-                        <label for="past_event_threshold_days" class="block text-sm font-semibold text-slate-700 mb-2">Past Event Threshold (Days)</label>
-                        <input type="number" id="past_event_threshold_days" name="past_event_threshold_days"
-                            value="{{.PastEventThresholdDays}}" min="0" max="30" required
-                            class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
-                        <p class="text-sm text-slate-500 mt-2">Days in the past to accept manual changes (0-30)</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-col sm:flex-row gap-3 pt-4">
-                <button type="submit" class="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105">
-                    💾 Save Settings
-                </button>
-                <a href="/" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-4 px-8 rounded-xl text-center transition-all duration-200">
-                    Cancel
-                </a>
-            </div>
-        </form>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
-        <div class="container mx-auto px-4 max-w-7xl">
-            <p class="text-center text-slate-600 text-sm">© 2025 Night Routine - Keeping families organized</p>
         </div>
-    </footer>
+    </div>
 
-    <script>
-        // Dynamic checkbox handling for availability
-        document.addEventListener('DOMContentLoaded', function () {
-            const parentAChecked = {{js .ParentAUnavailable}};
-            const parentBChecked = {{js .ParentBUnavailable}};
+    <!-- Schedule Configuration -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
+        <div class="flex items-center gap-3 mb-6">
+            <span class="text-3xl">⏰</span>
+            <div>
+                <h3 class="text-2xl font-bold text-slate-900">Schedule Settings</h3>
+                <p class="text-slate-600">Configure schedule generation and updates</p>
+            </div>
+        </div>
 
-            document.querySelectorAll('input[name="parent_a_unavailable"]').forEach(function (checkbox) {
-                if (parentAChecked.includes(checkbox.value)) {
-                    checkbox.checked = true;
-                }
-            });
+        <div class="flex flex-col gap-5">
+            <div>
+                <label for="update_frequency" class="block text-sm font-semibold text-slate-700 mb-2">Update
+                    Frequency</label>
+                <select id="update_frequency" name="update_frequency" required
+                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
+                    <option value="daily" {{if eq .UpdateFrequency "daily" }}selected{{end}}>Daily</option>
+                    <option value="weekly" {{if eq .UpdateFrequency "weekly" }}selected{{end}}>Weekly</option>
+                    <option value="monthly" {{if eq .UpdateFrequency "monthly" }}selected{{end}}>Monthly</option>
+                </select>
+                <p class="text-sm text-slate-500 mt-2">How often to automatically update the schedule</p>
+            </div>
 
-            document.querySelectorAll('input[name="parent_b_unavailable"]').forEach(function (checkbox) {
-                if (parentBChecked.includes(checkbox.value)) {
-                    checkbox.checked = true;
-                }
-            });
+            <div>
+                <label for="look_ahead_days" class="block text-sm font-semibold text-slate-700 mb-2">Look Ahead
+                    Days</label>
+                <input type="number" id="look_ahead_days" name="look_ahead_days" value="{{.LookAheadDays}}" min="1"
+                    max="365" required
+                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
+                <p class="text-sm text-slate-500 mt-2">Days in advance to schedule (recommended: 7-30)</p>
+            </div>
+
+            <div>
+                <label for="past_event_threshold_days" class="block text-sm font-semibold text-slate-700 mb-2">Past
+                    Event Threshold (Days)</label>
+                <input type="number" id="past_event_threshold_days" name="past_event_threshold_days"
+                    value="{{.PastEventThresholdDays}}" min="0" max="30" required
+                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all duration-200">
+                <p class="text-sm text-slate-500 mt-2">Days in the past to accept manual changes (0-30)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-3 pt-4">
+        <button type="submit"
+            class="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105">
+            💾 Save Settings
+        </button>
+        <a href="/"
+            class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-4 px-8 rounded-xl text-center transition-all duration-200">
+            Cancel
+        </a>
+    </div>
+</form>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const parentAChecked = [{{range $i, $v := .ParentAUnavailable}}{{if $i}},{{end}}"{{$v}}"{{end}}];
+        const parentBChecked = [{{range $i, $v := .ParentBUnavailable}}{{if $i}},{{end}}"{{$v}}"{{end}}];
+
+        document.querySelectorAll('input[name="parent_a_unavailable"]').forEach(function (checkbox) {
+            if (parentAChecked.includes(checkbox.value)) {
+                checkbox.checked = true;
+            }
         });
-    </script>
 
-</body>
-
-</html>
+        document.querySelectorAll('input[name="parent_b_unavailable"]').forEach(function (checkbox) {
+            if (parentBChecked.includes(checkbox.value)) {
+                checkbox.checked = true;
+            }
+        });
+    });
+</script>
+{{end}}

@@ -32,6 +32,7 @@ func (h *CalendarHandler) RegisterRoutes() {
 
 // CalendarPageData contains data for the calendar selection page
 type CalendarPageData struct {
+	BasePageData
 	Calendars *gcal.CalendarList
 	Selected  string
 	Error     string
@@ -77,8 +78,9 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 	handlerLogger.Debug().Str("selected_calendar", selected).Msg("Successfully fetched selected calendar")
 
 	data := CalendarPageData{
-		Calendars: calendars,
-		Selected:  selected,
+		BasePageData: h.NewBasePageData(r, true), // Assuming authenticated if we got here
+		Calendars:    calendars,
+		Selected:     selected,
 	}
 
 	handlerLogger.Debug().Msg("Rendering calendar selection template")

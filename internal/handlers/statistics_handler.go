@@ -15,6 +15,7 @@ type ParentStatsForTemplate struct {
 
 // StatisticsPageData contains data for the statistics page template.
 type StatisticsPageData struct {
+	BasePageData
 	ErrorMessage string
 	ParentsStats []ParentStatsForTemplate
 	MonthHeaders []string // Sorted list of "YYYY-MM" for table columns, e.g., ["2023-06", "2023-07"]
@@ -43,7 +44,9 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	handlerLogger := h.logger.With().Str("handler", "handleStatisticsPage").Logger()
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling statistics page request")
 
-	data := StatisticsPageData{}
+	data := StatisticsPageData{
+		BasePageData: h.NewBasePageData(r, true), // Assuming authenticated
+	}
 	nowForStats := time.Now() // Use a consistent "now" for this request processing
 
 	rawStats, err := h.Tracker.GetParentMonthlyStatsForLastNMonths(nowForStats, 12)
