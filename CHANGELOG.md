@@ -1,3 +1,10 @@
+## [0.15.2](https://github.com/Belphemur/night-routine/compare/v0.15.1...v0.15.2) (2025-11-20)
+
+
+### Bug Fixes
+
+* have proper highlight for the current day ([#151](https://github.com/Belphemur/night-routine/issues/151)) ([4d3882b](https://github.com/Belphemur/night-routine/commit/4d3882b745bad3533f8088b36cc94684feb274be))
+
 ## [0.15.1](https://github.com/Belphemur/night-routine/compare/v0.15.0...v0.15.1) (2025-11-20)
 
 
