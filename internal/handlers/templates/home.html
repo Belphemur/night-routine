@@ -5,635 +5,248 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Night Routine - Setup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                margin: 10px auto;
-                padding: 0 10px;
-            }
-        }
-
-        .status {
-            padding: 20px;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-
-        .authenticated {
-            background-color: #e8f5e9;
-            border: 1px solid #4caf50;
-        }
-
-        .unauthenticated {
-            background-color: #ffebee;
-            border: 1px solid #f44336;
-        }
-
-        .error-message {
-            background-color: #ffebee;
-            border: 1px solid #f44336;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px 0;
-            color: #c62828;
-        }
-
-        .success-message {
-            background-color: #e8f5e9;
-            border: 1px solid #4caf50;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px 0;
-            color: #2e7d32;
-        }
-
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #2196f3;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-right: 10px;
-            margin-bottom: 10px;
-            min-height: 44px;
-            min-width: 44px;
-            text-align: center;
-            touch-action: manipulation;
-        }
-
-        .sync-button {
-            background-color: #4caf50;
-        }
-
-        @media (max-width: 768px) {
-            .button {
-                display: block;
-                margin-right: 0;
-                width: 100%;
-            }
-        }
-
-        /* --- Calendar Styles --- */
-        .calendar-container {
-            margin-top: 30px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .calendar {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            min-width: 600px;
-        }
-
-        .calendar th,
-        .calendar td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-            vertical-align: top;
-            height: 80px;
-            width: 14.28%;
-            position: relative;
-            min-height: 44px;
-        }
-
-        .calendar th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-
-        .calendar td .day-number {
-            font-size: 1.1em;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        @media (max-width: 768px) {
-            .calendar-container {
-                margin-top: 20px;
-            }
-
-            .calendar {
-                min-width: 100%;
-                font-size: 0.85em;
-            }
-
-            .calendar th,
-            .calendar td {
-                padding: 4px;
-                height: 70px;
-            }
-
-            .calendar td .day-number {
-                font-size: 1em;
-                margin-bottom: 3px;
-            }
-        }
-
-        .calendar td .assignment {
-            font-size: 0.9em;
-        }
-
-        .calendar td .decision-reason {
-            font-size: 0.8em;
-            font-style: italic;
-            display: none;
-            /* Hidden by default on desktop */
-            margin-top: 2px;
-            color: #777;
-            /* Muted color */
-        }
-
-        /* Show decision reason on mobile devices */
-        @media (max-width: 768px) {
-            .calendar td .decision-reason {
-                display: block;
-                /* Always visible on mobile */
-            }
-        }
-
-        /* Show decision reason when calendar is in active state */
-        .calendar.show-reasons .decision-reason {
-            display: block;
-        }
-
-        /* Ensure decision reason inherits parent cell styling for different parent types */
-        .calendar td.ParentA .decision-reason {
-            color: rgba(25, 118, 210, 0.7);
-            /* Muted blue */
-        }
-
-        .calendar td.ParentB .decision-reason {
-            color: rgba(245, 124, 0, 0.7);
-            /* Muted orange */
-        }
-
-        /* Tooltip styles for desktop */
-        .calendar td .tooltip {
-            visibility: hidden;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        /* Show tooltip on hover */
-        @media (min-width: 769px) {
-            .calendar td:hover .tooltip {
-                visibility: visible;
-                opacity: 1;
-            }
-        }
-
-        .calendar td.ParentA {
-            background-color: #e3f2fd;
-            /* Light blue background */
-            color: #1976d2;
-            /* Darker blue text */
-            border: 1px solid #bbdefb;
-            /* Slightly darker blue border */
-        }
-
-        .calendar td.ParentB {
-            background-color: #fff3e0;
-            /* Light orange background */
-            color: #f57c00;
-            /* Darker orange text */
-            border: 1px solid #ffe0b2;
-            /* Slightly darker orange border */
-        }
-
-        /* Keep the original assignment text visible */
-        .calendar td.ParentA .assignment,
-        .calendar td.ParentB .assignment {
-            color: inherit;
-            /* Use the parent element's color */
-        }
-
-        .calendar td.padding-day {
-            background-color: #f9f9f9;
-            color: #aaa;
-        }
-
-        .calendar td.padding-day .assignment {
-            color: #bbb;
-            /* Dim assignment text on padding days */
-        }
-
-        .calendar td.today {
-            background-color: #fffde7;
-            /* Light yellow background for today */
-            font-weight: bold;
-        }
-
-        .calendar td.today .day-number {
-            color: #f57f17;
-            /* Highlight today's number */
-        }
-
-        /* --- End Calendar Styles --- */
-
-        /* Overridden event style */
-        .calendar td.overridden {
-            position: relative;
-        }
-
-        .calendar td.overridden::after {
+        /* Minimal custom styles for lock icon and special calendar states */
+        .overridden::after {
             content: "🔒";
             position: absolute;
             top: 4px;
             right: 4px;
             font-size: 1.2em;
-            opacity: 1;
             z-index: 10;
             filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
         }
 
-        .calendar td.overridden:hover {
-            cursor: pointer;
-            background-image: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05));
-        }
-
-        .calendar td.overridden:active {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
-        }
-
         @media (max-width: 768px) {
-            .calendar td.overridden::after {
+            .overridden::after {
                 font-size: 1em;
                 top: 2px;
                 right: 2px;
             }
         }
-
-        /* Modal dialog styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-overlay.show {
-            display: flex;
-        }
-
-        .modal-dialog {
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-        }
-
-        .modal-header {
-            margin-bottom: 16px;
-        }
-
-        .modal-title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            margin: 0;
-        }
-
-        .modal-body {
-            margin-bottom: 24px;
-            color: #333;
-            line-height: 1.5;
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        .modal-button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: background-color 0.2s;
-            min-height: 44px;
-            min-width: 44px;
-            touch-action: manipulation;
-        }
-
-        @media (max-width: 768px) {
-            .modal-footer {
-                flex-direction: column-reverse;
-            }
-
-            .modal-button {
-                width: 100%;
-                padding: 14px 20px;
-            }
-        }
-
-        .modal-button-primary {
-            background-color: #2196f3;
-            color: white;
-        }
-
-        .modal-button-primary:hover {
-            background-color: #1976d2;
-        }
-
-        .modal-button-primary:focus {
-            outline: 2px solid #2196f3;
-            outline-offset: 2px;
-        }
-
-        .modal-button-secondary {
-            background-color: #f5f5f5;
-            color: #333;
-        }
-
-        .modal-button-secondary:hover {
-            background-color: #e0e0e0;
-        }
-
-        .modal-button-secondary:focus {
-            outline: 2px solid #666;
-            outline-offset: 2px;
-        }
     </style>
 </head>
 
-<body>
-    <h1>Night Routine Setup</h1>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Night Routine Setup</h1>
 
-    {{if .ErrorMessage}}
-    <div class="error-message">
-        <strong>Error:</strong> {{.ErrorMessage}}
-    </div>
-    {{end}}
-
-    {{if .SuccessMessage}}
-    <div class="success-message">
-        <strong>Success:</strong> {{.SuccessMessage}}
-    </div>
-    {{end}}
-
-    <div class="status {{if .IsAuthenticated}}authenticated{{else}}unauthenticated{{end}}">
-        {{if .IsAuthenticated}}
-        <h2>✓ Google Calendar Connected</h2>
-        {{if .CalendarID}}
-        <p>Selected Calendar: {{.CalendarID}}</p>
-        <div>
-            <a href="/calendars" class="button">Change Calendar</a>
-            <a href="/sync" class="button sync-button">Sync Now</a>
-            <a href="/statistics" class="button">View Statistics</a>
-            <a href="/settings" class="button">Settings</a>
+        {{if .ErrorMessage}}
+        <div class="bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded mb-4">
+            <strong class="font-bold">Error:</strong>
+            <span>{{.ErrorMessage}}</span>
         </div>
-        {{else}}
-        <p>No calendar selected</p>
-        <a href="/calendars" class="button">Select Calendar</a>
         {{end}}
-        {{else}}
-        <h2>✗ Not Connected</h2>
-        <p>Connect your Google Calendar to get started</p>
-        <a href="/auth" class="button">Connect Google Calendar</a>
+
+        {{if .SuccessMessage}}
+        <div class="bg-green-50 border border-green-400 text-green-800 px-4 py-3 rounded mb-4">
+            <strong class="font-bold">Success:</strong>
+            <span>{{.SuccessMessage}}</span>
+        </div>
         {{end}}
-    </div>
 
-    <!-- Calendar Section -->
-    {{if and .IsAuthenticated .CalendarWeeks}}
-    <div class="calendar-container">
-        <h2>Assignment Calendar: {{.CurrentMonth}}</h2>
-        <table class="calendar" id="assignment-calendar">
-            <thead>
-                <tr>
-                    <th>Mon</th>
-                    <th>Tue</th>
-                    <th>Wed</th>
-                    <th>Thu</th>
-                    <th>Fri</th>
-                    <th>Sat</th>
-                    <th>Sun</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .CalendarWeeks}}
-                <tr>
-                    {{range .}}
-                    <td
-                        class="
-                            {{- if not .IsCurrentMonth -}}
-                                padding-day
-                            {{- end -}}
-                            {{- if .Assignment -}}
-                                {{.Assignment.ParentType.String}}
-                                {{- if eq .Assignment.DecisionReason "Override" -}}
-                                    overridden
-                                {{- end -}}
-                            {{- end -}}
-                        "
-                        data-date="{{.Date.Format "2006-01-02"}}"
-                        {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
-                    >
-                        <span class="day-number">{{.DayOfMonth}}</span>
-                        {{if .Assignment}}
-                        <span class="assignment">{{.Assignment.Parent}}</span>
-                        {{if .Assignment.DecisionReason}}
-                        <span class="tooltip">{{.Assignment.DecisionReason}}</span>
-                        <span class="decision-reason">{{.Assignment.DecisionReason}}</span>
-                        {{end}}
-                        {{end}}
-                    </td>
-                    {{end}}
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-    </div>
-    {{else if .IsAuthenticated}}
-    <!-- Optional: Show a message if authenticated but calendar data failed to load -->
-    <!-- <p>Could not load assignment calendar.</p> -->
-    {{end}}
-    <!-- End Calendar Section -->
+        <div class="rounded-lg p-6 mb-6 {{if .IsAuthenticated}}bg-green-50 border border-green-500{{else}}bg-red-50 border border-red-400{{end}}">
+            {{if .IsAuthenticated}}
+            <h2 class="text-2xl font-semibold text-green-800 mb-2">✓ Google Calendar Connected</h2>
+            {{if .CalendarID}}
+            <p class="text-gray-700 mb-4">Selected Calendar: {{.CalendarID}}</p>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <a href="/calendars" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">Change Calendar</a>
+                <a href="/sync" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded text-center">Sync Now</a>
+                <a href="/statistics" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">View Statistics</a>
+                <a href="/settings" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">Settings</a>
+            </div>
+            {{else}}
+            <p class="text-gray-700 mb-4">No calendar selected</p>
+            <a href="/calendars" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">Select Calendar</a>
+            {{end}}
+            {{else}}
+            <h2 class="text-2xl font-semibold text-red-800 mb-2">✗ Not Connected</h2>
+            <p class="text-gray-700 mb-4">Connect your Google Calendar to get started</p>
+            <a href="/auth" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">Connect Google Calendar</a>
+            {{end}}
+        </div>
 
-    <!-- Confirmation Modal -->
-    <div class="modal-overlay" id="unlock-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h2 class="modal-title" id="modal-title">Unlock Event</h2>
-            </div>
-            <div class="modal-body">
-                <p id="modal-description">
-                    🔓 Unlock this event? It will be re-evaluated by the scheduler.
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="modal-button modal-button-secondary" id="modal-cancel" aria-label="Cancel unlock">
-                    Cancel
-                </button>
-                <button type="button" class="modal-button modal-button-primary" id="modal-confirm" aria-label="Confirm unlock">
-                    Unlock
-                </button>
+        <!-- Calendar Section -->
+        {{if and .IsAuthenticated .CalendarWeeks}}
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Assignment Calendar: {{.CurrentMonth}}</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse min-w-full" id="assignment-calendar">
+                    <thead>
+                        <tr>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Mon</th>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Tue</th>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Wed</th>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Thu</th>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Fri</th>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Sat</th>
+                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Sun</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .CalendarWeeks}}
+                        <tr>
+                            {{range .}}
+                            <td class="border border-gray-300 p-2 text-center align-top h-20 relative cursor-pointer hover:bg-opacity-90
+                                {{if not .IsCurrentMonth}}bg-gray-100 text-gray-400{{end}}
+                                {{if .Assignment}}
+                                    {{if eq .Assignment.ParentType.String "ParentA"}}bg-blue-100 text-blue-800 border-blue-300{{end}}
+                                    {{if eq .Assignment.ParentType.String "ParentB"}}bg-orange-100 text-orange-800 border-orange-300{{end}}
+                                    {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
+                                {{end}}"
+                                data-date="{{.Date.Format "2006-01-02"}}"
+                                {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}>
+                                <span class="block text-lg font-bold mb-1">{{.DayOfMonth}}</span>
+                                {{if .Assignment}}
+                                <span class="block text-sm">{{.Assignment.Parent}}</span>
+                                {{if .Assignment.DecisionReason}}
+                                <span class="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap mb-1">{{.Assignment.DecisionReason}}</span>
+                                <span class="block md:hidden text-xs italic text-gray-600 mt-1">{{.Assignment.DecisionReason}}</span>
+                                {{end}}
+                                {{end}}
+                            </td>
+                            {{end}}
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
             </div>
         </div>
+        {{end}}
+        <!-- End Calendar Section -->
+
+        <!-- Confirmation Modal -->
+        <div class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center" id="unlock-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+            <div class="bg-white rounded-lg p-6 max-w-md w-11/12 shadow-xl">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold" id="modal-title">Unlock Event</h2>
+                </div>
+                <div class="mb-6">
+                    <p id="modal-description" class="text-gray-700">
+                        🔓 Unlock this event? It will be re-evaluated by the scheduler.
+                    </p>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <button type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded" id="modal-cancel">
+                        Cancel
+                    </button>
+                    <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded" id="modal-confirm">
+                        Unlock
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Function to format date as YYYY-MM-DD (local timezone)
+            function getLocalDateString(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            const today = new Date();
+            const todayString = getLocalDateString(today);
+            const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
+
+            if (todayCell) {
+                todayCell.classList.add('bg-yellow-100', 'font-bold');
+            }
+
+            // Calendar interaction management
+            const calendar = document.getElementById('assignment-calendar');
+            if (calendar) {
+                // Handle clicks on calendar
+                calendar.addEventListener('click', function (e) {
+                    const cell = e.target.closest('td.overridden');
+                    
+                    // If clicked on an overridden cell, show unlock modal
+                    if (cell) {
+                        e.stopPropagation();
+                        const assignmentId = cell.dataset.assignmentId;
+                        if (assignmentId) {
+                            showUnlockModal(assignmentId);
+                        }
+                    }
+                });
+            }
+
+            // Modal management functions
+            const modal = document.getElementById('unlock-modal');
+            const modalCancel = document.getElementById('modal-cancel');
+            const modalConfirm = document.getElementById('modal-confirm');
+            let currentAssignmentId = null;
+            let previousActiveElement = null;
+
+            function showUnlockModal(assignmentId) {
+                currentAssignmentId = assignmentId;
+                previousActiveElement = document.activeElement;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                modalConfirm.focus();
+            }
+
+            function hideUnlockModal() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                currentAssignmentId = null;
+                if (previousActiveElement) {
+                    previousActiveElement.focus();
+                }
+            }
+
+            function unlockAssignment() {
+                if (currentAssignmentId) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/unlock';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'assignment_id';
+                    input.value = currentAssignmentId;
+
+                    form.appendChild(input);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+
+            // Modal event listeners
+            if (modalCancel) {
+                modalCancel.addEventListener('click', hideUnlockModal);
+            }
+            if (modalConfirm) {
+                modalConfirm.addEventListener('click', function() {
+                    unlockAssignment();
+                    hideUnlockModal();
+                });
+            }
+
+            // Close modal on overlay click
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        hideUnlockModal();
+                    }
+                });
+
+                // Keyboard accessibility
+                modal.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        hideUnlockModal();
+                    }
+                });
+            }
+        });
+    </script>
 
 </body>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Function to format date as YYYY-MM-DD (local timezone)
-        function getLocalDateString(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        const today = new Date();
-        const todayString = getLocalDateString(today);
-        const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
-
-        if (todayCell) {
-            todayCell.classList.add('today');
-        }
-
-        // Calendar interaction management
-        const calendar = document.getElementById('assignment-calendar');
-        if (calendar) {
-            // Handle clicks on calendar
-            calendar.addEventListener('click', function (e) {
-                const cell = e.target.closest('td.overridden');
-                
-                // If clicked on an overridden cell, show unlock modal
-                if (cell) {
-                    e.stopPropagation(); // Prevent toggle of show-reasons
-                    const assignmentId = cell.dataset.assignmentId;
-                    if (assignmentId) {
-                        showUnlockModal(assignmentId);
-                    }
-                } else {
-                    // Toggle show-reasons for non-overridden cells
-                    const nonOverriddenCell = e.target.closest('td:not(.overridden)');
-                    if (nonOverriddenCell) {
-                        calendar.classList.toggle('show-reasons');
-                    }
-                }
-            });
-        }
-
-        // Modal management functions
-        const modal = document.getElementById('unlock-modal');
-        const modalCancel = document.getElementById('modal-cancel');
-        const modalConfirm = document.getElementById('modal-confirm');
-        let currentAssignmentId = null;
-        let previousActiveElement = null;
-
-        function showUnlockModal(assignmentId) {
-            currentAssignmentId = assignmentId;
-            previousActiveElement = document.activeElement;
-            modal.classList.add('show');
-            // Focus the confirm button for accessibility
-            modalConfirm.focus();
-        }
-
-        function hideUnlockModal() {
-            modal.classList.remove('show');
-            currentAssignmentId = null;
-            // Restore focus to the previously focused element
-            if (previousActiveElement) {
-                previousActiveElement.focus();
-            }
-        }
-
-        function unlockAssignment() {
-            if (currentAssignmentId) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/unlock';
-
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'assignment_id';
-                input.value = currentAssignmentId;
-
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        // Modal event listeners
-        modalCancel.addEventListener('click', hideUnlockModal);
-        modalConfirm.addEventListener('click', function() {
-            unlockAssignment();
-            hideUnlockModal();
-        });
-
-        // Close modal on overlay click
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                hideUnlockModal();
-            }
-        });
-
-        // Keyboard accessibility: Escape key to close, Enter to confirm
-        modal.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                hideUnlockModal();
-            }
-        });
-
-        // Trap focus within modal when open
-        modal.addEventListener('keydown', function(e) {
-            if (e.key === 'Tab') {
-                const focusableElements = modal.querySelectorAll('button');
-                const firstElement = focusableElements[0];
-                const lastElement = focusableElements[focusableElements.length - 1];
-
-                if (e.shiftKey) {
-                    if (document.activeElement === firstElement) {
-                        lastElement.focus();
-                        e.preventDefault();
-                    }
-                } else {
-                    if (document.activeElement === lastElement) {
-                        firstElement.focus();
-                        e.preventDefault();
-                    }
-                }
-            }
-        });
-    });
-</script>
 
 </html>
