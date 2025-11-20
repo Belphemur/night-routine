@@ -62,35 +62,7 @@ The application features a completely modernized user interface with:
 ![Home Page - Modern Design](docs/screenshots/2025-modern/home-page-modernized.png)
 _Modern home dashboard with streamlined navigation (Home, Stats, Settings), gradient background, and card-based layout. Calendar management accessible via "Change Calendar" button. The UI features smooth animations and contemporary design patterns._
 
-### Previous Screenshots
 
-<details>
-<summary>Click to view legacy screenshots</summary>
-
-#### Home Page - Mobile Responsive with Tailwind CSS
-![Home Page Desktop](docs/screenshots/home-desktop-tailwind.png)
-_Mobile-friendly home page with Tailwind CSS styling. Shows calendar assignments with lock icons (🔒) for overridden days that can be unlocked with a single click._
-
-![Home Page Mobile](docs/screenshots/home-mobile-tailwind.png)
-_Mobile view with responsive design - buttons stack vertically and calendar is scrollable._
-
-#### Unlock Modal
-![Unlock Modal](docs/screenshots/modal-mobile-tailwind.png)
-_Click on any locked day to open the unlock modal. Mobile-optimized with full-width buttons and clear touch targets._
-
-#### Settings Page
-![Settings Page](docs/images/settings-page.png)
-_Configure parent names, availability constraints, and schedule settings through an intuitive web interface. Changes are saved to the database and automatically sync with your calendar._
-
-#### Setup Screen
-![Setup Screen](docs/screenshots/Setup.png)
-_Initial setup screen where you connect to Google Calendar. Shows authentication status and provides quick access to calendar selection, manual sync, and statistics._
-
-#### Calendar Selection
-![Calendar Selection](docs/screenshots/Calendar_Selection.png)
-_Select which Google Calendar to use for night routine events. Choose from your available calendars._
-
-</details>
 
 ## Quick Start with Docker
 
