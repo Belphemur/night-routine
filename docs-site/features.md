@@ -60,8 +60,8 @@ Users can override assignments by editing event titles directly in Google Calend
 
 The application features a completely redesigned user interface with contemporary aesthetics:
 
-![Modern Home Dashboard](../docs/screenshots/2025-modern/home-page-modernized.png)
-*Modern home dashboard with streamlined navigation, gradient background, and card-based layout*
+![Home Page - Modern Design](screenshots/2025-modern/home-page-modernized.png)
+_Modern home dashboard with streamlined navigation, gradient background, and card-based layout_
 
 - **Navigation Bar** - Streamlined navigation with Home, Stats, and Settings (Calendar management via dedicated button on home page)
 - **Gradient Backgrounds** - Beautiful gradient color schemes for visual appeal
@@ -77,17 +77,17 @@ The application features a completely redesigned user interface with contemporar
 - **Dashboard View** - Central hub for all night routine management
 - **Authentication Status Card** - Prominent display of Google Calendar connection status
 - **Visual Monthly Assignment Calendar**:
-    - Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B)
-    - Subtle today highlight with yellow background
-    - Rounded corners and modern table design
-    - Assignment decision reasons (elegant tooltips on desktop, inline on mobile)
-    - Lock icons (🔒) for manual overrides with unlock functionality
+  - Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B)
+  - Subtle today highlight with yellow background
+  - Rounded corners and modern table design
+  - Assignment decision reasons (elegant tooltips on desktop, inline on mobile)
+  - Lock icons (🔒) for manual overrides with unlock functionality
 - **Quick Action Buttons**:
-    - Gradient connect button with hover effects (when not authenticated)
-    - Essential action buttons (Change Calendar, Sync Now)
-    - Statistics and Settings accessible via navigation bar
-    - Icon-enhanced buttons for better visual recognition
-    - Smooth hover animations and shadow effects
+  - Gradient connect button with hover effects (when not authenticated)
+  - Essential action buttons (Change Calendar, Sync Now)
+  - Statistics and Settings accessible via navigation bar
+  - Icon-enhanced buttons for better visual recognition
+  - Smooth hover animations and shadow effects
 
 ### Calendar Selection Page
 
@@ -102,9 +102,9 @@ The application features a completely redesigned user interface with contemporar
 - **Organized Sections** - Each configuration area in its own card
 - **Icon Headers** - Emoji icons for visual section identification
 - **Enhanced Form Controls**:
-    - Large, easy-to-tap input fields with rounded corners
-    - Checkbox grid layout for availability selection
-    - Hover effects on all interactive elements
+  - Large, easy-to-tap input fields with rounded corners
+  - Checkbox grid layout for availability selection
+  - Hover effects on all interactive elements
 - **Information Alerts** - Prominent warning about changes affecting the schedule
 - **Action Buttons** - Gradient save button with clear visual feedback
 
