@@ -1,14 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Night Routine - Setup</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 20px auto;
             padding: 0 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                margin: 10px auto;
+                padding: 0 10px;
+            }
         }
 
         .status {
@@ -53,22 +66,37 @@
             text-decoration: none;
             border-radius: 4px;
             margin-right: 10px;
+            margin-bottom: 10px;
+            min-height: 44px;
+            min-width: 44px;
+            text-align: center;
+            touch-action: manipulation;
         }
 
         .sync-button {
             background-color: #4caf50;
         }
 
+        @media (max-width: 768px) {
+            .button {
+                display: block;
+                margin-right: 0;
+                width: 100%;
+            }
+        }
+
         /* --- Calendar Styles --- */
         .calendar-container {
             margin-top: 30px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .calendar {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            /* Ensure columns are evenly spaced */
+            min-width: 600px;
         }
 
         .calendar th,
@@ -78,11 +106,9 @@
             text-align: center;
             vertical-align: top;
             height: 80px;
-            /* Give cells some height */
             width: 14.28%;
-            /* 100% / 7 days */
             position: relative;
-            /* For tooltip positioning */
+            min-height: 44px;
         }
 
         .calendar th {
@@ -95,6 +121,28 @@
             font-weight: bold;
             display: block;
             margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .calendar-container {
+                margin-top: 20px;
+            }
+
+            .calendar {
+                min-width: 100%;
+                font-size: 0.85em;
+            }
+
+            .calendar th,
+            .calendar td {
+                padding: 4px;
+                height: 70px;
+            }
+
+            .calendar td .day-number {
+                font-size: 1em;
+                margin-bottom: 3px;
+            }
         }
 
         .calendar td .assignment {
@@ -216,15 +264,29 @@
         .calendar td.overridden::after {
             content: "🔒";
             position: absolute;
-            top: 2px;
-            right: 2px;
-            font-size: 0.8em;
-            opacity: 0.7;
+            top: 4px;
+            right: 4px;
+            font-size: 1.2em;
+            opacity: 1;
+            z-index: 10;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
         }
 
         .calendar td.overridden:hover {
             cursor: pointer;
             background-image: linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05));
+        }
+
+        .calendar td.overridden:active {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+        }
+
+        @media (max-width: 768px) {
+            .calendar td.overridden::after {
+                font-size: 1em;
+                top: 2px;
+                right: 2px;
+            }
         }
 
         /* Modal dialog styles */
@@ -277,13 +339,27 @@
         }
 
         .modal-button {
-            padding: 8px 16px;
+            padding: 12px 20px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.875rem;
             font-weight: 500;
             transition: background-color 0.2s;
+            min-height: 44px;
+            min-width: 44px;
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 768px) {
+            .modal-footer {
+                flex-direction: column-reverse;
+            }
+
+            .modal-button {
+                width: 100%;
+                padding: 14px 20px;
+            }
         }
 
         .modal-button-primary {
@@ -417,7 +493,7 @@
             </div>
             <div class="modal-body">
                 <p id="modal-description">
-                    Unlock this event? It will be re-evaluated by the scheduler.
+                    🔓 Unlock this event? It will be re-evaluated by the scheduler.
                 </p>
             </div>
             <div class="modal-footer">
@@ -451,20 +527,25 @@
             todayCell.classList.add('today');
         }
 
-        // Add click event to show all decision reasons
+        // Calendar interaction management
         const calendar = document.getElementById('assignment-calendar');
         if (calendar) {
-            calendar.addEventListener('click', function () {
-                calendar.classList.toggle('show-reasons');
-            });
-
-            // Double click to unlock overridden events
-            calendar.addEventListener('dblclick', function (e) {
+            // Handle clicks on calendar
+            calendar.addEventListener('click', function (e) {
                 const cell = e.target.closest('td.overridden');
+                
+                // If clicked on an overridden cell, show unlock modal
                 if (cell) {
+                    e.stopPropagation(); // Prevent toggle of show-reasons
                     const assignmentId = cell.dataset.assignmentId;
                     if (assignmentId) {
                         showUnlockModal(assignmentId);
+                    }
+                } else {
+                    // Toggle show-reasons for non-overridden cells
+                    const nonOverriddenCell = e.target.closest('td:not(.overridden)');
+                    if (nonOverriddenCell) {
+                        calendar.classList.toggle('show-reasons');
                     }
                 }
             });
