@@ -77,11 +77,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "lts/*" # Use a Long Term Support version
-          cache: "npm" # Cache npm dependencies
+          cache: "pnpm" # Cache pnpm dependencies
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       # Install semantic-release and plugins
       - name: Install semantic-release dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Import GPG key
         id: import_gpg
@@ -104,7 +109,7 @@ jobs:
       # trigger GoReleaser (via semantic-release-goreleaser plugin),
       # and publish the GitHub release.
       - name: Run semantic-release
-        run: npx semantic-release
+        run: pnpm dlx semantic-release
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           GIT_AUTHOR_EMAIL: ${{ secrets.RELEASER_EMAIL }}
@@ -152,7 +157,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Cache pip packages
         uses: actions/cache@v4

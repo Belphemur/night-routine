@@ -45,16 +45,21 @@ jobs:
       - name: Set up Node LTS
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: "lts/*"
+          cache: "pnpm"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Install npm dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Verify Node installation
         run: |
           node --version
-          npm --version
+          pnpm --version
 
       - name: Setup complete
         run: |
@@ -63,4 +68,4 @@ jobs:
           echo "✅ golangci-lint installed"
           echo "✅ Dependencies downloaded and verified"
           echo "✅ Node LTS installed"
-          echo "✅ npm dependencies installed"
+          echo "✅ pnpm dependencies installed"

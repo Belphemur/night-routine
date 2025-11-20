@@ -76,10 +76,15 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "lts/*"
-          cache: "npm"
+          cache: "pnpm"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Install Node.js dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Set version variables
         id: vars
