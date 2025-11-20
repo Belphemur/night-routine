@@ -195,7 +195,9 @@
         const todayCell = document.querySelector(`#assignment-calendar td[data-date="${todayString}"]`);
 
         if (todayCell) {
-            todayCell.classList.add('bg-emerald-100', 'font-bold');
+            // Add a distinctive border to highlight today while preserving assignment colors
+            todayCell.style.border = '3px solid #10b981';
+            todayCell.style.boxShadow = '0 0 0 1px #10b981';
         }
 
         // Calendar interaction management
