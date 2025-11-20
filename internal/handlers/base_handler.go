@@ -4,7 +4,9 @@ package handlers
 
 import (
 	"context"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -33,6 +35,7 @@ type BaseHandler struct {
 	RuntimeConfig *config.RuntimeConfig
 	Tracker       fairness.TrackerInterface
 	logger        zerolog.Logger
+	cssETag       string // Cached ETag for CSS file
 }
 
 // NewBaseHandler creates a common base handler with shared components
@@ -59,6 +62,18 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 	}
 	logger.Debug().Msg("Templates parsed successfully")
 
+	// Pre-calculate ETag for CSS file
+	css, err := assetsFS.ReadFile("assets/css/tailwind.css")
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to read Tailwind CSS for ETag calculation")
+		return nil, fmt.Errorf("failed to read CSS file: %w", err)
+	}
+
+	// Calculate SHA-256 hash for ETag
+	hash := sha256.Sum256(css)
+	etag := hex.EncodeToString(hash[:])
+	logger.Debug().Str("etag", etag).Msg("Calculated ETag for CSS file")
+
 	return &BaseHandler{
 		tmpl:          tmpl, // Updated field name
 		TokenStore:    tokenStore,
@@ -66,6 +81,7 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		RuntimeConfig: runtimeCfg,
 		Tracker:       tracker,
 		logger:        logger,
+		cssETag:       etag,
 	}, nil
 }
 
@@ -128,9 +144,17 @@ func (h *BaseHandler) RegisterStaticRoutes() {
 	http.HandleFunc("/static/css/tailwind.css", h.serveTailwindCSS)
 }
 
-// serveTailwindCSS serves the embedded Tailwind CSS file
+// serveTailwindCSS serves the embedded Tailwind CSS file with ETag support
 func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 	h.logger.Debug().Msg("Serving Tailwind CSS")
+
+	// Check If-None-Match header for ETag validation
+	clientETag := r.Header.Get("If-None-Match")
+	if clientETag != "" && clientETag == h.cssETag {
+		h.logger.Debug().Str("etag", clientETag).Msg("ETag matches - returning 304 Not Modified")
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
 
 	css, err := assetsFS.ReadFile("assets/css/tailwind.css")
 	if err != nil {
@@ -139,8 +163,11 @@ func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set cache headers and ETag
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("ETag", h.cssETag)
+
 	if _, err := w.Write(css); err != nil {
 		h.logger.Error().Err(err).Msg("Failed to write CSS response")
 	}
