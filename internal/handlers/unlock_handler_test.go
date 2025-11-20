@@ -18,7 +18,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func setupTestUnlockHandler(t *testing.T) (*UnlockHandler, *fairness.Tracker, *database.DB, func()) {
+func setupTestUnlockHandler(t *testing.T, authenticated bool) (*UnlockHandler, *fairness.Tracker, *database.DB, func()) {
 	// Create test database
 	dbOpts := database.SQLiteOptions{
 		Path:        ":memory:",
@@ -39,14 +39,16 @@ func setupTestUnlockHandler(t *testing.T) (*UnlockHandler, *fairness.Tracker, *d
 	tokenStore, err := database.NewTokenStore(db)
 	require.NoError(t, err)
 
-	// Save a token to simulate authenticated state
-	testToken := &oauth2.Token{
-		AccessToken:  "test-access-token",
-		RefreshToken: "test-refresh-token",
-		TokenType:    "Bearer",
+	if authenticated {
+		// Save a token to simulate authenticated state
+		testToken := &oauth2.Token{
+			AccessToken:  "test-access-token",
+			RefreshToken: "test-refresh-token",
+			TokenType:    "Bearer",
+		}
+		err = tokenStore.SaveToken(testToken)
+		require.NoError(t, err)
 	}
-	err = tokenStore.SaveToken(testToken)
-	require.NoError(t, err)
 
 	// Create tracker
 	tracker, err := fairness.New(db)
@@ -80,31 +82,8 @@ func setupTestUnlockHandler(t *testing.T) (*UnlockHandler, *fairness.Tracker, *d
 }
 
 func TestUnlockHandler_HandleUnlock_Unauthenticated(t *testing.T) {
-	// Setup with NO token
-	dbOpts := database.SQLiteOptions{
-		Path:        ":memory:",
-		Mode:        "rwc",
-		Cache:       database.CacheShared,
-		Journal:     database.JournalWAL,
-		ForeignKeys: true,
-		BusyTimeout: 5000,
-	}
-	db, err := database.New(dbOpts)
-	require.NoError(t, err)
-	defer db.Close()
-	err = db.MigrateDatabase()
-	require.NoError(t, err)
-
-	tokenStore, err := database.NewTokenStore(db)
-	require.NoError(t, err)
-	tracker, err := fairness.New(db)
-	require.NoError(t, err)
-	cfg := &config.Config{OAuth: &oauth2.Config{}}
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
-	runtimeCfg := &config.RuntimeConfig{Config: cfg}
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker)
-	require.NoError(t, err)
-	handler := NewUnlockHandler(baseHandler, tracker)
+	handler, _, _, cleanup := setupTestUnlockHandler(t, false)
+	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodPost, "/unlock", nil)
 	w := httptest.NewRecorder()
@@ -116,7 +95,7 @@ func TestUnlockHandler_HandleUnlock_Unauthenticated(t *testing.T) {
 }
 
 func TestUnlockHandler_HandleUnlock_InvalidMethod(t *testing.T) {
-	handler, _, _, cleanup := setupTestUnlockHandler(t)
+	handler, _, _, cleanup := setupTestUnlockHandler(t, true)
 	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodGet, "/unlock", nil)
@@ -128,7 +107,7 @@ func TestUnlockHandler_HandleUnlock_InvalidMethod(t *testing.T) {
 }
 
 func TestUnlockHandler_HandleUnlock_MissingAssignmentID(t *testing.T) {
-	handler, _, _, cleanup := setupTestUnlockHandler(t)
+	handler, _, _, cleanup := setupTestUnlockHandler(t, true)
 	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodPost, "/unlock", nil)
@@ -141,7 +120,7 @@ func TestUnlockHandler_HandleUnlock_MissingAssignmentID(t *testing.T) {
 }
 
 func TestUnlockHandler_HandleUnlock_InvalidAssignmentID(t *testing.T) {
-	handler, _, _, cleanup := setupTestUnlockHandler(t)
+	handler, _, _, cleanup := setupTestUnlockHandler(t, true)
 	defer cleanup()
 
 	formData := url.Values{}
@@ -158,7 +137,7 @@ func TestUnlockHandler_HandleUnlock_InvalidAssignmentID(t *testing.T) {
 }
 
 func TestUnlockHandler_HandleUnlock_AssignmentNotFound(t *testing.T) {
-	handler, _, _, cleanup := setupTestUnlockHandler(t)
+	handler, _, _, cleanup := setupTestUnlockHandler(t, true)
 	defer cleanup()
 
 	formData := url.Values{}
@@ -175,7 +154,7 @@ func TestUnlockHandler_HandleUnlock_AssignmentNotFound(t *testing.T) {
 }
 
 func TestUnlockHandler_HandleUnlock_NotOverridden(t *testing.T) {
-	handler, tracker, _, cleanup := setupTestUnlockHandler(t)
+	handler, tracker, _, cleanup := setupTestUnlockHandler(t, true)
 	defer cleanup()
 
 	// Create a non-overridden assignment
@@ -196,7 +175,7 @@ func TestUnlockHandler_HandleUnlock_NotOverridden(t *testing.T) {
 }
 
 func TestUnlockHandler_HandleUnlock_Success(t *testing.T) {
-	handler, tracker, _, cleanup := setupTestUnlockHandler(t)
+	handler, tracker, _, cleanup := setupTestUnlockHandler(t, true)
 	defer cleanup()
 
 	// Create an overridden assignment

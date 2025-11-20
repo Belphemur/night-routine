@@ -272,21 +272,6 @@ func (s *Scheduler) UpdateAssignmentParent(id int64, parent string, override boo
 	return nil
 }
 
-// UnlockAssignment removes the override flag from an assignment
-func (s *Scheduler) UnlockAssignment(id int64) error {
-	unlockLogger := s.logger.With().Int64("assignment_id", id).Logger()
-	unlockLogger.Info().Msg("Unlocking assignment")
-
-	err := s.tracker.UnlockAssignment(id)
-	if err != nil {
-		unlockLogger.Error().Err(err).Msg("Failed to unlock assignment in tracker")
-		return fmt.Errorf("failed to unlock assignment: %w", err)
-	}
-
-	unlockLogger.Info().Msg("Assignment unlocked successfully")
-	return nil
-}
-
 // determineParentForDate determines who should do the night routine on a specific date
 func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason, error) {
 	determineLogger := s.logger.With().Str("date", date.Format("2006-01-02")).Logger()
