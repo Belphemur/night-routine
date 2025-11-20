@@ -1,3 +1,10 @@
+## [0.15.3](https://github.com/Belphemur/night-routine/compare/v0.15.2...v0.15.3) (2025-11-20)
+
+
+### Bug Fixes
+
+* Replace inline styles with Tailwind ring utilities for highlighting today's date in the calendar. ([#152](https://github.com/Belphemur/night-routine/issues/152)) ([cf39584](https://github.com/Belphemur/night-routine/commit/cf39584c353973b25bcaabc3e20b62883461014a))
+
 ## [0.15.2](https://github.com/Belphemur/night-routine/compare/v0.15.1...v0.15.2) (2025-11-20)
 
 
