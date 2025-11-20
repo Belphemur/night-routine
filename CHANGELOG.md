@@ -1,3 +1,10 @@
+## [0.15.4](https://github.com/Belphemur/night-routine/compare/v0.15.3...v0.15.4) (2025-11-20)
+
+
+### Bug Fixes
+
+* **today:** fix today styling to use proper tailwind css ([#153](https://github.com/Belphemur/night-routine/issues/153)) ([3bcb219](https://github.com/Belphemur/night-routine/commit/3bcb219dc18c48ea9c555172a48adc9191673ac6))
+
 ## [0.15.3](https://github.com/Belphemur/night-routine/compare/v0.15.2...v0.15.3) (2025-11-20)
 
 
