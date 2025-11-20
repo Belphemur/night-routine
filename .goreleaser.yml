@@ -40,7 +40,7 @@ changelog:
 before:
   hooks:
     - go mod tidy
-    # - go generate ./... # Add if you use go generate
+    - go generate ./...
 
 # Configures the Go build process
 # https://goreleaser.com/customization/build/

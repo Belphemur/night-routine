@@ -50,6 +50,17 @@ The application ensures both parents share night routine duties fairly while mai
 
 ## Screenshots
 
+### Home Page - Mobile Responsive with Tailwind CSS
+![Home Page Desktop](docs/screenshots/home-desktop-tailwind.png)
+_Mobile-friendly home page with Tailwind CSS styling. Shows calendar assignments with lock icons (🔒) for overridden days that can be unlocked with a single click._
+
+![Home Page Mobile](docs/screenshots/home-mobile-tailwind.png)
+_Mobile view with responsive design - buttons stack vertically and calendar is scrollable._
+
+### Unlock Modal
+![Unlock Modal](docs/screenshots/modal-mobile-tailwind.png)
+_Click on any locked day to open the unlock modal. Mobile-optimized with full-width buttons and clear touch targets._
+
 ### Settings Page
 ![Settings Page](docs/images/settings-page.png)
 _Configure parent names, availability constraints, and schedule settings through an intuitive web interface. Changes are saved to the database and automatically sync with your calendar._
