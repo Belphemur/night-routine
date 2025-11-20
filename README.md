@@ -50,28 +50,47 @@ The application ensures both parents share night routine duties fairly while mai
 
 ## Screenshots
 
-### Home Page - Mobile Responsive with Tailwind CSS
+### Modern 2025 UI Design
+The application features a completely modernized user interface with:
+- **Contemporary aesthetics** - Gradients, shadows, and smooth transitions
+- **Responsive navigation** - Clean nav bar with emoji icons for quick access
+- **Card-based layouts** - Modern card designs with depth and hover effects
+- **Enhanced typography** - Better hierarchy and readability
+- **Improved accessibility** - Better touch targets and keyboard navigation
+- **Mobile-first design** - Fully responsive across all device sizes
+
+![Home Page - Modern Design](https://github.com/user-attachments/assets/77145ffe-888c-4cd9-b65e-cd37fd1193b4)
+_Modern home dashboard with gradient background, navigation bar, and card-based layout. The UI features smooth animations and contemporary design patterns._
+
+### Previous Screenshots
+
+<details>
+<summary>Click to view legacy screenshots</summary>
+
+#### Home Page - Mobile Responsive with Tailwind CSS
 ![Home Page Desktop](docs/screenshots/home-desktop-tailwind.png)
 _Mobile-friendly home page with Tailwind CSS styling. Shows calendar assignments with lock icons (🔒) for overridden days that can be unlocked with a single click._
 
 ![Home Page Mobile](docs/screenshots/home-mobile-tailwind.png)
 _Mobile view with responsive design - buttons stack vertically and calendar is scrollable._
 
-### Unlock Modal
+#### Unlock Modal
 ![Unlock Modal](docs/screenshots/modal-mobile-tailwind.png)
 _Click on any locked day to open the unlock modal. Mobile-optimized with full-width buttons and clear touch targets._
 
-### Settings Page
+#### Settings Page
 ![Settings Page](docs/images/settings-page.png)
 _Configure parent names, availability constraints, and schedule settings through an intuitive web interface. Changes are saved to the database and automatically sync with your calendar._
 
-### Setup Screen
+#### Setup Screen
 ![Setup Screen](docs/screenshots/Setup.png)
 _Initial setup screen where you connect to Google Calendar. Shows authentication status and provides quick access to calendar selection, manual sync, and statistics._
 
-### Calendar Selection
+#### Calendar Selection
 ![Calendar Selection](docs/screenshots/Calendar_Selection.png)
 _Select which Google Calendar to use for night routine events. Choose from your available calendars._
+
+</details>
 
 ## Quick Start with Docker
 
