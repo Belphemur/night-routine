@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/Belphemur/night-routine/compare/v0.14.1...v0.15.0) (2025-11-20)
+
+
+### Features
+
+* **ui:** Responsive UI/UX using Tailwind CSS ([e6db0bc](https://github.com/Belphemur/night-routine/commit/e6db0bc183095a6373e6b329b3ec2ccca9be7364))
+
 ## [0.14.1](https://github.com/Belphemur/night-routine/compare/v0.14.0...v0.14.1) (2025-11-20)
 
 
