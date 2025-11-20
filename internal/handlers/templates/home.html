@@ -133,10 +133,7 @@
                         {{if .Assignment}}
                         <span class="block text-xs md:text-sm font-semibold">{{.Assignment.Parent}}</span>
                         {{if .Assignment.DecisionReason}}
-                        <span
-                            class="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap mb-2 shadow-xl">{{.Assignment.DecisionReason}}</span>
-                        <span
-                            class="block md:hidden text-xs italic text-slate-600 mt-1">{{.Assignment.DecisionReason}}</span>
+                        <span class="block text-xs text-slate-500 mt-1">{{.Assignment.DecisionReason}}</span>
                         {{end}}
                         {{end}}
                     </td>
@@ -195,10 +192,10 @@
 
         const today = new Date();
         const todayString = getLocalDateString(today);
-        const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
+        const todayCell = document.querySelector(`#assignment-calendar td[data-date="${todayString}"]`);
 
         if (todayCell) {
-            todayCell.classList.add('bg-yellow-100', 'font-bold');
+            todayCell.classList.add('bg-emerald-100', 'font-bold');
         }
 
         // Calendar interaction management
