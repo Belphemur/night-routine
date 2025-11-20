@@ -1,76 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
+{{define "title"}}Night Routine - Statistics{{end}}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Night Routine - Statistics</title>
-    <link href="/static/css/tailwind.css" rel="stylesheet">
-</head>
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Statistics</h2>
+    <p class="text-slate-600 text-lg">Night routine assignment distribution</p>
+</div>
 
-<body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-6 max-w-5xl">
-        <h1 class="text-3xl font-bold text-gray-900 mb-6">Night Routine Statistics</h1>
-
-        {{if .ErrorMessage}}
-        <div class="bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded mb-4">
-            <strong class="font-bold">Error:</strong>
-            <span>{{.ErrorMessage}}</span>
-        </div>
-        {{end}}
-
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Monthly Assignments (Last 12 Months)</h2>
-
-        {{if .ParentsStats}}
-        <div class="overflow-x-auto bg-white rounded-lg shadow">
-            <table class="w-full min-w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border border-gray-300 px-4 py-3 text-center font-bold text-gray-900">Parent</th>
-                        {{range .MonthHeaders}}
-                        <th class="border border-gray-300 px-4 py-3 text-center font-bold text-gray-900">{{.}}</th>
-                        {{end}}
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range $parentStat := .ParentsStats}}
-                    <tr class="hover:bg-gray-50">
-                        <td class="border border-gray-300 px-4 py-3 text-center font-medium">{{$parentStat.ParentName}}</td>
-                        {{range $.MonthHeaders}}
-                        <td class="border border-gray-300 px-4 py-3 text-center">{{index $parentStat.MonthlyCounts .}}</td>
-                        {{end}}
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-        </div>
-        {{else if not .ErrorMessage}}
-        <div class="overflow-x-auto bg-white rounded-lg shadow">
-            <table class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border border-gray-300 px-4 py-3 text-center font-bold">Parent</th>
-                        {{range .MonthHeaders}}
-                        <th class="border border-gray-300 px-4 py-3 text-center font-bold">{{.}}</th>
-                        {{end}}
-                        {{if not .MonthHeaders}}
-                        <th class="border border-gray-300 px-4 py-3 text-center font-bold">Month</th>
-                        {{end}}
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="{{add (len .MonthHeaders) 1}}" class="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                            No statistics data available.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        {{end}}
-
-        <a href="/" class="inline-block mt-6 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded">Back to Home</a>
+{{if .ErrorMessage}}
+<div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
+    <span class="text-2xl">⚠️</span>
+    <div>
+        <strong class="font-bold block mb-1">Error</strong>
+        <span>{{.ErrorMessage}}</span>
     </div>
-</body>
+</div>
+{{end}}
 
-</html>
+<div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200">
+    <div class="flex items-center gap-3 mb-6">
+        <span class="text-3xl">📈</span>
+        <div>
+            <h3 class="text-2xl font-bold text-slate-900">Monthly Assignments</h3>
+            <p class="text-slate-600">Last 12 months distribution</p>
+        </div>
+    </div>
+
+    {{if .ParentsStats}}
+    <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
+        <table class="w-full min-w-full border-collapse">
+            <thead>
+                <tr class="bg-gradient-to-r from-indigo-100 to-blue-100">
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold text-slate-900 rounded-tl-xl">
+                        Parent</th>
+                    {{range .MonthHeaders}}
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold text-slate-900">{{.}}</th>
+                    {{end}}
+                </tr>
+            </thead>
+            <tbody>
+                {{range $parentStat := .ParentsStats}}
+                <tr class="hover:bg-slate-50 transition-colors duration-150">
+                    <td class="border border-slate-200 px-4 py-4 text-center font-semibold text-slate-900 bg-slate-50">
+                        {{$parentStat.ParentName}}</td>
+                    {{range $.MonthHeaders}}
+                    <td class="border border-slate-200 px-4 py-4 text-center text-slate-700">
+                        <span class="inline-block bg-indigo-100 text-indigo-900 px-3 py-1 rounded-lg font-semibold">
+                            {{index $parentStat.MonthlyCounts .}}
+                        </span>
+                    </td>
+                    {{end}}
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else if not .ErrorMessage}}
+    <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="bg-gradient-to-r from-indigo-100 to-blue-100">
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold rounded-tl-xl">Parent</th>
+                    {{range .MonthHeaders}}
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold">{{.}}</th>
+                    {{end}}
+                    {{if not .MonthHeaders}}
+                    <th class="border border-slate-200 px-4 py-4 text-center font-bold">Month</th>
+                    {{end}}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="{{add (len .MonthHeaders) 1}}" class="border border-slate-200 px-4 py-12 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <span class="text-5xl">📊</span>
+                            <p class="text-slate-500 text-lg">No statistics data available yet</p>
+                            <p class="text-slate-400 text-sm">Data will appear once assignments are created</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+</div>
+{{end}}

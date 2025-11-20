@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{block "title" .}}Night Routine{{end}}</title>
+    <link href="/static/css/tailwind.css" rel="stylesheet">
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen flex flex-col">
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-lg border-b border-slate-200">
+        <div class="container mx-auto px-4 py-4 max-w-7xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🌙</span>
+                    <h1 class="text-2xl font-bold text-slate-900">Night Routine</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="/" class="{{if eq .CurrentPath " /"}}bg-indigo-100 text-indigo-700{{else}}text-slate-700
+                        hover:bg-slate-100{{end}} font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
+                        🏠 Home
+                    </a>
+                    <a href="/statistics" class="{{if eq .CurrentPath " /statistics"}}bg-indigo-100
+                        text-indigo-700{{else}}text-slate-700 hover:bg-slate-100{{end}} font-semibold py-2 px-4
+                        rounded-lg transition-colors duration-200">
+                        📊 Stats
+                    </a>
+                    <a href="/settings" class="{{if eq .CurrentPath " /settings"}}bg-indigo-100
+                        text-indigo-700{{else}}text-slate-700 hover:bg-slate-100{{end}} font-semibold py-2 px-4
+                        rounded-lg transition-colors duration-200">
+                        ⚙️ Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 container mx-auto px-4 py-8 max-w-7xl">
+        {{block "content" .}}{{end}}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div class="container mx-auto px-4 max-w-7xl">
+            <p class="text-center text-slate-600 text-sm">© {{.CurrentYear}} Night Routine - Keeping families organized
+            </p>
+        </div>
+    </footer>
+
+    {{block "scripts" .}}{{end}}
+</body>
+
+</html>

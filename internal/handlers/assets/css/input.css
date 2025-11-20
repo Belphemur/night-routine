@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@source "../../templates";
 
 /* Minimal custom styles for lock icon and special calendar states */
 .overridden::after {

@@ -44,7 +44,7 @@ func (h *SettingsHandler) RegisterRoutes() {
 
 // SettingsPageData contains data for the settings page template
 type SettingsPageData struct {
-	IsAuthenticated        bool
+	BasePageData
 	ParentA                string
 	ParentB                string
 	ParentAUnavailable     []string
@@ -69,9 +69,9 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get parent configuration")
 		h.RenderTemplate(w, "settings.html", SettingsPageData{
-			IsAuthenticated: true, // Always authenticated for settings
-			ErrorMessage:    "Failed to load configuration. Please try again.",
-			AllDaysOfWeek:   getAllDaysOfWeek(),
+			BasePageData:  h.NewBasePageData(r, true), // Always authenticated for settings
+			ErrorMessage:  "Failed to load configuration. Please try again.",
+			AllDaysOfWeek: getAllDaysOfWeek(),
 		})
 		return
 	}
@@ -92,9 +92,9 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get schedule configuration")
 		h.RenderTemplate(w, "settings.html", SettingsPageData{
-			IsAuthenticated: true, // Always authenticated for settings
-			ErrorMessage:    "Failed to load configuration. Please try again.",
-			AllDaysOfWeek:   getAllDaysOfWeek(),
+			BasePageData:  h.NewBasePageData(r, true), // Always authenticated for settings
+			ErrorMessage:  "Failed to load configuration. Please try again.",
+			AllDaysOfWeek: getAllDaysOfWeek(),
 		})
 		return
 	}
@@ -109,7 +109,7 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 	}
 
 	data := SettingsPageData{
-		IsAuthenticated:        true, // Always authenticated for settings
+		BasePageData:           h.NewBasePageData(r, true), // Always authenticated for settings
 		ParentA:                parentA,
 		ParentB:                parentB,
 		ParentAUnavailable:     parentAUnavailable,

@@ -1,233 +1,291 @@
-<!DOCTYPE html>
-<html lang="en">
+{{define "title"}}Night Routine - Home{{end}}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Night Routine - Setup</title>
-    <link href="/static/css/tailwind.css" rel="stylesheet">
-</head>
+{{define "content"}}
+<!-- Page Header -->
+<div class="mb-8">
+    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Dashboard</h2>
+    <p class="text-slate-600 text-lg">Manage your family's night routine schedule</p>
+</div>
 
-<body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-6 max-w-4xl">
-        <h1 class="text-3xl font-bold text-gray-900 mb-6">Night Routine Setup</h1>
-
-        {{if .ErrorMessage}}
-        <div class="bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded mb-4">
-            <strong class="font-bold">Error:</strong>
-            <span>{{.ErrorMessage}}</span>
-        </div>
-        {{end}}
-
-        {{if .SuccessMessage}}
-        <div class="bg-green-50 border border-green-400 text-green-800 px-4 py-3 rounded mb-4">
-            <strong class="font-bold">Success:</strong>
-            <span>{{.SuccessMessage}}</span>
-        </div>
-        {{end}}
-
-        <div class="rounded-lg p-6 mb-6 {{if .IsAuthenticated}}bg-green-50 border border-green-500{{else}}bg-red-50 border border-red-400{{end}}">
-            {{if .IsAuthenticated}}
-            <h2 class="text-2xl font-semibold text-green-800 mb-2">✓ Google Calendar Connected</h2>
-            {{if .CalendarID}}
-            <p class="text-gray-700 mb-4">Selected Calendar: {{.CalendarID}}</p>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <a href="/calendars" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">Change Calendar</a>
-                <a href="/sync" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded text-center">Sync Now</a>
-                <a href="/statistics" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">View Statistics</a>
-                <a href="/settings" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded text-center">Settings</a>
-            </div>
-            {{else}}
-            <p class="text-gray-700 mb-4">No calendar selected</p>
-            <a href="/calendars" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">Select Calendar</a>
-            {{end}}
-            {{else}}
-            <h2 class="text-2xl font-semibold text-red-800 mb-2">✗ Not Connected</h2>
-            <p class="text-gray-700 mb-4">Connect your Google Calendar to get started</p>
-            <a href="/auth" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">Connect Google Calendar</a>
-            {{end}}
-        </div>
-
-        <!-- Calendar Section -->
-        {{if and .IsAuthenticated .CalendarWeeks}}
-        <div class="mt-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Assignment Calendar: {{.CurrentMonth}}</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse min-w-full" id="assignment-calendar">
-                    <thead>
-                        <tr>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Mon</th>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Tue</th>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Wed</th>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Thu</th>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Fri</th>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Sat</th>
-                            <th class="bg-gray-200 border border-gray-300 p-2 text-center font-bold">Sun</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{range .CalendarWeeks}}
-                        <tr>
-                            {{range .}}
-                            <td class="border border-gray-300 p-2 text-center align-top h-20 relative cursor-pointer hover:bg-opacity-90
-                                {{if not .IsCurrentMonth}}bg-gray-100 text-gray-400{{end}}
-                                {{if .Assignment}}
-                                    {{if eq .Assignment.ParentType.String "ParentA"}}bg-blue-100 text-blue-800 border-blue-300{{end}}
-                                    {{if eq .Assignment.ParentType.String "ParentB"}}bg-orange-100 text-orange-800 border-orange-300{{end}}
-                                    {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
-                                {{end}}"
-                                data-date="{{.Date.Format "2006-01-02"}}"
-                                {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
-                                aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
-                                <span class="block text-lg font-bold mb-1">{{.DayOfMonth}}</span>
-                                {{if .Assignment}}
-                                <span class="block text-sm">{{.Assignment.Parent}}</span>
-                                {{if .Assignment.DecisionReason}}
-                                <span class="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap mb-1">{{.Assignment.DecisionReason}}</span>
-                                <span class="block md:hidden text-xs italic text-gray-600 mt-1">{{.Assignment.DecisionReason}}</span>
-                                {{end}}
-                                {{end}}
-                            </td>
-                            {{end}}
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {{end}}
-        <!-- End Calendar Section -->
-
-        <!-- Confirmation Modal -->
-        <div class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center" id="unlock-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
-            <div class="bg-white rounded-lg p-6 max-w-md w-11/12 shadow-xl">
-                <div class="mb-4">
-                    <h2 class="text-xl font-bold" id="modal-title">Unlock Event</h2>
-                </div>
-                <div class="mb-6">
-                    <p id="modal-description" class="text-gray-700">
-                        🔓 Unlock this event? It will be re-evaluated by the scheduler.
-                    </p>
-                </div>
-                <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
-                    <button type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded" id="modal-cancel">
-                        Cancel
-                    </button>
-                    <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded" id="modal-confirm">
-                        Unlock
-                    </button>
-                </div>
-            </div>
-        </div>
-
+<!-- Alerts -->
+{{if .ErrorMessage}}
+<div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
+    <span class="text-2xl">⚠️</span>
+    <div>
+        <strong class="font-bold block mb-1">Error</strong>
+        <span>{{.ErrorMessage}}</span>
     </div>
+</div>
+{{end}}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Function to format date as YYYY-MM-DD (local timezone)
-            function getLocalDateString(date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            }
+{{if .SuccessMessage}}
+<div class="bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-lg mb-6 flex items-start gap-3">
+    <span class="text-2xl">✓</span>
+    <div>
+        <strong class="font-bold block mb-1">Success</strong>
+        <span>{{.SuccessMessage}}</span>
+    </div>
+</div>
+{{end}}
 
-            const today = new Date();
-            const todayString = getLocalDateString(today);
-            const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
+<!-- Connection Status Card -->
+<div
+    class="bg-white rounded-2xl shadow-xl p-8 mb-8 border {{if .IsAuthenticated}}border-emerald-200{{else}}border-rose-200{{end}}">
+    {{if .IsAuthenticated}}
+    <div class="flex items-center gap-3 mb-6">
+        <div class="bg-emerald-100 rounded-full p-3">
+            <span class="text-3xl">✓</span>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900">Connected</h2>
+            <p class="text-slate-600">Google Calendar is active</p>
+        </div>
+    </div>
+    {{if .CalendarID}}
+    <div class="bg-slate-50 rounded-xl p-4 mb-6">
+        <p class="text-sm text-slate-600 mb-1">Active Calendar</p>
+        <p class="text-slate-900 font-medium">{{.CalendarID}}</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a href="/calendars"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-5 rounded-xl text-center transition-all duration-200 hover:shadow-lg hover:scale-105">
+            📅 Change Calendar
+        </a>
+        <a href="/sync"
+            class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-5 rounded-xl text-center transition-all duration-200 hover:shadow-lg hover:scale-105">
+            🔄 Sync Now
+        </a>
+    </div>
+    {{else}}
+    <p class="text-slate-700 mb-6">No calendar selected yet</p>
+    <a href="/calendars"
+        class="inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105">
+        📅 Select Calendar
+    </a>
+    {{end}}
+    {{else}}
+    <div class="flex items-center gap-3 mb-6">
+        <div class="bg-rose-100 rounded-full p-3">
+            <span class="text-3xl">✗</span>
+        </div>
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900">Not Connected</h2>
+            <p class="text-slate-600">Connect to get started</p>
+        </div>
+    </div>
+    <p class="text-slate-700 mb-6">Link your Google Calendar to begin managing your night routine schedule</p>
+    <a href="/auth"
+        class="inline-block bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 hover:shadow-lg hover:scale-105">
+        🔗 Connect Google Calendar
+    </a>
+    {{end}}
+</div>
 
-            if (todayCell) {
-                todayCell.classList.add('bg-yellow-100', 'font-bold');
-            }
+<!-- Calendar Section -->
+{{if and .IsAuthenticated .CalendarWeeks}}
+<div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+    <div class="mb-6">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">📅 {{.CurrentMonth}}</h2>
+        <p class="text-slate-600">Your night routine assignments</p>
+    </div>
+    <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
+        <table class="w-full border-collapse min-w-full" id="assignment-calendar">
+            <thead>
+                <tr>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base rounded-tl-xl">
+                        Mon</th>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
+                        Tue</th>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
+                        Wed</th>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
+                        Thu</th>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
+                        Fri</th>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
+                        Sat</th>
+                    <th
+                        class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base rounded-tr-xl">
+                        Sun</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .CalendarWeeks}}
+                <tr>
+                    {{range .}}
+                    <td class="border border-slate-200 p-3 text-center align-top h-24 md:h-28 relative cursor-pointer transition-all duration-200
+                            {{if not .IsCurrentMonth}}bg-slate-50 text-slate-400{{else}}bg-white hover:shadow-lg{{end}}
+                            {{if .Assignment}}
+                                {{if eq .Assignment.ParentType.String "ParentA"}}bg-gradient-to-br from-blue-50 to-indigo-100 text-indigo-900 border-indigo-200 hover:from-blue-100 hover:to-indigo-200{{end}}
+                                {{if eq .Assignment.ParentType.String "ParentB"}}bg-gradient-to-br from-amber-50 to-orange-100 text-orange-900 border-orange-200 hover:from-amber-100 hover:to-orange-200{{end}}
+                                {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
+                            {{end}}" 
+                        data-date="{{.Date.Format "2006-01-02"}}" 
+                        {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
+                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
+                        <span class="block text-lg md:text-xl font-bold mb-1">{{.DayOfMonth}}</span>
+                        {{if .Assignment}}
+                        <span class="block text-xs md:text-sm font-semibold">{{.Assignment.Parent}}</span>
+                        {{if .Assignment.DecisionReason}}
+                        <span
+                            class="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-xs rounded-lg py-2 px-3 opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap mb-2 shadow-xl">{{.Assignment.DecisionReason}}</span>
+                        <span
+                            class="block md:hidden text-xs italic text-slate-600 mt-1">{{.Assignment.DecisionReason}}</span>
+                        {{end}}
+                        {{end}}
+                    </td>
+                    {{end}}
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}
+<!-- End Calendar Section -->
 
-            // Calendar interaction management
-            const calendar = document.getElementById('assignment-calendar');
-            if (calendar) {
-                // Handle clicks on calendar
-                calendar.addEventListener('click', function (e) {
-                    const cell = e.target.closest('td.overridden');
-                    
-                    // If clicked on an overridden cell, show unlock modal
-                    if (cell) {
-                        e.stopPropagation();
-                        const assignmentId = cell.dataset.assignmentId;
-                        if (assignmentId) {
-                            showUnlockModal(assignmentId);
-                        }
+<!-- Confirmation Modal -->
+<div class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center backdrop-blur-sm"
+    id="unlock-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
+    aria-describedby="modal-description">
+    <div class="bg-white rounded-2xl p-8 max-w-md w-11/12 shadow-2xl">
+        <div class="mb-6 flex items-start gap-4">
+            <div class="bg-blue-100 rounded-full p-3 flex-shrink-0">
+                <span class="text-3xl">🔓</span>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 mb-2" id="modal-title">Unlock Event</h2>
+                <p id="modal-description" class="text-slate-700">
+                    This event will be re-evaluated by the scheduler. Are you sure?
+                </p>
+            </div>
+        </div>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
+            <button type="button"
+                class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-3 px-6 rounded-xl transition-all duration-200"
+                id="modal-cancel">
+                Cancel
+            </button>
+            <button type="button"
+                class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:shadow-lg"
+                id="modal-confirm">
+                Unlock Event
+            </button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "scripts"}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to format date as YYYY-MM-DD (local timezone)
+        function getLocalDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const today = new Date();
+        const todayString = getLocalDateString(today);
+        const todayCell = document.querySelector(`.calendar td[data-date="${todayString}"]`);
+
+        if (todayCell) {
+            todayCell.classList.add('bg-yellow-100', 'font-bold');
+        }
+
+        // Calendar interaction management
+        const calendar = document.getElementById('assignment-calendar');
+        if (calendar) {
+            // Handle clicks on calendar
+            calendar.addEventListener('click', function (e) {
+                const cell = e.target.closest('td.overridden');
+
+                // If clicked on an overridden cell, show unlock modal
+                if (cell) {
+                    e.stopPropagation();
+                    const assignmentId = cell.dataset.assignmentId;
+                    if (assignmentId) {
+                        showUnlockModal(assignmentId);
                     }
-                });
-            }
-
-            // Modal management functions
-            const modal = document.getElementById('unlock-modal');
-            const modalCancel = document.getElementById('modal-cancel');
-            const modalConfirm = document.getElementById('modal-confirm');
-            let currentAssignmentId = null;
-            let previousActiveElement = null;
-
-            function showUnlockModal(assignmentId) {
-                currentAssignmentId = assignmentId;
-                previousActiveElement = document.activeElement;
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                modalConfirm.focus();
-            }
-
-            function hideUnlockModal() {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                currentAssignmentId = null;
-                if (previousActiveElement) {
-                    previousActiveElement.focus();
                 }
+            });
+        }
+
+        // Modal management functions
+        const modal = document.getElementById('unlock-modal');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalConfirm = document.getElementById('modal-confirm');
+        let currentAssignmentId = null;
+        let previousActiveElement = null;
+
+        function showUnlockModal(assignmentId) {
+            currentAssignmentId = assignmentId;
+            previousActiveElement = document.activeElement;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modalConfirm.focus();
+        }
+
+        function hideUnlockModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            currentAssignmentId = null;
+            if (previousActiveElement) {
+                previousActiveElement.focus();
             }
+        }
 
-            function unlockAssignment() {
-                if (currentAssignmentId) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '/unlock';
+        function unlockAssignment() {
+            if (currentAssignmentId) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/unlock';
 
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'assignment_id';
-                    input.value = currentAssignmentId;
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'assignment_id';
+                input.value = currentAssignmentId;
 
-                    form.appendChild(input);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
             }
+        }
 
-            // Modal event listeners
-            if (modalCancel) {
-                modalCancel.addEventListener('click', hideUnlockModal);
-            }
-            if (modalConfirm) {
-                modalConfirm.addEventListener('click', function() {
-                    unlockAssignment();
+        // Modal event listeners
+        if (modalCancel) {
+            modalCancel.addEventListener('click', hideUnlockModal);
+        }
+        if (modalConfirm) {
+            modalConfirm.addEventListener('click', function () {
+                unlockAssignment();
+                hideUnlockModal();
+            });
+        }
+
+        // Close modal on overlay click
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
                     hideUnlockModal();
-                });
-            }
+                }
+            });
 
-            // Close modal on overlay click
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) {
-                        hideUnlockModal();
-                    }
-                });
-
-                // Keyboard accessibility
-                modal.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
-                        hideUnlockModal();
-                    }
-                });
-            }
-        });
-    </script>
-
-</body>
-
-</html>
+            // Keyboard accessibility
+            modal.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    hideUnlockModal();
+                }
+            });
+        }
+    });
+</script>
+{{end}}

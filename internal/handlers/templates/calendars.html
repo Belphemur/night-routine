@@ -1,45 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
+{{define "title"}}Night Routine - Calendar Selection{{end}}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Night Routine - Calendar Selection</title>
-    <link href="/static/css/tailwind.css" rel="stylesheet">
-</head>
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">Select Calendar</h2>
+    <p class="text-slate-600 text-lg">Choose which calendar to use for night routine events</p>
+</div>
 
-<body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-6 max-w-4xl">
-        <a href="/" class="inline-block text-blue-600 hover:text-blue-800 mb-6 text-lg">← Back to Home</a>
-        
-        <h1 class="text-3xl font-bold text-gray-900 mb-6">Select Calendar for Night Routine Events</h1>
-        
-        <div class="space-y-3">
-            {{range .Calendars.Items}}
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 border rounded-lg
-                {{if eq .Id $.Selected}}bg-blue-50 border-blue-500{{else}}bg-white border-gray-300{{end}}">
-                <div class="flex-1">
-                    <div class="text-lg font-semibold text-gray-900">{{.Summary}}</div>
-                    {{if .Description}}
-                    <div class="text-sm text-gray-600 mt-1">{{.Description}}</div>
+<div class="flex flex-col gap-4">
+    {{range .Calendars.Items}}
+    <div
+        class="bg-white rounded-2xl shadow-lg p-6 border-2 transition-all duration-200 hover:shadow-xl
+            {{if eq .Id $.Selected}}border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-50{{else}}border-slate-200 hover:border-indigo-300{{end}}">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                    {{if eq .Id $.Selected}}
+                    <span class="text-2xl">✓</span>
+                    {{else}}
+                    <span class="text-2xl">📅</span>
                     {{end}}
-                    {{if .AccessRole}}
-                    <div class="text-sm text-gray-500 mt-1">Access: {{.AccessRole}}</div>
-                    {{end}}
+                    <h3 class="text-xl font-bold text-slate-900">{{.Summary}}</h3>
                 </div>
-                <form method="POST" action="/calendars" class="w-full sm:w-auto">
-                    <input type="hidden" name="calendar_id" value="{{.Id}}">
-                    <button type="submit" 
-                        class="w-full sm:w-auto py-2 px-6 rounded font-medium
-                        {{if eq .Id $.Selected}}bg-gray-300 text-gray-600 cursor-not-allowed{{else}}bg-blue-500 hover:bg-blue-600 text-white{{end}}"
-                        {{if eq .Id $.Selected}}disabled{{end}}>
-                        {{if eq .Id $.Selected}}Selected{{else}}Use This Calendar{{end}}
-                    </button>
-                </form>
+                {{if .Description}}
+                <p class="text-slate-600 mb-2 ml-11">{{.Description}}</p>
+                {{end}}
+                {{if .AccessRole}}
+                <div class="flex items-center gap-2 ml-11">
+                    <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        {{.AccessRole}}
+                    </span>
+                </div>
+                {{end}}
             </div>
-            {{end}}
+            <form method="POST" action="/calendars" class="w-full lg:w-auto">
+                <input type="hidden" name="calendar_id" value="{{.Id}}">
+                <button type="submit"
+                    class="w-full lg:w-auto py-3 px-6 rounded-xl font-semibold transition-all duration-200
+                        {{if eq .Id $.Selected}}bg-slate-300 text-slate-600 cursor-not-allowed{{else}}bg-indigo-500 hover:bg-indigo-600 text-white hover:shadow-lg hover:scale-105{{end}}"
+                    {{if eq .Id $.Selected}}disabled{{end}}>
+                    {{if eq .Id $.Selected}}✓ Currently Selected{{else}}Select Calendar{{end}}
+                </button>
+            </form>
         </div>
     </div>
-</body>
-
-</html>
+    {{end}}
+</div>
+{{end}}

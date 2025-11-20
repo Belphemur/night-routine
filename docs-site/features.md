@@ -56,38 +56,73 @@ Users can override assignments by editing event titles directly in Google Calend
 
 ## Web Interface
 
+### Modern 2025 UI Design
+
+The application features a completely redesigned user interface with contemporary aesthetics:
+
+![Home Page - Modern Design](screenshots/2025-modern/home-page-modernized.png)
+_Modern home dashboard with streamlined navigation, gradient background, and card-based layout_
+
+- **Navigation Bar** - Streamlined navigation with Home, Stats, and Settings (Calendar management via dedicated button on home page)
+- **Gradient Backgrounds** - Beautiful gradient color schemes for visual appeal
+- **Card-Based Layouts** - Modern card designs with shadows, borders, and hover effects
+- **Smooth Animations** - Scale and shadow transitions on interactive elements
+- **Enhanced Typography** - Clear hierarchy with bold headings and readable body text
+- **Improved Color Palette** - Professional color scheme using Tailwind CSS utilities
+- **Better Spacing** - Generous padding and margins for breathing room
+- **Accessible Design** - High contrast, large touch targets, ARIA labels
+
 ### Home Page
 
-- **Authentication Status Display** - Shows whether you're connected to Google Calendar
+- **Dashboard View** - Central hub for all night routine management
+- **Authentication Status Card** - Prominent display of Google Calendar connection status
 - **Visual Monthly Assignment Calendar**:
-    - Color-coded assignments (blue for Parent A, orange for Parent B)
-    - Yellow highlight for today's date
-    - Gray background for padding days from previous/next months
-    - Assignment decision reasons (hover tooltip on desktop, always visible on mobile)
-- **Quick Actions**:
-    - Connect Google Calendar button (when not authenticated)
-    - Change Calendar button (switch to a different calendar)
-    - Sync Now button (manually trigger schedule update)
-    - View Statistics link (access historical data)
+  - Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B)
+  - Subtle today highlight with yellow background
+  - Rounded corners and modern table design
+  - Assignment decision reasons (elegant tooltips on desktop, inline on mobile)
+  - Lock icons (🔒) for manual overrides with unlock functionality
+- **Quick Action Buttons**:
+  - Gradient connect button with hover effects (when not authenticated)
+  - Essential action buttons (Change Calendar, Sync Now)
+  - Statistics and Settings accessible via navigation bar
+  - Icon-enhanced buttons for better visual recognition
+  - Smooth hover animations and shadow effects
 
 ### Calendar Selection Page
 
-- **List All Available Calendars** - Shows all Google Calendars from your account
-- **Simple Selection** - Choose which calendar to use for night routine events
-- **Automatic Webhook Setup** - Notification channels are configured automatically after selection
+- **Modern Card Layout** - Each calendar displayed in an elegant card
+- **Visual Hierarchy** - Selected calendar highlighted with green gradient
+- **Badge Design** - Access roles shown with colored badges
+- **Responsive Grid** - Adapts to screen size with flexbox layout
+- **Automatic Webhook Setup** - Notification channels configured automatically after selection
+
+### Settings Page
+
+- **Organized Sections** - Each configuration area in its own card
+- **Icon Headers** - Emoji icons for visual section identification
+- **Enhanced Form Controls**:
+  - Large, easy-to-tap input fields with rounded corners
+  - Checkbox grid layout for availability selection
+  - Hover effects on all interactive elements
+- **Information Alerts** - Prominent warning about changes affecting the schedule
+- **Action Buttons** - Gradient save button with clear visual feedback
 
 ### Statistics Page
 
-- **Monthly Assignment Counts** - View assignment counts per parent for each month
+- **Data Visualization** - Clean table design with gradient headers
+- **Monthly Assignment Counts** - Color-coded badges for each count
 - **12-Month History** - Displays data for the last 12 months
 - **Fair Distribution Verification** - Helps verify equitable distribution over time
-- **Clean Presentation** - Only shows months with actual assignments
+- **Empty State Design** - Friendly message when no data is available
 
 ### Responsive Design
 
-- **Desktop Optimized** - Clean layout with hover tooltips for additional information
-- **Mobile Friendly** - Touch-optimized interface with tap-to-toggle decision reasons
-- **Modern UI** - Clean, intuitive design that works across all devices
+- **Mobile-First Approach** - Designed for mobile, scales beautifully to desktop
+- **Flexbox Layouts** - Fluid, flexible layouts that adapt to any screen
+- **Touch-Optimized** - Large buttons and interactive areas for mobile devices
+- **Desktop Enhanced** - Additional features like hover tooltips on larger screens
+- **Consistent Experience** - Same great functionality across all device sizes
 
 ## Data Management
 
