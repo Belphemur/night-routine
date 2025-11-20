@@ -42,10 +42,10 @@ jobs:
           go mod download
           go mod verify
 
-      - name: Set up Node LTS
+      - name: Set up Node v24
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install npm dependencies
