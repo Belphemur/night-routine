@@ -1,3 +1,10 @@
+## [0.14.1](https://github.com/Belphemur/night-routine/compare/v0.14.0...v0.14.1) (2025-11-20)
+
+
+### Bug Fixes
+
+* Add mobile-responsive UI with production Tailwind CSS build and accessibility improvements ([#144](https://github.com/Belphemur/night-routine/issues/144)) ([172c10b](https://github.com/Belphemur/night-routine/commit/172c10b9ca38a4fecf0680285f76b0a154a0ecd7))
+
 # [0.14.0](https://github.com/Belphemur/night-routine/compare/v0.13.0...v0.14.0) (2025-11-19)
 
 
