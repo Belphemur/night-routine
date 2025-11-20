@@ -72,12 +72,24 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
       - name: Set version variables
         id: vars
         run: |
           echo "version=${GITHUB_REF_NAME:-dev}" >> $GITHUB_OUTPUT
           echo "commit=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+      - name: Generate assets
+        run: go generate ./...
 
       - name: Build Go binary
         run: |

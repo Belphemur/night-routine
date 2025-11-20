@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Night Routine - Settings</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="/static/css/tailwind.css" rel="stylesheet">
 </head>
 
 <body class="bg-gray-50">
@@ -66,11 +66,11 @@
                     <label class="block text-sm font-medium text-gray-700 mb-3">{{.ParentA}} - Unavailable Days:</label>
                     <div class="space-y-2">
                         {{range .AllDaysOfWeek}}
-                        <label class="flex items-center py-2 px-3 hover:bg-gray-50 rounded cursor-pointer">
-                            <input type="checkbox" name="parent_a_unavailable" value="{{.}}"
+                        <div class="flex items-center py-2 px-3 hover:bg-gray-50 rounded">
+                            <input type="checkbox" id="parent_a_{{.}}" name="parent_a_unavailable" value="{{.}}"
                                 class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                            <span class="ml-3 text-gray-700">{{.}}</span>
-                        </label>
+                            <label for="parent_a_{{.}}" class="ml-3 text-gray-700 cursor-pointer">{{.}}</label>
+                        </div>
                         {{end}}
                     </div>
                     <div class="text-sm text-gray-500 mt-2">Leave unchecked if available all days.</div>
@@ -80,11 +80,11 @@
                     <label class="block text-sm font-medium text-gray-700 mb-3">{{.ParentB}} - Unavailable Days:</label>
                     <div class="space-y-2">
                         {{range $.AllDaysOfWeek}}
-                        <label class="flex items-center py-2 px-3 hover:bg-gray-50 rounded cursor-pointer">
-                            <input type="checkbox" name="parent_b_unavailable" value="{{.}}"
+                        <div class="flex items-center py-2 px-3 hover:bg-gray-50 rounded">
+                            <input type="checkbox" id="parent_b_{{.}}" name="parent_b_unavailable" value="{{.}}"
                                 class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                            <span class="ml-3 text-gray-700">{{.}}</span>
-                        </label>
+                            <label for="parent_b_{{.}}" class="ml-3 text-gray-700 cursor-pointer">{{.}}</label>
+                        </div>
                         {{end}}
                     </div>
                     <div class="text-sm text-gray-500 mt-2">Leave unchecked if available all days.</div>

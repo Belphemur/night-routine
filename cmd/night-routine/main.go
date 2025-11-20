@@ -196,6 +196,7 @@ func run(ctx context.Context) error {
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, sched)
 
 	// Register routes
+	baseHandler.RegisterStaticRoutes()
 	homeHandler.RegisterRoutes()
 	oauthHandler.RegisterRoutes()
 	calendarHandler.RegisterRoutes()

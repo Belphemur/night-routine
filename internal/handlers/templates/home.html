@@ -5,27 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Night Routine - Setup</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style type="text/tailwindcss">
-        /* Minimal custom styles for lock icon and special calendar states */
-        .overridden::after {
-            content: "🔒";
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            font-size: 1.2em;
-            z-index: 10;
-            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-        }
-
-        @media (max-width: 768px) {
-            .overridden::after {
-                font-size: 1em;
-                top: 2px;
-                right: 2px;
-            }
-        }
-    </style>
+    <link href="/static/css/tailwind.css" rel="stylesheet">
 </head>
 
 <body class="bg-gray-50">
@@ -97,7 +77,8 @@
                                     {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
                                 {{end}}"
                                 data-date="{{.Date.Format "2006-01-02"}}"
-                                {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}>
+                                {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
+                                aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
                                 <span class="block text-lg font-bold mb-1">{{.DayOfMonth}}</span>
                                 {{if .Assignment}}
                                 <span class="block text-sm">{{.Assignment.Parent}}</span>
