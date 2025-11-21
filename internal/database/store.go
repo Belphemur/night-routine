@@ -94,18 +94,27 @@ func (s *TokenStore) ClearToken() error {
 	return nil
 }
 
-// SaveSelectedCalendar saves the selected calendar ID
+// SaveSelectedCalendar saves the selected calendar ID (preserves existing calendar_name if present)
 func (s *TokenStore) SaveSelectedCalendar(calendarID string) error {
 	saveLogger := s.logger.With().Str("calendar_id", calendarID).Logger()
-	saveLogger.Debug().Msg("Saving selected calendar ID") // Changed to Debug
-	_, err := s.db.Exec(`
-	INSERT OR REPLACE INTO calendar_settings (id, calendar_id)
-	VALUES (1, ?)`, calendarID)
+	saveLogger.Debug().Msg("Saving selected calendar ID")
+	// Use UPDATE first to preserve calendar_name if it exists, then INSERT if row doesn't exist
+	result, err := s.db.Exec(`UPDATE calendar_settings SET calendar_id = ? WHERE id = 1`, calendarID)
 	if err != nil {
-		saveLogger.Debug().Err(err).Msg("Failed to execute save calendar ID query") // Changed to Debug
-		return fmt.Errorf("failed to save calendar ID: %w", err)
+		saveLogger.Debug().Err(err).Msg("Failed to update calendar ID")
+		return fmt.Errorf("failed to update calendar ID: %w", err)
 	}
-	saveLogger.Debug().Msg("Selected calendar ID saved successfully") // Changed to Debug
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		// Row doesn't exist, insert it
+		_, err = s.db.Exec(`INSERT INTO calendar_settings (id, calendar_id, calendar_name) VALUES (1, ?, '')`, calendarID)
+		if err != nil {
+			saveLogger.Debug().Err(err).Msg("Failed to insert calendar ID")
+			return fmt.Errorf("failed to insert calendar ID: %w", err)
+		}
+	}
+	saveLogger.Debug().Msg("Selected calendar ID saved successfully")
 	return nil
 }
 
