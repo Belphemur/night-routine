@@ -70,9 +70,9 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		return nil, fmt.Errorf("failed to read CSS file: %w", err)
 	}
 
-	// Calculate SHA-256 hash for ETag
+	// Calculate SHA-256 hash for ETag (quoted as per RFC 7232)
 	hash := sha256.Sum256(css)
-	etag := hex.EncodeToString(hash[:])
+	etag := fmt.Sprintf("\"%s\"", hex.EncodeToString(hash[:]))
 	logger.Debug().Str("etag", etag).Int("content_size", len(css)).Msg("Cached CSS file with ETag")
 
 	return &BaseHandler{
@@ -150,12 +150,14 @@ func (h *BaseHandler) RegisterStaticRoutes() {
 func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 	h.logger.Debug().Msg("Serving Tailwind CSS")
 
-	// Check If-None-Match header for ETag validation
-	clientETag := r.Header.Get("If-None-Match")
-	if clientETag != "" && clientETag == h.cssETag {
-		h.logger.Debug().Str("etag", clientETag).Msg("ETag matches - returning 304 Not Modified")
-		w.WriteHeader(http.StatusNotModified)
-		return
+	// Check If-None-Match header for ETag validation (RFC 7232)
+	// Supports multiple ETags and wildcard '*'
+	if ifNoneMatch := r.Header.Get("If-None-Match"); ifNoneMatch != "" {
+		if h.matchesETag(ifNoneMatch) {
+			h.logger.Debug().Str("if_none_match", ifNoneMatch).Msg("ETag matches - returning 304 Not Modified")
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 	}
 
 	// Set cache headers and ETag
@@ -166,6 +168,72 @@ func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(h.cssContent); err != nil {
 		h.logger.Error().Err(err).Msg("Failed to write CSS response")
 	}
+}
+
+// matchesETag checks if the If-None-Match header matches the current ETag
+// Supports multiple ETags separated by commas and wildcard '*' as per RFC 7232
+func (h *BaseHandler) matchesETag(ifNoneMatch string) bool {
+	// Handle wildcard
+	if ifNoneMatch == "*" {
+		return true
+	}
+
+	// Parse comma-separated ETags
+	// Simple implementation that handles quoted and unquoted ETags
+	etags := parseETags(ifNoneMatch)
+	for _, etag := range etags {
+		if etag == h.cssETag {
+			return true
+		}
+	}
+	return false
+}
+
+// parseETags parses comma-separated ETags from If-None-Match header
+func parseETags(header string) []string {
+	var etags []string
+	start := 0
+	inQuote := false
+
+	for i := 0; i < len(header); i++ {
+		switch header[i] {
+		case '"':
+			inQuote = !inQuote
+		case ',':
+			if !inQuote {
+				etag := trimSpace(header[start:i])
+				if etag != "" {
+					etags = append(etags, etag)
+				}
+				start = i + 1
+			}
+		}
+	}
+
+	// Add the last ETag
+	if start < len(header) {
+		etag := trimSpace(header[start:])
+		if etag != "" {
+			etags = append(etags, etag)
+		}
+	}
+
+	return etags
+}
+
+// trimSpace removes leading and trailing whitespace
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+
+	for start < end && (s[start] == ' ' || s[start] == '\t') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t') {
+		end--
+	}
+
+	return s[start:end]
 }
 
 // BasePageData contains common data for all pages
