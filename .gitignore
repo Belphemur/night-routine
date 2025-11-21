@@ -52,4 +52,4 @@ test_*.db
 
 __debug_bin*
 
-node_modules/
+node_modules/.git-squash-marker
