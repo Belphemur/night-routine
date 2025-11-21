@@ -1,3 +1,10 @@
+## [0.15.7](https://github.com/Belphemur/night-routine/compare/v0.15.6...v0.15.7) (2025-11-21)
+
+
+### Bug Fixes
+
+* **handlers:** set 12h cache with revalidation for static CSS ([#161](https://github.com/Belphemur/night-routine/issues/161)) ([c0aea2d](https://github.com/Belphemur/night-routine/commit/c0aea2d83bcfa90c204b9f06119daae71d42cde6))
+
 ## [0.15.6](https://github.com/Belphemur/night-routine/compare/v0.15.5...v0.15.6) (2025-11-21)
 
 
