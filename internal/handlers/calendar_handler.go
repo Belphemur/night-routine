@@ -99,17 +99,18 @@ func (h *CalendarHandler) handleCalendarSelection(w http.ResponseWriter, r *http
 	}
 
 	calendarID := r.FormValue("calendar_id")
-	handlerLogger = handlerLogger.With().Str("selected_calendar_id", calendarID).Logger() // Add selected ID to context
+	calendarName := r.FormValue("calendar_name")
+	handlerLogger = handlerLogger.With().Str("selected_calendar_id", calendarID).Str("selected_calendar_name", calendarName).Logger() // Add selected ID and name to context
 	if calendarID == "" {
 		handlerLogger.Warn().Msg("No calendar_id provided in form")
 		http.Error(w, "No calendar selected", http.StatusBadRequest)
 		return
 	}
-	handlerLogger.Debug().Msg("Calendar ID received")
+	handlerLogger.Debug().Msg("Calendar ID and name received")
 
 	// Use the calendar manager to select the calendar
 	handlerLogger.Debug().Msg("Attempting to select calendar via manager")
-	if err := h.CalendarManager.SelectCalendar(r.Context(), calendarID); err != nil {
+	if err := h.CalendarManager.SelectCalendarWithName(r.Context(), calendarID, calendarName); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save calendar selection")
 		http.Error(w, "Failed to save calendar selection", http.StatusInternalServerError)
 		return
