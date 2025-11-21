@@ -70,12 +70,13 @@ func (m *Manager) SelectCalendar(ctx context.Context, calendarID string) error {
 }
 
 // SelectCalendarWithName saves the selected calendar ID and name, and emits a signal
+// calendarName may be empty string for backward compatibility
 func (m *Manager) SelectCalendarWithName(ctx context.Context, calendarID string, calendarName string) error {
 	if calendarID == "" {
 		return fmt.Errorf("calendar ID cannot be empty")
 	}
 
-	// Save selected calendar with name
+	// Save selected calendar with name (name can be empty for backward compatibility)
 	if err := m.tokenStore.SaveSelectedCalendarWithName(calendarID, calendarName); err != nil {
 		return fmt.Errorf("failed to save calendar selection: %w", err)
 	}
