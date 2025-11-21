@@ -109,6 +109,21 @@ func (s *TokenStore) SaveSelectedCalendar(calendarID string) error {
 	return nil
 }
 
+// SaveSelectedCalendarWithName saves the selected calendar ID and name
+func (s *TokenStore) SaveSelectedCalendarWithName(calendarID string, calendarName string) error {
+	saveLogger := s.logger.With().Str("calendar_id", calendarID).Str("calendar_name", calendarName).Logger()
+	saveLogger.Debug().Msg("Saving selected calendar ID and name")
+	_, err := s.db.Exec(`
+	INSERT OR REPLACE INTO calendar_settings (id, calendar_id, calendar_name)
+	VALUES (1, ?, ?)`, calendarID, calendarName)
+	if err != nil {
+		saveLogger.Debug().Err(err).Msg("Failed to execute save calendar ID and name query")
+		return fmt.Errorf("failed to save calendar ID and name: %w", err)
+	}
+	saveLogger.Debug().Msg("Selected calendar ID and name saved successfully")
+	return nil
+}
+
 // GetSelectedCalendar retrieves the saved calendar ID
 func (s *TokenStore) GetSelectedCalendar() (string, error) {
 	s.logger.Debug().Msg("Retrieving selected calendar ID")
@@ -126,6 +141,24 @@ func (s *TokenStore) GetSelectedCalendar() (string, error) {
 	}
 	s.logger.Debug().Str("calendar_id", calendarID).Msg("Selected calendar ID retrieved successfully") // Changed to Debug
 	return calendarID, nil
+}
+
+// GetSelectedCalendarWithName retrieves the saved calendar ID and name
+func (s *TokenStore) GetSelectedCalendarWithName() (calendarID string, calendarName string, err error) {
+	s.logger.Debug().Msg("Retrieving selected calendar ID and name")
+	err = s.db.QueryRow(`
+	SELECT calendar_id, calendar_name FROM calendar_settings WHERE id = 1
+	`).Scan(&calendarID, &calendarName)
+	if err == sql.ErrNoRows {
+		s.logger.Debug().Msg("No selected calendar found")
+		return "", "", nil
+	}
+	if err != nil {
+		s.logger.Debug().Err(err).Msg("Failed to retrieve selected calendar")
+		return "", "", fmt.Errorf("failed to retrieve calendar: %w", err)
+	}
+	s.logger.Debug().Str("calendar_id", calendarID).Str("calendar_name", calendarName).Msg("Selected calendar retrieved successfully")
+	return calendarID, calendarName, nil
 }
 
 // SaveNotificationChannel saves a notification channel

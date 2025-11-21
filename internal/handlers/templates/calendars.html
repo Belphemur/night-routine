@@ -34,6 +34,7 @@
             </div>
             <form method="POST" action="/calendars" class="w-full lg:w-auto">
                 <input type="hidden" name="calendar_id" value="{{.Id}}">
+                <input type="hidden" name="calendar_name" value="{{.Summary}}">
                 <button type="submit"
                     class="w-full lg:w-auto py-3 px-6 rounded-xl font-semibold transition-all duration-200
                         {{if eq .Id $.Selected}}bg-slate-300 text-slate-600 cursor-not-allowed{{else}}bg-indigo-500 hover:bg-indigo-600 text-white hover:shadow-lg hover:scale-105{{end}}"

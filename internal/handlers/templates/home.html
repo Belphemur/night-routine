@@ -44,7 +44,12 @@
     {{if .CalendarID}}
     <div class="bg-slate-50 rounded-xl p-4 mb-6">
         <p class="text-sm text-slate-600 mb-1">Active Calendar</p>
+        {{if .CalendarName}}
+        <p class="text-slate-900 font-medium text-lg">{{.CalendarName}}</p>
+        <p class="text-slate-500 text-sm break-all">{{.CalendarID}}</p>
+        {{else}}
         <p class="text-slate-900 font-medium break-all">{{.CalendarID}}</p>
+        {{end}}
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <a href="/calendars"

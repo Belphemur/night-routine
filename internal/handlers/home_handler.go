@@ -32,6 +32,7 @@ func (h *HomeHandler) RegisterRoutes() {
 type HomePageData struct {
 	BasePageData
 	CalendarID     string
+	CalendarName   string
 	ErrorMessage   string
 	SuccessMessage string
 	CurrentMonth   string
@@ -44,12 +45,13 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	handlerLogger.Info().Str("method", r.Method).Msg("Handling home page request")
 
 	isAuthenticated := h.CheckAuthentication(r.Context(), handlerLogger)
-	calendarID := h.getSelectedCalendarID(handlerLogger)
+	calendarID, calendarName := h.getSelectedCalendarInfo(handlerLogger)
 	errorMessage, successMessage := h.processMessages(r, handlerLogger)
 
 	data := HomePageData{
 		BasePageData:   h.NewBasePageData(r, isAuthenticated),
 		CalendarID:     calendarID,
+		CalendarName:   calendarName,
 		ErrorMessage:   errorMessage,
 		SuccessMessage: successMessage,
 	}
@@ -69,16 +71,16 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(w, "home.html", data)
 }
 
-// getSelectedCalendarID retrieves the currently selected Google Calendar ID.
-func (h *HomeHandler) getSelectedCalendarID(logger zerolog.Logger) string {
-	logger.Debug().Msg("Fetching selected calendar ID")
-	calendarID, err := h.TokenStore.GetSelectedCalendar()
+// getSelectedCalendarInfo retrieves the currently selected Google Calendar ID and name.
+func (h *HomeHandler) getSelectedCalendarInfo(logger zerolog.Logger) (string, string) {
+	logger.Debug().Msg("Fetching selected calendar info")
+	calendarID, calendarName, err := h.TokenStore.GetSelectedCalendarWithName()
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to get selected calendar ID from store")
-		return "" // Return empty string if fetch fails
+		logger.Error().Err(err).Msg("Failed to get selected calendar info from store")
+		return "", "" // Return empty strings if fetch fails
 	}
-	logger.Debug().Str("selected_calendar_id", calendarID).Msg("Selected calendar ID fetched")
-	return calendarID
+	logger.Debug().Str("selected_calendar_id", calendarID).Str("selected_calendar_name", calendarName).Msg("Selected calendar info fetched")
+	return calendarID, calendarName
 }
 
 // processMessages extracts and translates error/success codes from query parameters.
