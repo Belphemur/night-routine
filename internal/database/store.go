@@ -105,7 +105,11 @@ func (s *TokenStore) SaveSelectedCalendar(calendarID string) error {
 		return fmt.Errorf("failed to update calendar ID: %w", err)
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		saveLogger.Debug().Err(err).Msg("Failed to get rows affected after update")
+		return fmt.Errorf("failed to get rows affected after update: %w", err)
+	}
 	if rowsAffected == 0 {
 		// Row doesn't exist, insert it
 		_, err = s.db.Exec(`INSERT INTO calendar_settings (id, calendar_id, calendar_name) VALUES (1, ?, '')`, calendarID)
