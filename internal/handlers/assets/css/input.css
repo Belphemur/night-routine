@@ -42,3 +42,12 @@
 .today-cell:hover {
   @apply from-emerald-200 to-green-300 shadow-xl;
 }
+
+/* Dialog/Modal styling for proper centering and backdrop */
+dialog {
+  margin: auto;
+}
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.75);
+}
