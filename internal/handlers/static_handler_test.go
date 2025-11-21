@@ -90,6 +90,6 @@ func TestServeTailwindCSS_ETag(t *testing.T) {
 
 		handler.serveTailwindCSS(w, req)
 
-		assert.Equal(t, "public, max-age=31536000, immutable", w.Header().Get("Cache-Control"))
+		assert.Equal(t, "public, max-age=43200, must-revalidate", w.Header().Get("Cache-Control"))
 	})
 }
