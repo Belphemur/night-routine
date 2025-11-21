@@ -69,7 +69,7 @@ func (h *StaticHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request)
 
 	// Set remaining cache headers for 200 response
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("Cache-Control", "public, max-age=43200, must-revalidate")
 
 	if _, err := w.Write(h.cssContent); err != nil {
 		h.logger.Error().Err(err).Msg("Failed to write CSS response")
