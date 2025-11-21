@@ -22,9 +22,6 @@ import (
 //go:embed templates/*.html
 var templateFS embed.FS
 
-//go:embed assets/css/*.css
-var assetsFS embed.FS
-
 // BaseHandler contains common handler functionality
 type BaseHandler struct {
 	tmpl          *template.Template
@@ -121,29 +118,6 @@ func (h *BaseHandler) CheckAuthentication(ctx context.Context, logger zerolog.Lo
 
 	logger.Debug().Msg("User is authenticated")
 	return true
-}
-
-// RegisterStaticRoutes registers static asset routes
-func (h *BaseHandler) RegisterStaticRoutes() {
-	http.HandleFunc("/static/css/tailwind.css", h.serveTailwindCSS)
-}
-
-// serveTailwindCSS serves the embedded Tailwind CSS file
-func (h *BaseHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
-	h.logger.Debug().Msg("Serving Tailwind CSS")
-
-	css, err := assetsFS.ReadFile("assets/css/tailwind.css")
-	if err != nil {
-		h.logger.Error().Err(err).Msg("Failed to read Tailwind CSS")
-		http.Error(w, "CSS file not found", http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	if _, err := w.Write(css); err != nil {
-		h.logger.Error().Err(err).Msg("Failed to write CSS response")
-	}
 }
 
 // BasePageData contains common data for all pages
