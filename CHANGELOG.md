@@ -1,3 +1,10 @@
+## [0.15.6](https://github.com/Belphemur/night-routine/compare/v0.15.5...v0.15.6) (2025-11-21)
+
+
+### Bug Fixes
+
+* **ux:** Fix text overflow and dialog positioning issues ([#159](https://github.com/Belphemur/night-routine/issues/159)) ([7a9a8dd](https://github.com/Belphemur/night-routine/commit/7a9a8dd719a851e8a321812a42b68ffa6ddd9c6a))
+
 ## [0.15.5](https://github.com/Belphemur/night-routine/compare/v0.15.4...v0.15.5) (2025-11-21)
 
 
