@@ -30,6 +30,19 @@ When working with Go code in this repository, always follow these practices:
 5. If templates or CSS were modified, run `go generate ./...` to rebuild assets
 6. Commit the changes
 
+### Commit Messages
+- **Always use semantic/conventional commits** format for all commits
+- Follow the pattern: `type(scope): subject`
+- Common types: `fix`, `feat`, `chore`, `docs`, `refactor`, `test`, `style`
+- Examples:
+  - `fix(handlers): correct cache header for static files`
+  - `feat(calendar): add new sync endpoint`
+  - `chore(deps): update dependencies`
+- **Never create separate "Initial plan" or "WIP" commits**
+- When starting work, create the first commit with proper semantic format immediately
+- Use `git commit --amend` to update commits as work progresses
+- Final PR should contain meaningful, well-structured commits
+
 ### Additional Guidelines
 - Follow Go best practices and idioms
 - Write clear, maintainable code
