@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/Belphemur/night-routine/compare/v0.15.7...v0.16.0) (2025-11-21)
+
+
+### Features
+
+* **home:** display calendar name with ID as subtitle ([#163](https://github.com/Belphemur/night-routine/issues/163)) ([a4f0e56](https://github.com/Belphemur/night-routine/commit/a4f0e56e7a08eb51354cefa64f5af1e0c2840113))
+
 ## [0.15.7](https://github.com/Belphemur/night-routine/compare/v0.15.6...v0.15.7) (2025-11-21)
 
 
