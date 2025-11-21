@@ -1,3 +1,11 @@
+## [0.15.5](https://github.com/Belphemur/night-routine/compare/v0.15.4...v0.15.5) (2025-11-21)
+
+
+### Bug Fixes
+
+* Add ETag support for static CSS file serving ([#156](https://github.com/Belphemur/night-routine/issues/156)) ([231d632](https://github.com/Belphemur/night-routine/commit/231d632ae3871c8d56db4d6fba6fbf2edfe3658b))
+* replace custom unlock modal with native HTML dialog element ([7b98466](https://github.com/Belphemur/night-routine/commit/7b984669ebaf4f159308f4fd1e629bd583225c6a))
+
 ## [0.15.4](https://github.com/Belphemur/night-routine/compare/v0.15.3...v0.15.4) (2025-11-20)
 
 
