@@ -195,8 +195,16 @@ func run(ctx context.Context) error {
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
 
+	// Initialize static file handler
+	staticHandler, err := handlers.NewStaticHandler()
+	if err != nil {
+		wrappedErr := fmt.Errorf("failed to initialize static handler: %w", err)
+		logger.Error().Err(wrappedErr).Msg("Static handler initialization failed")
+		return wrappedErr
+	}
+
 	// Register routes
-	baseHandler.RegisterStaticRoutes()
+	staticHandler.RegisterRoutes()
 	homeHandler.RegisterRoutes()
 	oauthHandler.RegisterRoutes()
 	calendarHandler.RegisterRoutes()
