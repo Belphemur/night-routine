@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/belphemur/night-routine/internal/fairness/scheduler"
@@ -123,7 +124,7 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []C
 					classes = append(classes, "overridden")
 				}
 
-				dayJSON.CSSClasses = joinClasses(classes)
+				dayJSON.CSSClasses = strings.Join(classes, " ")
 			} else {
 				// No assignment
 				var classes []string
@@ -135,25 +136,13 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []C
 					classes = append(classes, "bg-slate-50", "text-slate-400")
 				}
 
-				dayJSON.CSSClasses = joinClasses(classes)
+				dayJSON.CSSClasses = strings.Join(classes, " ")
 			}
 
 			result = append(result, dayJSON)
 		}
 	}
 
-	return result
-}
-
-// joinClasses joins CSS class names with spaces
-func joinClasses(classes []string) string {
-	result := ""
-	for i, class := range classes {
-		if i > 0 {
-			result += " "
-		}
-		result += class
-	}
 	return result
 }
 
