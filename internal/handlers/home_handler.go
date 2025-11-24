@@ -98,21 +98,22 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []C
 				IsCurrentMonth: day.IsCurrentMonth,
 			}
 
+			// Build base CSS classes shared by all days
+			baseClasses := []string{"border", "border-slate-200", "text-center", "align-top", "relative"}
+			if day.IsCurrentMonth {
+				baseClasses = append(baseClasses, "bg-white", "hover:shadow-lg")
+			} else {
+				baseClasses = append(baseClasses, "bg-slate-50", "text-slate-400")
+			}
+
 			if day.Assignment != nil {
 				dayJSON.AssignmentID = day.Assignment.ID
 				dayJSON.AssignmentParent = day.Assignment.Parent
 				dayJSON.AssignmentReason = string(day.Assignment.DecisionReason)
 				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"
 
-				// Build CSS classes based on assignment
-				var classes []string
-				classes = append(classes, "border", "border-slate-200", "text-center", "align-top", "relative", "cursor-pointer", "transition-all", "duration-200")
-
-				if day.IsCurrentMonth {
-					classes = append(classes, "bg-white", "hover:shadow-lg")
-				} else {
-					classes = append(classes, "bg-slate-50", "text-slate-400")
-				}
+				// Add assignment-specific classes
+				classes := append(baseClasses, "cursor-pointer", "transition-all", "duration-200")
 
 				if day.Assignment.ParentType.String() == "ParentA" {
 					classes = append(classes, "bg-gradient-to-br", "from-blue-50", "to-indigo-100", "text-indigo-900", "border-indigo-200", "hover:from-blue-100", "hover:to-indigo-200")
@@ -126,17 +127,8 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []C
 
 				dayJSON.CSSClasses = strings.Join(classes, " ")
 			} else {
-				// No assignment
-				var classes []string
-				classes = append(classes, "border", "border-slate-200", "text-center", "align-top", "relative")
-
-				if day.IsCurrentMonth {
-					classes = append(classes, "bg-white", "hover:shadow-lg")
-				} else {
-					classes = append(classes, "bg-slate-50", "text-slate-400")
-				}
-
-				dayJSON.CSSClasses = strings.Join(classes, " ")
+				// No assignment - use base classes only
+				dayJSON.CSSClasses = strings.Join(baseClasses, " ")
 			}
 
 			result = append(result, dayJSON)
