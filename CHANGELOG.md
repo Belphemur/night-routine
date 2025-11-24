@@ -1,3 +1,16 @@
+# [0.18.0](https://github.com/Belphemur/night-routine/compare/v0.17.0...v0.18.0) (2025-11-24)
+
+
+### Bug Fixes
+
+* **css:** implement automatic cache busting ([802a555](https://github.com/Belphemur/night-routine/commit/802a5553132420d2faed5abe89ebbae314f2d86b))
+* **css:** rebuild css ([2a90129](https://github.com/Belphemur/night-routine/commit/2a9012927ea876e7785b0e81dc914291ddaa5642))
+
+
+### Features
+
+* **statistics:** implement mobile-friendly card view with month grouping ([3e6dada](https://github.com/Belphemur/night-routine/commit/3e6dadac72c6bea271a128c41096633694482bea))
+
 # [0.17.0](https://github.com/Belphemur/night-routine/compare/v0.16.0...v0.17.0) (2025-11-24)
 
 
