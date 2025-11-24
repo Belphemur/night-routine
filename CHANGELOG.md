@@ -1,3 +1,10 @@
+# [0.17.0](https://github.com/Belphemur/night-routine/compare/v0.16.0...v0.17.0) (2025-11-24)
+
+
+### Features
+
+* **ui:** add modal animations using tailwind ([6c7b35b](https://github.com/Belphemur/night-routine/commit/6c7b35b902ec6567462dbc46d146888c374335f2))
+
 # [0.16.0](https://github.com/Belphemur/night-routine/compare/v0.15.7...v0.16.0) (2025-11-21)
 
 
