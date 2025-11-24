@@ -329,7 +329,7 @@
                         return; // Skip invalid date formats
                     }
                     const dateObj = new Date(dateStr + 'T00:00:00'); // Parse as local date
-                    const dayOfMonth = parseInt(cell.querySelector('span')?.textContent);
+                    const dayOfMonth = parseInt(cell.querySelector('span')?.textContent, 10);
                     if (!dayOfMonth) return;
                     
                     const assignmentId = cell.getAttribute('data-assignment-id');
