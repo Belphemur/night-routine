@@ -138,7 +138,7 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - Always verify data insertion with SQL queries before running the application
 - Use the documented process for creating demo databases with proper OAuth tokens
 
-## Architecture Guelines
+## Architecture Guidelines
 
 ### Database Layer
 - All database operations go through `internal/database/`
