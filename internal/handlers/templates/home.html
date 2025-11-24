@@ -318,8 +318,8 @@
             const desktopCalendar = document.getElementById('assignment-calendar');
             if (desktopCalendar) {
                 const cells = desktopCalendar.querySelectorAll('tbody td[data-date]');
-                // Define unwanted classes for mobile rendering
-                const unwantedClasses = ['h-24', 'h-28', 'md:h-28', 'p-3', 'text-lg', 'md:text-xl', 'text-xs', 'md:text-sm'];
+                // Define class prefixes to filter out for mobile rendering
+                const unwantedPrefixes = ['h-', 'p-', 'text-', 'md:h-', 'md:p-', 'md:text-'];
                 
                 cells.forEach(cell => {
                     const dateStr = cell.getAttribute('data-date');
@@ -335,9 +335,9 @@
                     const assignmentReason = cell.querySelector('span:nth-child(3)')?.textContent || '';
                     const isOverridden = cell.classList.contains('overridden');
                     
-                    // Filter out unwanted classes
+                    // Filter out unwanted classes by checking prefixes
                     const classes = cell.className.split(/\s+/)
-                        .filter(cls => !unwantedClasses.includes(cls))
+                        .filter(cls => !unwantedPrefixes.some(prefix => cls.startsWith(prefix)))
                         .join(' ');
 
                     allDays.push({
@@ -357,12 +357,12 @@
             }
 
             function getMondayOfWeek(date) {
-                const d = new Date(date);
+                // Create a completely independent copy using timestamp
+                const d = new Date(date.getTime());
                 const day = d.getDay();
                 const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-                const monday = new Date(d);
-                monday.setDate(diff);
-                return monday;
+                d.setDate(diff);
+                return d;
             }
 
             function formatWeekLabel(mondayDate) {
@@ -421,7 +421,8 @@
                 // Helper function to create a day cell
                 function createDayCell(day) {
                     const td = document.createElement('td');
-                    td.className = day.classes + ' h-24 p-2 text-xs';
+                    // Combine classes reliably with array filtering
+                    td.className = [day.classes, 'h-24', 'p-2', 'text-xs'].filter(Boolean).join(' ');
                     td.setAttribute('data-date', day.dateStr);
                     if (day.assignmentId) {
                         td.setAttribute('data-assignment-id', day.assignmentId);
