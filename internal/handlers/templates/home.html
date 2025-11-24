@@ -314,49 +314,19 @@
         const mobileCalendarRow2 = document.getElementById('mobile-assignment-calendar-row2');
         if (mobileCalendarRow1 && mobileCalendarRow2) {
             let currentWeekOffset = 0;
-            const allDays = []; // Will store all calendar days from the full month
-
-            // Extract all days from the server-rendered desktop calendar
-            const desktopCalendar = document.getElementById('assignment-calendar');
-            if (desktopCalendar) {
-                const cells = desktopCalendar.querySelectorAll('tbody td[data-date]');
-                // Define class prefixes to filter out for mobile rendering
-                const unwantedPrefixes = ['h-', 'p-', 'text-', 'md:h-', 'md:p-', 'md:text-'];
-                
-                cells.forEach(cell => {
-                    const dateStr = cell.getAttribute('data-date');
-                    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-                        return; // Skip invalid date formats
-                    }
-                    const dateObj = new Date(dateStr + 'T00:00:00'); // Parse as local date
-                    const dayOfMonth = parseInt(cell.querySelector('span')?.textContent, 10);
-                    if (!dayOfMonth) return;
-                    
-                    const assignmentId = cell.getAttribute('data-assignment-id');
-                    const assignmentParent = cell.querySelector('span:nth-child(2)')?.textContent || '';
-                    const assignmentReason = cell.querySelector('span:nth-child(3)')?.textContent || '';
-                    const isOverridden = cell.classList.contains('overridden');
-                    
-                    // Filter out unwanted classes by checking prefixes
-                    const classes = cell.className.split(/\s+/)
-                        .filter(cls => !unwantedPrefixes.some(prefix => cls.startsWith(prefix)))
-                        .join(' ');
-
-                    allDays.push({
-                        date: dateObj,
-                        dateStr: dateStr,
-                        dayOfMonth: dayOfMonth,
-                        assignmentId: assignmentId,
-                        assignmentParent: assignmentParent,
-                        assignmentReason: assignmentReason,
-                        isOverridden: isOverridden,
-                        classes: classes
-                    });
-                });
-
-                // Sort by date
-                allDays.sort((a, b) => a.date - b.date);
-            }
+            
+            // Use calendar data provided by the server as JSON
+            const calendarData = {{.CalendarData | js}};
+            const allDays = calendarData.map(day => ({
+                date: new Date(day.dateStr + 'T00:00:00'),
+                dateStr: day.dateStr,
+                dayOfMonth: day.dayOfMonth,
+                assignmentId: day.assignmentId || null,
+                assignmentParent: day.assignmentParent || '',
+                assignmentReason: day.assignmentReason || '',
+                isOverridden: day.isOverridden || false,
+                classes: day.cssClasses || ''
+            }));
 
             function getMondayOfWeek(date) {
                 // Create a completely independent copy using timestamp
