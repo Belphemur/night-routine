@@ -84,23 +84,14 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
   - Searching for symbols across the workspace
   - Getting accurate diagnostics beyond linting
 
-**Example workflows:**
-```bash
-# Search for a symbol across the workspace
-gopls-go_search with query: "ScheduleAssignment"
+**Example workflows using gopls tools:**
+> Note: These examples use gopls tool integration available in the Copilot environment, not direct CLI commands
 
-# Get package API summary
-gopls-go_package_api with packagePaths: ["github.com/belphemur/night-routine/internal/fairness"]
-
-# Find all references to a symbol
-gopls-go_symbol_references with file: "/path/to/file.go", symbol: "ProcessEvents"
-
-# Get file context and dependencies
-gopls-go_file_context with file: "/path/to/file.go"
-
-# Check for build/parse errors
-gopls-go_diagnostics with files: ["/path/to/file1.go", "/path/to/file2.go"]
-```
+- Search for a symbol across the workspace: `gopls-go_search` with query: "ScheduleAssignment"
+- Get package API summary: `gopls-go_package_api` with packagePaths: ["github.com/belphemur/night-routine/internal/fairness"]
+- Find all references to a symbol: `gopls-go_symbol_references` with file: "/path/to/file.go", symbol: "ProcessEvents"
+- Get file context and dependencies: `gopls-go_file_context` with file: "/path/to/file.go"
+- Check for build/parse errors: `gopls-go_diagnostics` with files: ["/path/to/file1.go", "/path/to/file2.go"]
 
 **When to use gopls:**
 - Refactoring: Find all usages before renaming
