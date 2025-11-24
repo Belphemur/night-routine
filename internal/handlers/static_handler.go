@@ -113,3 +113,8 @@ func parseETags(header string) []string {
 
 	return etags
 }
+
+// GetCSSETag returns the ETag for the CSS file, stripping quotes
+func (h *StaticHandler) GetCSSETag() string {
+	return strings.Trim(h.cssETag, "\"")
+}

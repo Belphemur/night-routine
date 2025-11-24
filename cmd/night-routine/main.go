@@ -174,8 +174,16 @@ func run(ctx context.Context) error {
 	calSvc := calendar.New(cfg, tokenStore, sched, tokenManager)
 	logger.Info().Msg("Calendar service created. Waiting for authentication/initialization...")
 
+	// Initialize static file handler
+	staticHandler, err := handlers.NewStaticHandler()
+	if err != nil {
+		wrappedErr := fmt.Errorf("failed to initialize static handler: %w", err)
+		logger.Error().Err(wrappedErr).Msg("Static handler initialization failed")
+		return wrappedErr
+	}
+
 	// Initialize base handler first, as other handlers depend on it
-	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker)
+	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag())
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
@@ -194,14 +202,6 @@ func run(ctx context.Context) error {
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
-
-	// Initialize static file handler
-	staticHandler, err := handlers.NewStaticHandler()
-	if err != nil {
-		wrappedErr := fmt.Errorf("failed to initialize static handler: %w", err)
-		logger.Error().Err(wrappedErr).Msg("Static handler initialization failed")
-		return wrappedErr
-	}
 
 	// Register routes
 	staticHandler.RegisterRoutes()

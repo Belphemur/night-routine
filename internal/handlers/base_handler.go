@@ -29,11 +29,12 @@ type BaseHandler struct {
 	TokenManager  *token.TokenManager
 	RuntimeConfig *config.RuntimeConfig
 	Tracker       fairness.TrackerInterface
+	cssVersion    string
 	logger        zerolog.Logger
 }
 
 // NewBaseHandler creates a common base handler with shared components
-func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface) (*BaseHandler, error) {
+func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface, cssVersion string) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
 
@@ -62,6 +63,7 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		TokenManager:  tokenManager,
 		RuntimeConfig: runtimeCfg,
 		Tracker:       tracker,
+		cssVersion:    cssVersion,
 		logger:        logger,
 	}, nil
 }
@@ -125,6 +127,7 @@ type BasePageData struct {
 	CurrentYear     int
 	CurrentPath     string
 	IsAuthenticated bool
+	CSSETag         string
 }
 
 // NewBasePageData creates a new BasePageData with common fields populated
@@ -133,5 +136,6 @@ func (h *BaseHandler) NewBasePageData(r *http.Request, isAuthenticated bool) Bas
 		CurrentYear:     time.Now().Year(),
 		CurrentPath:     r.URL.Path,
 		IsAuthenticated: isAuthenticated,
+		CSSETag:         h.cssVersion,
 	}
 }
