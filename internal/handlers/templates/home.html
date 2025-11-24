@@ -161,18 +161,21 @@
     <!-- Week Navigation -->
     <div class="flex items-center justify-between mb-4 gap-2">
         <button id="prev-week-btn" 
+            aria-label="Go to previous week"
             class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg flex items-center gap-1">
-            <span>←</span>
+            <span aria-hidden="true">←</span>
             <span>Previous</span>
         </button>
         <button id="current-week-btn"
+            aria-label="Go to current week"
             class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-200 hover:shadow-lg text-sm">
             Today
         </button>
         <button id="next-week-btn"
+            aria-label="Go to next week"
             class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg flex items-center gap-1">
             <span>Next</span>
-            <span>→</span>
+            <span aria-hidden="true">→</span>
         </button>
     </div>
 
