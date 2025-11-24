@@ -417,8 +417,8 @@
                 // Render the week - split into two rows
                 const tbody1 = document.getElementById('mobile-calendar-body-row1');
                 const tbody2 = document.getElementById('mobile-calendar-body-row2');
-                tbody1.innerHTML = '';
-                tbody2.innerHTML = '';
+                tbody1.replaceChildren();
+                tbody2.replaceChildren();
                 
                 // Helper function to create a day cell
                 function createDayCell(day) {
