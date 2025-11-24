@@ -1,3 +1,10 @@
+# [0.19.0](https://github.com/Belphemur/night-routine/compare/v0.18.0...v0.19.0) (2025-11-24)
+
+
+### Features
+
+* Add responsive weekly calendar view for mobile with JSON data architecture ([#165](https://github.com/Belphemur/night-routine/issues/165)) ([12f2678](https://github.com/Belphemur/night-routine/commit/12f26782edcec9caff09a2218f48eee666183c36))
+
 # [0.18.0](https://github.com/Belphemur/night-routine/compare/v0.17.0...v0.18.0) (2025-11-24)
 
 
