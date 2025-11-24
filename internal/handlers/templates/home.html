@@ -88,7 +88,8 @@
 
 <!-- Calendar Section -->
 {{if and .IsAuthenticated .CalendarWeeks}}
-<div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+<!-- Desktop Calendar View (Full Month) - Hidden on mobile -->
+<div class="hidden md:block bg-white rounded-2xl shadow-xl p-6 md:p-8">
     <div class="mb-6">
         <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">📅 {{.CurrentMonth}}</h2>
         <p class="text-slate-600">Your night routine assignments</p>
@@ -145,6 +146,52 @@
                     {{end}}
                 </tr>
                 {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Mobile Calendar View (Weekly) - Visible only on mobile -->
+<div class="block md:hidden bg-white rounded-2xl shadow-xl p-4">
+    <div class="mb-4">
+        <h2 class="text-xl font-bold text-slate-900 mb-2">📅 <span id="mobile-week-label">{{.CurrentMonth}}</span></h2>
+        <p class="text-slate-600 text-sm">Your night routine assignments</p>
+    </div>
+    
+    <!-- Week Navigation -->
+    <div class="flex items-center justify-between mb-4 gap-2">
+        <button id="prev-week-btn" 
+            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg flex items-center gap-1">
+            <span>←</span>
+            <span>Previous</span>
+        </button>
+        <button id="current-week-btn"
+            class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-200 hover:shadow-lg text-sm">
+            Today
+        </button>
+        <button id="next-week-btn"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg flex items-center gap-1">
+            <span>Next</span>
+            <span>→</span>
+        </button>
+    </div>
+
+    <!-- Weekly Calendar Table -->
+    <div class="overflow-x-auto -mx-4 px-4">
+        <table class="w-full border-collapse min-w-full" id="mobile-assignment-calendar">
+            <thead>
+                <tr>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Mon</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Tue</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Wed</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Thu</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Fri</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Sat</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Sun</th>
+                </tr>
+            </thead>
+            <tbody id="mobile-calendar-body">
+                <!-- Will be populated by JavaScript -->
             </tbody>
         </table>
     </div>
@@ -246,6 +293,156 @@
                     }
                 }
             });
+        }
+
+        // Mobile Weekly Calendar Logic
+        const mobileCalendar = document.getElementById('mobile-assignment-calendar');
+        if (mobileCalendar) {
+            let currentWeekOffset = 0;
+            const allDays = []; // Will store all calendar days from the full month
+
+            // Extract all days from the server-rendered desktop calendar
+            const desktopCalendar = document.getElementById('assignment-calendar');
+            if (desktopCalendar) {
+                const cells = desktopCalendar.querySelectorAll('tbody td[data-date]');
+                cells.forEach(cell => {
+                    const dateStr = cell.getAttribute('data-date');
+                    const dateObj = new Date(dateStr + 'T00:00:00'); // Parse as local date
+                    const dayOfMonth = parseInt(cell.querySelector('span').textContent);
+                    const assignmentId = cell.getAttribute('data-assignment-id');
+                    const assignmentParent = cell.querySelector('span:nth-child(2)')?.textContent || '';
+                    const assignmentReason = cell.querySelector('span:nth-child(3)')?.textContent || '';
+                    const isOverridden = cell.classList.contains('overridden');
+                    const classes = cell.className;
+
+                    allDays.push({
+                        date: dateObj,
+                        dateStr: dateStr,
+                        dayOfMonth: dayOfMonth,
+                        assignmentId: assignmentId,
+                        assignmentParent: assignmentParent,
+                        assignmentReason: assignmentReason,
+                        isOverridden: isOverridden,
+                        classes: classes
+                    });
+                });
+
+                // Sort by date
+                allDays.sort((a, b) => a.date - b.date);
+            }
+
+            function getMondayOfWeek(date) {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+                return new Date(d.setDate(diff));
+            }
+
+            function formatWeekLabel(mondayDate) {
+                const sunday = new Date(mondayDate);
+                sunday.setDate(sunday.getDate() + 6);
+                
+                const options = { month: 'long', day: 'numeric' };
+                const mondayStr = mondayDate.toLocaleDateString('en-US', options);
+                const sundayStr = sunday.toLocaleDateString('en-US', { ...options, year: 'numeric' });
+                
+                if (mondayDate.getMonth() === sunday.getMonth()) {
+                    return `Week of ${mondayStr} - ${sunday.getDate()}, ${sunday.getFullYear()}`;
+                }
+                return `Week of ${mondayStr} - ${sundayStr}`;
+            }
+
+            function renderWeek() {
+                const mondayOfTargetWeek = getMondayOfWeek(today);
+                mondayOfTargetWeek.setDate(mondayOfTargetWeek.getDate() + (currentWeekOffset * 7));
+                
+                // Update week label
+                const weekLabel = formatWeekLabel(mondayOfTargetWeek);
+                document.getElementById('mobile-week-label').textContent = weekLabel;
+
+                // Get the 7 days for this week
+                const weekDays = [];
+                for (let i = 0; i < 7; i++) {
+                    const currentDate = new Date(mondayOfTargetWeek);
+                    currentDate.setDate(currentDate.getDate() + i);
+                    const dateStr = getLocalDateString(currentDate);
+                    
+                    // Find matching day in allDays
+                    const dayData = allDays.find(d => d.dateStr === dateStr);
+                    weekDays.push(dayData || {
+                        date: currentDate,
+                        dateStr: dateStr,
+                        dayOfMonth: currentDate.getDate(),
+                        assignmentId: null,
+                        assignmentParent: '',
+                        assignmentReason: '',
+                        isOverridden: false,
+                        classes: 'border border-slate-200 p-2 text-center align-top h-20 relative bg-white'
+                    });
+                }
+
+                // Render the week
+                const tbody = document.getElementById('mobile-calendar-body');
+                tbody.innerHTML = '';
+                
+                const row = document.createElement('tr');
+                weekDays.forEach(day => {
+                    const td = document.createElement('td');
+                    td.className = day.classes.replace(/h-24|h-28|md:h-28|p-3|text-lg|md:text-xl|text-xs|md:text-sm/g, '')
+                        .replace(/\s+/g, ' ').trim();
+                    td.className += ' h-20 p-2 text-xs';
+                    td.setAttribute('data-date', day.dateStr);
+                    if (day.assignmentId) {
+                        td.setAttribute('data-assignment-id', day.assignmentId);
+                    }
+                    
+                    // Check if this is today
+                    if (day.dateStr === todayString) {
+                        td.classList.add('today-cell');
+                    }
+                    
+                    const dayHtml = `
+                        <span class="block text-base font-bold mb-1">${day.dayOfMonth}</span>
+                        ${day.assignmentParent ? `<span class="block text-xs font-semibold">${day.assignmentParent}</span>` : ''}
+                        ${day.assignmentReason ? `<span class="block text-xs text-slate-500 mt-1">${day.assignmentReason}</span>` : ''}
+                    `;
+                    td.innerHTML = dayHtml;
+                    
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+
+                // Add click handlers for overridden cells
+                tbody.querySelectorAll('td.overridden').forEach(cell => {
+                    cell.style.cursor = 'pointer';
+                    cell.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const assignmentId = this.getAttribute('data-assignment-id');
+                        if (assignmentId) {
+                            showUnlockModal(assignmentId);
+                        }
+                    });
+                });
+            }
+
+            // Navigation button handlers
+            document.getElementById('prev-week-btn').addEventListener('click', () => {
+                currentWeekOffset--;
+                renderWeek();
+            });
+
+            document.getElementById('next-week-btn').addEventListener('click', () => {
+                currentWeekOffset++;
+                renderWeek();
+            });
+
+            document.getElementById('current-week-btn').addEventListener('click', () => {
+                currentWeekOffset = 0;
+                renderWeek();
+            });
+
+            // Initial render
+            renderWeek();
         }
 
         // Modal management functions
