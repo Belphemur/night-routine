@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/belphemur/night-routine/internal/fairness/scheduler"
@@ -28,6 +29,18 @@ func (h *HomeHandler) RegisterRoutes() {
 	http.HandleFunc("/", h.handleHome)
 }
 
+// CalendarDayJSON represents a calendar day in JSON format for client-side use
+type CalendarDayJSON struct {
+	DateStr          string `json:"dateStr"`
+	DayOfMonth       int    `json:"dayOfMonth"`
+	IsCurrentMonth   bool   `json:"isCurrentMonth"`
+	AssignmentID     int64  `json:"assignmentId,omitempty"`
+	AssignmentParent string `json:"assignmentParent,omitempty"`
+	AssignmentReason string `json:"assignmentReason,omitempty"`
+	IsOverridden     bool   `json:"isOverridden"`
+	CSSClasses       string `json:"cssClasses"`
+}
+
 // HomePageData contains data for the home page template
 type HomePageData struct {
 	BasePageData
@@ -37,6 +50,7 @@ type HomePageData struct {
 	SuccessMessage string
 	CurrentMonth   string
 	CalendarWeeks  [][]viewhelpers.CalendarDay
+	CalendarData   []CalendarDayJSON // Flattened calendar data for mobile view
 }
 
 // handleHome shows the main page with auth status and potentially the calendar
@@ -64,11 +78,64 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 		} else {
 			data.CurrentMonth = calendarMonth
 			data.CalendarWeeks = calendarWeeks
+			data.CalendarData = h.flattenCalendarData(calendarWeeks)
 		}
 	}
 
 	handlerLogger.Debug().Msg("Rendering home template")
 	h.RenderTemplate(w, "home.html", data)
+}
+
+// flattenCalendarData converts CalendarWeeks to a flat array of CalendarDayJSON for mobile view
+func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []CalendarDayJSON {
+	var result []CalendarDayJSON
+
+	for _, week := range weeks {
+		for _, day := range week {
+			dayJSON := CalendarDayJSON{
+				DateStr:        day.Date.Format("2006-01-02"),
+				DayOfMonth:     day.DayOfMonth,
+				IsCurrentMonth: day.IsCurrentMonth,
+			}
+
+			// Build base CSS classes shared by all days
+			baseClasses := []string{"border", "border-slate-200", "text-center", "align-top", "relative"}
+			if day.IsCurrentMonth {
+				baseClasses = append(baseClasses, "bg-white", "hover:shadow-lg")
+			} else {
+				baseClasses = append(baseClasses, "bg-slate-50", "text-slate-400")
+			}
+
+			if day.Assignment != nil {
+				dayJSON.AssignmentID = day.Assignment.ID
+				dayJSON.AssignmentParent = day.Assignment.Parent
+				dayJSON.AssignmentReason = string(day.Assignment.DecisionReason)
+				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"
+
+				// Add assignment-specific classes
+				classes := append(baseClasses, "cursor-pointer", "transition-all", "duration-200")
+
+				if day.Assignment.ParentType.String() == "ParentA" {
+					classes = append(classes, "bg-gradient-to-br", "from-blue-50", "to-indigo-100", "text-indigo-900", "border-indigo-200", "hover:from-blue-100", "hover:to-indigo-200")
+				} else if day.Assignment.ParentType.String() == "ParentB" {
+					classes = append(classes, "bg-gradient-to-br", "from-amber-50", "to-orange-100", "text-orange-900", "border-orange-200", "hover:from-amber-100", "hover:to-orange-200")
+				}
+
+				if dayJSON.IsOverridden {
+					classes = append(classes, "overridden")
+				}
+
+				dayJSON.CSSClasses = strings.Join(classes, " ")
+			} else {
+				// No assignment - use base classes only
+				dayJSON.CSSClasses = strings.Join(baseClasses, " ")
+			}
+
+			result = append(result, dayJSON)
+		}
+	}
+
+	return result
 }
 
 // getSelectedCalendarInfo retrieves the currently selected Google Calendar ID and name.

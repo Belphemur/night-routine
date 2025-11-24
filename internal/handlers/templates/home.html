@@ -88,34 +88,36 @@
 
 <!-- Calendar Section -->
 {{if and .IsAuthenticated .CalendarWeeks}}
-<div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+<!-- Desktop Calendar View (Full Month) - Hidden on mobile -->
+<div class="hidden md:block bg-white rounded-2xl shadow-xl p-6 md:p-8">
     <div class="mb-6">
         <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">📅 {{.CurrentMonth}}</h2>
         <p class="text-slate-600">Your night routine assignments</p>
     </div>
     <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
-        <table class="w-full border-collapse min-w-full" id="assignment-calendar">
+        <table class="w-full border-collapse min-w-full" id="assignment-calendar" role="table" aria-label="Monthly calendar of night routine assignments">
+            <caption class="sr-only">{{.CurrentMonth}} night routine assignment calendar</caption>
             <thead>
                 <tr>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base rounded-tl-xl">
                         Mon</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Tue</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Wed</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Thu</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Fri</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Sat</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base rounded-tr-xl">
                         Sun</th>
                 </tr>
@@ -145,6 +147,69 @@
                     {{end}}
                 </tr>
                 {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Mobile Calendar View (Weekly) - Visible only on mobile -->
+<div class="block md:hidden bg-white rounded-2xl shadow-xl p-4">
+    <div class="mb-4">
+        <h2 class="text-xl font-bold text-slate-900 mb-2">📅 <span id="mobile-week-label">{{.CurrentMonth}}</span></h2>
+        <p class="text-slate-600 text-sm">Your night routine assignments</p>
+    </div>
+    
+    <!-- Week Navigation -->
+    <div class="flex items-center justify-between mb-4 gap-2">
+        <button id="prev-week-btn" 
+            aria-label="Go to previous week"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg flex items-center gap-1">
+            <span aria-hidden="true">←</span>
+            <span>Previous</span>
+        </button>
+        <button id="current-week-btn"
+            aria-label="Go to current week"
+            class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-200 hover:shadow-lg text-sm">
+            Today
+        </button>
+        <button id="next-week-btn"
+            aria-label="Go to next week"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-lg flex items-center gap-1">
+            <span>Next</span>
+            <span aria-hidden="true">→</span>
+        </button>
+    </div>
+
+    <!-- Weekly Calendar Tables (split into 2 rows for mobile) -->
+    <div role="region" aria-label="Weekly calendar view">
+        <!-- First row: Mon-Thu -->
+        <table class="w-full border-collapse mb-2" id="mobile-assignment-calendar-row1" role="table" aria-label="Monday through Thursday assignments">
+            <caption class="sr-only">Monday through Thursday night routine assignments</caption>
+            <thead>
+                <tr>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Mon</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Tue</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Wed</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Thu</th>
+                </tr>
+            </thead>
+            <tbody id="mobile-calendar-body-row1">
+                <!-- Will be populated by JavaScript -->
+            </tbody>
+        </table>
+        
+        <!-- Second row: Fri-Sun -->
+        <table class="w-full border-collapse" id="mobile-assignment-calendar-row2" role="table" aria-label="Friday through Sunday assignments">
+            <caption class="sr-only">Friday through Sunday night routine assignments</caption>
+            <thead>
+                <tr>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Fri</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Sat</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Sun</th>
+                </tr>
+            </thead>
+            <tbody id="mobile-calendar-body-row2">
+                <!-- Will be populated by JavaScript -->
             </tbody>
         </table>
     </div>
@@ -246,6 +311,194 @@
                     }
                 }
             });
+        }
+
+        // Mobile Weekly Calendar Logic
+        // Tailwind CSS classes used dynamically in JavaScript - DO NOT REMOVE
+        // Classes: h-24 p-2 text-xs text-lg block font-bold mb-1 font-semibold text-slate-500 mt-1
+        const mobileCalendarRow1 = document.getElementById('mobile-assignment-calendar-row1');
+        const mobileCalendarRow2 = document.getElementById('mobile-assignment-calendar-row2');
+        if (mobileCalendarRow1 && mobileCalendarRow2) {
+            let currentWeekOffset = 0;
+            
+            // Use calendar data provided by the server as JSON
+            const calendarData = {{.CalendarData | js}};
+            const allDays = calendarData.map(day => ({
+                date: new Date(day.dateStr + 'T00:00:00'),
+                dateStr: day.dateStr,
+                dayOfMonth: day.dayOfMonth,
+                assignmentId: day.assignmentId || null,
+                assignmentParent: day.assignmentParent || '',
+                assignmentReason: day.assignmentReason || '',
+                isOverridden: day.isOverridden || false,
+                classes: day.cssClasses || ''
+            }));
+            
+            // Create a Map for O(1) lookups by date string
+            const allDaysMap = new Map(allDays.map(day => [day.dateStr, day]));
+
+            function getMondayOfWeek(date) {
+                // Create a completely independent copy using timestamp
+                const d = new Date(date.getTime());
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+                d.setDate(diff);
+                return d;
+            }
+
+            function formatWeekLabel(mondayDate) {
+                const sunday = new Date(mondayDate.getTime());
+                sunday.setDate(sunday.getDate() + 6);
+                
+                const options = { month: 'long', day: 'numeric' };
+                const mondayStr = mondayDate.toLocaleDateString('en-US', options);
+                const sundayStr = sunday.toLocaleDateString('en-US', { ...options, year: 'numeric' });
+                
+                if (mondayDate.getMonth() === sunday.getMonth()) {
+                    return `Week of ${mondayStr} - ${sunday.getDate()}, ${sunday.getFullYear()}`;
+                }
+                return `Week of ${mondayStr} - ${sundayStr}`;
+            }
+
+            function renderWeek() {
+                const mondayOfTargetWeek = getMondayOfWeek(today);
+                mondayOfTargetWeek.setDate(mondayOfTargetWeek.getDate() + (currentWeekOffset * 7));
+                
+                // Update week label
+                const weekLabel = formatWeekLabel(mondayOfTargetWeek);
+                document.getElementById('mobile-week-label').textContent = weekLabel;
+
+                // Get the 7 days for this week
+                const weekDays = [];
+                for (let i = 0; i < 7; i++) {
+                    const currentDate = new Date(mondayOfTargetWeek);
+                    currentDate.setDate(currentDate.getDate() + i);
+                    const dateStr = getLocalDateString(currentDate);
+                    
+                    // Find matching day using Map for O(1) lookup
+                    const dayData = allDaysMap.get(dateStr);
+                    
+                    // Default classes for days without data
+                    const defaultClasses = 'border border-slate-200 p-2 text-center align-top h-20 relative bg-white';
+                    
+                    weekDays.push(dayData || {
+                        date: currentDate,
+                        dateStr: dateStr,
+                        dayOfMonth: currentDate.getDate(),
+                        assignmentId: null,
+                        assignmentParent: '',
+                        assignmentReason: '',
+                        isOverridden: false,
+                        classes: defaultClasses
+                    });
+                }
+
+                // Render the week - split into two rows
+                const tbody1 = document.getElementById('mobile-calendar-body-row1');
+                const tbody2 = document.getElementById('mobile-calendar-body-row2');
+                tbody1.replaceChildren();
+                tbody2.replaceChildren();
+                
+                // Helper function to create a day cell
+                function createDayCell(day) {
+                    const td = document.createElement('td');
+                    // Combine classes reliably with array filtering
+                    td.className = [day.classes, 'h-24', 'p-2', 'text-xs'].filter(Boolean).join(' ');
+                    td.setAttribute('data-date', day.dateStr);
+                    if (day.assignmentId) {
+                        td.setAttribute('data-assignment-id', day.assignmentId);
+                    }
+
+                    // Build aria-label for accessibility
+                    const dateObj = new Date(day.dateStr + 'T00:00:00');
+                    let ariaLabel = dateObj.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    if (day.assignmentParent) {
+                        ariaLabel += ` - ${day.assignmentParent} assigned`;
+                        if (day.isOverridden) {
+                            ariaLabel += ' - Locked (manually overridden)';
+                        }
+                    }
+                    td.setAttribute('aria-label', ariaLabel);
+
+                    // Check if this is today
+                    if (day.dateStr === todayString) {
+                        td.classList.add('today-cell');
+                    }
+
+                    // Create elements safely without innerHTML to avoid XSS
+                    const dayNumber = document.createElement('span');
+                    dayNumber.className = 'block text-lg font-bold mb-1';
+                    dayNumber.textContent = day.dayOfMonth;
+                    td.appendChild(dayNumber);
+
+                    if (day.assignmentParent) {
+                        const parentSpan = document.createElement('span');
+                        parentSpan.className = 'block text-xs font-semibold';
+                        parentSpan.textContent = day.assignmentParent;
+                        td.appendChild(parentSpan);
+                    }
+
+                    if (day.assignmentReason) {
+                        const reasonSpan = document.createElement('span');
+                        reasonSpan.className = 'block text-xs text-slate-500 mt-1';
+                        reasonSpan.textContent = day.assignmentReason;
+                        td.appendChild(reasonSpan);
+                    }
+                    return td;
+                }
+                
+                // First row: Mon-Thu (days 0-3)
+                const row1 = document.createElement('tr');
+                for (let i = 0; i < 4; i++) {
+                    row1.appendChild(createDayCell(weekDays[i]));
+                }
+                tbody1.appendChild(row1);
+                
+                // Second row: Fri-Sun (days 4-6)
+                const row2 = document.createElement('tr');
+                for (let i = 4; i < 7; i++) {
+                    row2.appendChild(createDayCell(weekDays[i]));
+                }
+                tbody2.appendChild(row2);
+
+                // Add click handlers for overridden cells in both tables
+                [tbody1, tbody2].forEach(tbody => {
+                    tbody.querySelectorAll('td.overridden').forEach(cell => {
+                        cell.style.cursor = 'pointer';
+                        cell.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const assignmentId = this.getAttribute('data-assignment-id');
+                            if (assignmentId) {
+                                showUnlockModal(assignmentId);
+                            }
+                        });
+                    });
+                });
+            }
+
+            // Navigation button handlers
+            document.getElementById('prev-week-btn').addEventListener('click', () => {
+                currentWeekOffset--;
+                renderWeek();
+            });
+
+            document.getElementById('next-week-btn').addEventListener('click', () => {
+                currentWeekOffset++;
+                renderWeek();
+            });
+
+            document.getElementById('current-week-btn').addEventListener('click', () => {
+                currentWeekOffset = 0;
+                renderWeek();
+            });
+
+            // Initial render
+            renderWeek();
         }
 
         // Modal management functions
