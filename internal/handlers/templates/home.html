@@ -399,32 +399,47 @@
                     if (day.assignmentId) {
                         td.setAttribute('data-assignment-id', day.assignmentId);
                     }
-                    
+
+                    // Build aria-label for accessibility
+                    const dateObj = new Date(day.dateStr + 'T00:00:00');
+                    let ariaLabel = dateObj.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    if (day.assignmentParent) {
+                        ariaLabel += ` - ${day.assignmentParent} assigned`;
+                        if (day.isOverridden) {
+                            ariaLabel += ' - Locked (manually overridden)';
+                        }
+                    }
+                    td.setAttribute('aria-label', ariaLabel);
+
                     // Check if this is today
                     if (day.dateStr === todayString) {
                         td.classList.add('today-cell');
                     }
-                    
+
                     // Create elements safely without innerHTML to avoid XSS
                     const dayNumber = document.createElement('span');
                     dayNumber.className = 'block text-lg font-bold mb-1';
                     dayNumber.textContent = day.dayOfMonth;
                     td.appendChild(dayNumber);
-                    
+
                     if (day.assignmentParent) {
                         const parentSpan = document.createElement('span');
                         parentSpan.className = 'block text-xs font-semibold';
                         parentSpan.textContent = day.assignmentParent;
                         td.appendChild(parentSpan);
                     }
-                    
+
                     if (day.assignmentReason) {
                         const reasonSpan = document.createElement('span');
                         reasonSpan.className = 'block text-xs text-slate-500 mt-1';
                         reasonSpan.textContent = day.assignmentReason;
                         td.appendChild(reasonSpan);
                     }
-                    
                     return td;
                 }
                 
