@@ -176,21 +176,33 @@
         </button>
     </div>
 
-    <!-- Weekly Calendar Table -->
-    <div class="overflow-x-auto -mx-4 px-4">
-        <table class="w-full border-collapse min-w-full" id="mobile-assignment-calendar">
+    <!-- Weekly Calendar Tables (split into 2 rows for mobile) -->
+    <div>
+        <!-- First row: Mon-Thu -->
+        <table class="w-full border-collapse mb-2" id="mobile-assignment-calendar-row1">
             <thead>
                 <tr>
                     <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Mon</th>
                     <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Tue</th>
                     <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Wed</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Thu</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Fri</th>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Thu</th>
+                </tr>
+            </thead>
+            <tbody id="mobile-calendar-body-row1">
+                <!-- Will be populated by JavaScript -->
+            </tbody>
+        </table>
+        
+        <!-- Second row: Fri-Sun -->
+        <table class="w-full border-collapse" id="mobile-assignment-calendar-row2">
+            <thead>
+                <tr>
+                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Fri</th>
                     <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Sat</th>
                     <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Sun</th>
                 </tr>
             </thead>
-            <tbody id="mobile-calendar-body">
+            <tbody id="mobile-calendar-body-row2">
                 <!-- Will be populated by JavaScript -->
             </tbody>
         </table>
@@ -296,8 +308,9 @@
         }
 
         // Mobile Weekly Calendar Logic
-        const mobileCalendar = document.getElementById('mobile-assignment-calendar');
-        if (mobileCalendar) {
+        const mobileCalendarRow1 = document.getElementById('mobile-assignment-calendar-row1');
+        const mobileCalendarRow2 = document.getElementById('mobile-assignment-calendar-row2');
+        if (mobileCalendarRow1 && mobileCalendarRow2) {
             let currentWeekOffset = 0;
             const allDays = []; // Will store all calendar days from the full month
 
@@ -305,15 +318,27 @@
             const desktopCalendar = document.getElementById('assignment-calendar');
             if (desktopCalendar) {
                 const cells = desktopCalendar.querySelectorAll('tbody td[data-date]');
+                // Define unwanted classes for mobile rendering
+                const unwantedClasses = ['h-24', 'h-28', 'md:h-28', 'p-3', 'text-lg', 'md:text-xl', 'text-xs', 'md:text-sm'];
+                
                 cells.forEach(cell => {
                     const dateStr = cell.getAttribute('data-date');
+                    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                        return; // Skip invalid date formats
+                    }
                     const dateObj = new Date(dateStr + 'T00:00:00'); // Parse as local date
-                    const dayOfMonth = parseInt(cell.querySelector('span').textContent);
+                    const dayOfMonth = parseInt(cell.querySelector('span')?.textContent);
+                    if (!dayOfMonth) return;
+                    
                     const assignmentId = cell.getAttribute('data-assignment-id');
                     const assignmentParent = cell.querySelector('span:nth-child(2)')?.textContent || '';
                     const assignmentReason = cell.querySelector('span:nth-child(3)')?.textContent || '';
                     const isOverridden = cell.classList.contains('overridden');
-                    const classes = cell.className;
+                    
+                    // Filter out unwanted classes
+                    const classes = cell.className.split(/\s+/)
+                        .filter(cls => !unwantedClasses.includes(cls))
+                        .join(' ');
 
                     allDays.push({
                         date: dateObj,
@@ -335,7 +360,9 @@
                 const d = new Date(date);
                 const day = d.getDay();
                 const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-                return new Date(d.setDate(diff));
+                const monday = new Date(d);
+                monday.setDate(diff);
+                return monday;
             }
 
             function formatWeekLabel(mondayDate) {
@@ -369,6 +396,10 @@
                     
                     // Find matching day in allDays
                     const dayData = allDays.find(d => d.dateStr === dateStr);
+                    
+                    // Default classes for days without data
+                    const defaultClasses = 'border border-slate-200 p-2 text-center align-top h-20 relative bg-white';
+                    
                     weekDays.push(dayData || {
                         date: currentDate,
                         dateStr: dateStr,
@@ -377,20 +408,20 @@
                         assignmentParent: '',
                         assignmentReason: '',
                         isOverridden: false,
-                        classes: 'border border-slate-200 p-2 text-center align-top h-20 relative bg-white'
+                        classes: defaultClasses
                     });
                 }
 
-                // Render the week
-                const tbody = document.getElementById('mobile-calendar-body');
-                tbody.innerHTML = '';
+                // Render the week - split into two rows
+                const tbody1 = document.getElementById('mobile-calendar-body-row1');
+                const tbody2 = document.getElementById('mobile-calendar-body-row2');
+                tbody1.innerHTML = '';
+                tbody2.innerHTML = '';
                 
-                const row = document.createElement('tr');
-                weekDays.forEach(day => {
+                // Helper function to create a day cell
+                function createDayCell(day) {
                     const td = document.createElement('td');
-                    td.className = day.classes.replace(/h-24|h-28|md:h-28|p-3|text-lg|md:text-xl|text-xs|md:text-sm/g, '')
-                        .replace(/\s+/g, ' ').trim();
-                    td.className += ' h-20 p-2 text-xs';
+                    td.className = day.classes + ' h-24 p-2 text-xs';
                     td.setAttribute('data-date', day.dateStr);
                     if (day.assignmentId) {
                         td.setAttribute('data-assignment-id', day.assignmentId);
@@ -401,26 +432,54 @@
                         td.classList.add('today-cell');
                     }
                     
-                    const dayHtml = `
-                        <span class="block text-base font-bold mb-1">${day.dayOfMonth}</span>
-                        ${day.assignmentParent ? `<span class="block text-xs font-semibold">${day.assignmentParent}</span>` : ''}
-                        ${day.assignmentReason ? `<span class="block text-xs text-slate-500 mt-1">${day.assignmentReason}</span>` : ''}
-                    `;
-                    td.innerHTML = dayHtml;
+                    // Create elements safely without innerHTML to avoid XSS
+                    const dayNumber = document.createElement('span');
+                    dayNumber.className = 'block text-lg font-bold mb-1';
+                    dayNumber.textContent = day.dayOfMonth;
+                    td.appendChild(dayNumber);
                     
-                    row.appendChild(td);
-                });
-                tbody.appendChild(row);
+                    if (day.assignmentParent) {
+                        const parentSpan = document.createElement('span');
+                        parentSpan.className = 'block text-xs font-semibold';
+                        parentSpan.textContent = day.assignmentParent;
+                        td.appendChild(parentSpan);
+                    }
+                    
+                    if (day.assignmentReason) {
+                        const reasonSpan = document.createElement('span');
+                        reasonSpan.className = 'block text-xs text-slate-500 mt-1';
+                        reasonSpan.textContent = day.assignmentReason;
+                        td.appendChild(reasonSpan);
+                    }
+                    
+                    return td;
+                }
+                
+                // First row: Mon-Thu (days 0-3)
+                const row1 = document.createElement('tr');
+                for (let i = 0; i < 4; i++) {
+                    row1.appendChild(createDayCell(weekDays[i]));
+                }
+                tbody1.appendChild(row1);
+                
+                // Second row: Fri-Sun (days 4-6)
+                const row2 = document.createElement('tr');
+                for (let i = 4; i < 7; i++) {
+                    row2.appendChild(createDayCell(weekDays[i]));
+                }
+                tbody2.appendChild(row2);
 
-                // Add click handlers for overridden cells
-                tbody.querySelectorAll('td.overridden').forEach(cell => {
-                    cell.style.cursor = 'pointer';
-                    cell.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const assignmentId = this.getAttribute('data-assignment-id');
-                        if (assignmentId) {
-                            showUnlockModal(assignmentId);
-                        }
+                // Add click handlers for overridden cells in both tables
+                [tbody1, tbody2].forEach(tbody => {
+                    tbody.querySelectorAll('td.overridden').forEach(cell => {
+                        cell.style.cursor = 'pointer';
+                        cell.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const assignmentId = this.getAttribute('data-assignment-id');
+                            if (assignmentId) {
+                                showUnlockModal(assignmentId);
+                            }
+                        });
                     });
                 });
             }
