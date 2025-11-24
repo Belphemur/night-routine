@@ -333,6 +333,9 @@
                 isOverridden: day.isOverridden || false,
                 classes: day.cssClasses || ''
             }));
+            
+            // Create a Map for O(1) lookups by date string
+            const allDaysMap = new Map(allDays.map(day => [day.dateStr, day]));
 
             function getMondayOfWeek(date) {
                 // Create a completely independent copy using timestamp
@@ -372,8 +375,8 @@
                     currentDate.setDate(currentDate.getDate() + i);
                     const dateStr = getLocalDateString(currentDate);
                     
-                    // Find matching day in allDays
-                    const dayData = allDays.find(d => d.dateStr === dateStr);
+                    // Find matching day using Map for O(1) lookup
+                    const dayData = allDaysMap.get(dateStr);
                     
                     // Default classes for days without data
                     const defaultClasses = 'border border-slate-200 p-2 text-center align-top h-20 relative bg-white';
