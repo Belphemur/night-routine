@@ -95,28 +95,29 @@
         <p class="text-slate-600">Your night routine assignments</p>
     </div>
     <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
-        <table class="w-full border-collapse min-w-full" id="assignment-calendar">
+        <table class="w-full border-collapse min-w-full" id="assignment-calendar" role="table" aria-label="Monthly calendar of night routine assignments">
+            <caption class="sr-only">{{.CurrentMonth}} night routine assignment calendar</caption>
             <thead>
                 <tr>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base rounded-tl-xl">
                         Mon</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Tue</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Wed</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Thu</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Fri</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base">
                         Sat</th>
-                    <th
+                    <th scope="col"
                         class="bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-center font-bold text-slate-700 text-sm md:text-base rounded-tr-xl">
                         Sun</th>
                 </tr>
@@ -180,15 +181,16 @@
     </div>
 
     <!-- Weekly Calendar Tables (split into 2 rows for mobile) -->
-    <div>
+    <div role="region" aria-label="Weekly calendar view">
         <!-- First row: Mon-Thu -->
-        <table class="w-full border-collapse mb-2" id="mobile-assignment-calendar-row1">
+        <table class="w-full border-collapse mb-2" id="mobile-assignment-calendar-row1" role="table" aria-label="Monday through Thursday assignments">
+            <caption class="sr-only">Monday through Thursday night routine assignments</caption>
             <thead>
                 <tr>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Mon</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Tue</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Wed</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Thu</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Mon</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Tue</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Wed</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Thu</th>
                 </tr>
             </thead>
             <tbody id="mobile-calendar-body-row1">
@@ -197,12 +199,13 @@
         </table>
         
         <!-- Second row: Fri-Sun -->
-        <table class="w-full border-collapse" id="mobile-assignment-calendar-row2">
+        <table class="w-full border-collapse" id="mobile-assignment-calendar-row2" role="table" aria-label="Friday through Sunday assignments">
+            <caption class="sr-only">Friday through Sunday night routine assignments</caption>
             <thead>
                 <tr>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Fri</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Sat</th>
-                    <th class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Sun</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tl-xl">Fri</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs">Sat</th>
+                    <th scope="col" class="bg-gradient-to-br from-slate-100 to-slate-200 p-2 text-center font-bold text-slate-700 text-xs rounded-tr-xl">Sun</th>
                 </tr>
             </thead>
             <tbody id="mobile-calendar-body-row2">
@@ -341,7 +344,7 @@
             }
 
             function formatWeekLabel(mondayDate) {
-                const sunday = new Date(mondayDate);
+                const sunday = new Date(mondayDate.getTime());
                 sunday.setDate(sunday.getDate() + 6);
                 
                 const options = { month: 'long', day: 'numeric' };
