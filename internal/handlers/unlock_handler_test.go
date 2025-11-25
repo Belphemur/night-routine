@@ -68,7 +68,7 @@ func setupTestUnlockHandler(t *testing.T, authenticated bool) (*UnlockHandler, *
 	}
 
 	// Create base handler
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version")
+	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	// Create unlock handler

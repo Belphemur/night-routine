@@ -78,7 +78,7 @@ func setupTestSettingsHandler(t *testing.T) (*SettingsHandler, *database.ConfigS
 	}
 
 	// Create base handler
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version")
+	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	// Create settings handler (pass nil for optional sync dependencies in tests)
@@ -322,7 +322,7 @@ func TestSettingsHandler_CheckAuthentication_NoToken(t *testing.T) {
 		Config: cfg,
 	}
 
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version")
+	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	handler := NewSettingsHandler(baseHandler, configStore, nil, tokenManager, nil)
@@ -381,7 +381,7 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 		Config: cfg,
 	}
 
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version")
+	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	handler := NewSettingsHandler(baseHandler, configStore, nil, tokenManager, nil)

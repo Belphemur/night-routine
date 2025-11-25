@@ -1,4 +1,7 @@
-# Night Routine Scheduler
+<div align="center">
+  <img src="docs-site/assets/logo.png" alt="Night Routine Logo" width="120" height="120">
+  <h1>Night Routine Scheduler</h1>
+</div>
 
 A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation.
 
@@ -19,18 +22,21 @@ The application ensures both parents share night routine duties fairly while mai
 ### Configuration Management
 
 - **Web-Based Settings UI** - Intuitive interface for managing all runtime configuration
+
   - Configure parent names that appear in calendar events
   - Set availability constraints for each parent
   - Adjust schedule frequency and planning horizon
   - Changes take effect immediately without application restart
 
 - **Database-Backed Configuration** - Settings stored in SQLite database
+
   - Persistent across application restarts
   - Atomic transactions ensure consistency
   - Database constraints validate data integrity
   - Automatic backup and migration support
 
 - **Automatic Sync** - Settings changes trigger immediate calendar synchronization
+
   - Schedule recalculates based on new constraints
   - Calendar events updated automatically
   - Fairness algorithm adjusts to new availability patterns
@@ -43,7 +49,7 @@ The application ensures both parents share night routine duties fairly while mai
 ### Scheduling Intelligence
 
 - **Fair Distribution** - Sophisticated algorithm balances assignments between parents
-- **Availability Awareness** - Respects each parent's unavailable days  
+- **Availability Awareness** - Respects each parent's unavailable days
 - **Transparency** - Every assignment includes a clear decision reason
 - **Flexibility** - Supports manual overrides when life happens
 - **Google Calendar Integration** - Seamlessly syncs with your existing calendar workflow
@@ -51,7 +57,9 @@ The application ensures both parents share night routine duties fairly while mai
 ## Screenshots
 
 ### Modern 2025 UI Design
+
 The application features a completely modernized user interface with:
+
 - **Contemporary aesthetics** - Gradients, shadows, and smooth transitions
 - **Responsive navigation** - Clean nav bar with emoji icons for quick access
 - **Card-based layouts** - Modern card designs with depth and hover effects
@@ -61,8 +69,6 @@ The application features a completely modernized user interface with:
 
 ![Home Page - Modern Design](docs/screenshots/2025-modern/home-page-modernized.png)
 _Modern home dashboard with streamlined navigation (Home, Stats, Settings), gradient background, and card-based layout. Calendar management accessible via "Change Calendar" button. The UI features smooth animations and contemporary design patterns._
-
-
 
 ## Quick Start with Docker
 
@@ -93,6 +99,7 @@ _Note: These images are signed using Sigstore Cosign and include SBOM attestatio
 For comprehensive documentation including configuration, features, and development guides, visit the [**Night Routine Scheduler Documentation**](https://belphemur.github.io/night-routine/).
 
 **Quick Links:**
+
 - [Features Overview](https://belphemur.github.io/night-routine/features/)
 - [Installation Guide](https://belphemur.github.io/night-routine/installation/docker/)
 - [Configuration](https://belphemur.github.io/night-routine/configuration/toml/)
