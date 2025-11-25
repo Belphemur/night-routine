@@ -1,3 +1,10 @@
+## [0.19.1](https://github.com/Belphemur/night-routine/compare/v0.19.0...v0.19.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* add image logo and favicon with cache busting for improved branding ([8a058d5](https://github.com/Belphemur/night-routine/commit/8a058d544f7d2953fc9948d180f0a3c80dc0cbbf))
+
 # [0.19.0](https://github.com/Belphemur/night-routine/compare/v0.18.0...v0.19.0) (2025-11-24)
 
 
