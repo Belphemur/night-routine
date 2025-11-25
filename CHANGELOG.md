@@ -1,3 +1,10 @@
+## [0.19.2](https://github.com/Belphemur/night-routine/compare/v0.19.1...v0.19.2) (2025-11-25)
+
+
+### Bug Fixes
+
+* **css:** Replace `bg-gradient-to-*` with `bg-linear-to-*` utility classes and update ([15e96b3](https://github.com/Belphemur/night-routine/commit/15e96b37f10bac4f1c4406fe45d5ced1584aa593))
+
 ## [0.19.1](https://github.com/Belphemur/night-routine/compare/v0.19.0...v0.19.1) (2025-11-25)
 
 
