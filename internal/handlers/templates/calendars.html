@@ -10,7 +10,7 @@
     {{range .Calendars.Items}}
     <div
         class="bg-white rounded-2xl shadow-lg p-6 border-2 transition-all duration-200 hover:shadow-xl
-            {{if eq .Id $.Selected}}border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-50{{else}}border-slate-200 hover:border-indigo-300{{end}}">
+            {{if eq .Id $.Selected}}border-emerald-400 bg-linear-to-br from-emerald-50 to-green-50{{else}}border-slate-200 hover:border-indigo-300{{end}}">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
@@ -19,7 +19,7 @@
                     {{else}}
                     <span class="text-2xl">📅</span>
                     {{end}}
-                    <h3 class="text-xl font-bold text-slate-900 break-words">{{.Summary}}</h3>
+                    <h3 class="text-xl font-bold text-slate-900 wrap-break-word">{{.Summary}}</h3>
                 </div>
                 {{if .Description}}
                 <p class="text-slate-600 mb-2 ml-11">{{.Description}}</p>

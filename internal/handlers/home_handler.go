@@ -116,9 +116,9 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []C
 				classes := append(baseClasses, "cursor-pointer", "transition-all", "duration-200")
 
 				if day.Assignment.ParentType.String() == "ParentA" {
-					classes = append(classes, "bg-gradient-to-br", "from-blue-50", "to-indigo-100", "text-indigo-900", "border-indigo-200", "hover:from-blue-100", "hover:to-indigo-200")
+					classes = append(classes, "bg-linear-to-br", "from-blue-50", "to-indigo-100", "text-indigo-900", "border-indigo-200", "hover:from-blue-100", "hover:to-indigo-200")
 				} else if day.Assignment.ParentType.String() == "ParentB" {
-					classes = append(classes, "bg-gradient-to-br", "from-amber-50", "to-orange-100", "text-orange-900", "border-orange-200", "hover:from-amber-100", "hover:to-orange-200")
+					classes = append(classes, "bg-linear-to-br", "from-amber-50", "to-orange-100", "text-orange-900", "border-orange-200", "hover:from-amber-100", "hover:to-orange-200")
 				}
 
 				if dayJSON.IsOverridden {
