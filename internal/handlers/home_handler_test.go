@@ -17,10 +17,14 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 
 	t.Run("empty calendar weeks", func(t *testing.T) {
 		result := handler.flattenCalendarData(nil)
-		assert.Empty(t, result)
+		assert.Empty(t, result.Days)
+		assert.Empty(t, result.StartDate)
+		assert.Empty(t, result.EndDate)
 
 		result = handler.flattenCalendarData([][]viewhelpers.CalendarDay{})
-		assert.Empty(t, result)
+		assert.Empty(t, result.Days)
+		assert.Empty(t, result.StartDate)
+		assert.Empty(t, result.EndDate)
 	})
 
 	t.Run("single day without assignment", func(t *testing.T) {
@@ -37,9 +41,11 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 1)
+		require.Len(t, result.Days, 1)
+		assert.Equal(t, "2025-11-24", result.StartDate)
+		assert.Equal(t, "2025-11-24", result.EndDate)
 
-		day := result[0]
+		day := result.Days[0]
 		assert.Equal(t, "2025-11-24", day.DateStr)
 		assert.Equal(t, 24, day.DayOfMonth)
 		assert.True(t, day.IsCurrentMonth)
@@ -71,9 +77,9 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 1)
+		require.Len(t, result.Days, 1)
 
-		day := result[0]
+		day := result.Days[0]
 		assert.Equal(t, "2025-11-24", day.DateStr)
 		assert.Equal(t, 24, day.DayOfMonth)
 		assert.True(t, day.IsCurrentMonth)
@@ -106,9 +112,9 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 1)
+		require.Len(t, result.Days, 1)
 
-		day := result[0]
+		day := result.Days[0]
 		assert.Equal(t, "2025-11-25", day.DateStr)
 		assert.Equal(t, 25, day.DayOfMonth)
 		assert.True(t, day.IsCurrentMonth)
@@ -141,9 +147,9 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 1)
+		require.Len(t, result.Days, 1)
 
-		day := result[0]
+		day := result.Days[0]
 		assert.Equal(t, "2025-11-26", day.DateStr)
 		assert.True(t, day.IsOverridden)
 		assert.Equal(t, "Override", day.AssignmentReason)
@@ -164,9 +170,9 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 1)
+		require.Len(t, result.Days, 1)
 
-		day := result[0]
+		day := result.Days[0]
 		assert.Equal(t, "2025-10-31", day.DateStr)
 		assert.False(t, day.IsCurrentMonth)
 		assert.Contains(t, day.CSSClasses, "bg-slate-50")
@@ -214,23 +220,25 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 3)
+		require.Len(t, result.Days, 3)
+		assert.Equal(t, "2025-11-24", result.StartDate)
+		assert.Equal(t, "2025-11-26", result.EndDate)
 
 		// Check first day
-		assert.Equal(t, "2025-11-24", result[0].DateStr)
-		assert.Equal(t, "Alice", result[0].AssignmentParent)
-		assert.Contains(t, result[0].CSSClasses, "from-blue-50")
+		assert.Equal(t, "2025-11-24", result.Days[0].DateStr)
+		assert.Equal(t, "Alice", result.Days[0].AssignmentParent)
+		assert.Contains(t, result.Days[0].CSSClasses, "from-blue-50")
 
 		// Check second day (no assignment)
-		assert.Equal(t, "2025-11-25", result[1].DateStr)
-		assert.Empty(t, result[1].AssignmentParent)
-		assert.Contains(t, result[1].CSSClasses, "bg-white")
+		assert.Equal(t, "2025-11-25", result.Days[1].DateStr)
+		assert.Empty(t, result.Days[1].AssignmentParent)
+		assert.Contains(t, result.Days[1].CSSClasses, "bg-white")
 
 		// Check third day (overridden)
-		assert.Equal(t, "2025-11-26", result[2].DateStr)
-		assert.Equal(t, "Bob", result[2].AssignmentParent)
-		assert.True(t, result[2].IsOverridden)
-		assert.Contains(t, result[2].CSSClasses, "overridden")
+		assert.Equal(t, "2025-11-26", result.Days[2].DateStr)
+		assert.Equal(t, "Bob", result.Days[2].AssignmentParent)
+		assert.True(t, result.Days[2].IsOverridden)
+		assert.Contains(t, result.Days[2].CSSClasses, "overridden")
 	})
 
 	t.Run("CSS classes include all necessary styles", func(t *testing.T) {
@@ -252,9 +260,9 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		}
 
 		result := handler.flattenCalendarData(weeks)
-		require.Len(t, result, 1)
+		require.Len(t, result.Days, 1)
 
-		classes := result[0].CSSClasses
+		classes := result.Days[0].CSSClasses
 		// Check base classes
 		assert.Contains(t, classes, "border")
 		assert.Contains(t, classes, "border-slate-200")

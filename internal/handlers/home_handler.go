@@ -41,6 +41,13 @@ type CalendarDayJSON struct {
 	CSSClasses       string `json:"cssClasses"`
 }
 
+// MobileCalendarData contains the flattened calendar data and boundaries
+type MobileCalendarData struct {
+	Days      []CalendarDayJSON `json:"days"`
+	StartDate string            `json:"startDate"`
+	EndDate   string            `json:"endDate"`
+}
+
 // HomePageData contains data for the home page template
 type HomePageData struct {
 	BasePageData
@@ -50,7 +57,7 @@ type HomePageData struct {
 	SuccessMessage string
 	CurrentMonth   string
 	CalendarWeeks  [][]viewhelpers.CalendarDay
-	CalendarData   []CalendarDayJSON // Flattened calendar data for mobile view
+	CalendarData   MobileCalendarData // Flattened calendar data for mobile view with boundaries
 }
 
 // handleHome shows the main page with auth status and potentially the calendar
@@ -86,9 +93,16 @@ func (h *HomeHandler) handleHome(w http.ResponseWriter, r *http.Request) {
 	h.RenderTemplate(w, "home.html", data)
 }
 
-// flattenCalendarData converts CalendarWeeks to a flat array of CalendarDayJSON for mobile view
-func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []CalendarDayJSON {
-	var result []CalendarDayJSON
+// flattenCalendarData converts CalendarWeeks to a MobileCalendarData struct for mobile view
+func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) MobileCalendarData {
+	var days []CalendarDayJSON
+	var startDate, endDate string
+
+	if len(weeks) > 0 {
+		startDate = weeks[0][0].Date.Format("2006-01-02")
+		lastWeek := weeks[len(weeks)-1]
+		endDate = lastWeek[len(lastWeek)-1].Date.Format("2006-01-02")
+	}
 
 	for _, week := range weeks {
 		for _, day := range week {
@@ -131,11 +145,15 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) []C
 				dayJSON.CSSClasses = strings.Join(baseClasses, " ")
 			}
 
-			result = append(result, dayJSON)
+			days = append(days, dayJSON)
 		}
 	}
 
-	return result
+	return MobileCalendarData{
+		Days:      days,
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
 }
 
 // getSelectedCalendarInfo retrieves the currently selected Google Calendar ID and name.
