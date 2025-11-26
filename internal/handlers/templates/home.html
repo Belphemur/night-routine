@@ -487,6 +487,14 @@
                 // Update button states based on data availability
                 const prevBtn = document.getElementById('prev-week-btn');
                 const nextBtn = document.getElementById('next-week-btn');
+
+                const updateButtonState = (button, enabled) => {
+                    button.disabled = !enabled;
+                    button.classList.toggle('opacity-50', !enabled);
+                    button.classList.toggle('cursor-not-allowed', !enabled);
+                    button.classList.toggle('hover:bg-indigo-600', enabled);
+                    button.classList.toggle('hover:shadow-lg', enabled);
+                };
                 
                 // Check if previous week is within range
                 // We check if the Monday of the previous week is >= startDate
@@ -496,15 +504,7 @@
                 
                 // Simple string comparison works for YYYY-MM-DD
                 const canGoBack = startDateStr && prevWeekMondayStr >= startDateStr;
-                
-                prevBtn.disabled = !canGoBack;
-                if (!canGoBack) {
-                    prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    prevBtn.classList.remove('hover:bg-indigo-600', 'hover:shadow-lg');
-                } else {
-                    prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    prevBtn.classList.add('hover:bg-indigo-600', 'hover:shadow-lg');
-                }
+                updateButtonState(prevBtn, canGoBack);
 
                 // Check if next week is within range
                 // We check if the Sunday of the next week is <= endDate
@@ -515,15 +515,7 @@
                 const nextWeekSundayStr = getLocalDateString(nextWeekSunday);
                 
                 const canGoForward = endDateStr && nextWeekSundayStr <= endDateStr;
-                
-                nextBtn.disabled = !canGoForward;
-                if (!canGoForward) {
-                    nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    nextBtn.classList.remove('hover:bg-indigo-600', 'hover:shadow-lg');
-                } else {
-                    nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    nextBtn.classList.add('hover:bg-indigo-600', 'hover:shadow-lg');
-                }
+                updateButtonState(nextBtn, canGoForward)
             }
 
             // Navigation button handlers
