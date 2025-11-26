@@ -1,3 +1,10 @@
+## [0.19.4](https://github.com/Belphemur/night-routine/compare/v0.19.3...v0.19.4) (2025-11-26)
+
+
+### Bug Fixes
+
+* disable mobile calendar navigation buttons when no data available ([#169](https://github.com/Belphemur/night-routine/issues/169)) ([3517a17](https://github.com/Belphemur/night-routine/commit/3517a1737ddce841bfa63b7f9ac2bceddc28fb15))
+
 ## [0.19.3](https://github.com/Belphemur/night-routine/compare/v0.19.2...v0.19.3) (2025-11-26)
 
 
