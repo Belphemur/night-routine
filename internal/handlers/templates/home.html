@@ -322,7 +322,11 @@
             let currentWeekOffset = 0;
             
             // Use calendar data provided by the server as JSON
-            const calendarData = {{.CalendarData | js}};
+            const mobileData = {{.CalendarData | js}};
+            const calendarData = mobileData.days || [];
+            const startDateStr = mobileData.startDate;
+            const endDateStr = mobileData.endDate;
+            
             const allDays = calendarData.map(day => ({
                 date: new Date(day.dateStr + 'T00:00:00'),
                 dateStr: day.dateStr,
@@ -479,6 +483,47 @@
                         });
                     });
                 });
+
+                // Update button states based on data availability
+                const prevBtn = document.getElementById('prev-week-btn');
+                const nextBtn = document.getElementById('next-week-btn');
+                
+                // Check if previous week is within range
+                // We check if the Monday of the previous week is >= startDate
+                const prevWeekMonday = new Date(mondayOfTargetWeek);
+                prevWeekMonday.setDate(prevWeekMonday.getDate() - 7);
+                const prevWeekMondayStr = getLocalDateString(prevWeekMonday);
+                
+                // Simple string comparison works for YYYY-MM-DD
+                const canGoBack = startDateStr && prevWeekMondayStr >= startDateStr;
+                
+                prevBtn.disabled = !canGoBack;
+                if (!canGoBack) {
+                    prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    prevBtn.classList.remove('hover:bg-indigo-600', 'hover:shadow-lg');
+                } else {
+                    prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    prevBtn.classList.add('hover:bg-indigo-600', 'hover:shadow-lg');
+                }
+
+                // Check if next week is within range
+                // We check if the Sunday of the next week is <= endDate
+                const nextWeekMonday = new Date(mondayOfTargetWeek);
+                nextWeekMonday.setDate(nextWeekMonday.getDate() + 7);
+                const nextWeekSunday = new Date(nextWeekMonday);
+                nextWeekSunday.setDate(nextWeekSunday.getDate() + 6);
+                const nextWeekSundayStr = getLocalDateString(nextWeekSunday);
+                
+                const canGoForward = endDateStr && nextWeekSundayStr <= endDateStr;
+                
+                nextBtn.disabled = !canGoForward;
+                if (!canGoForward) {
+                    nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    nextBtn.classList.remove('hover:bg-indigo-600', 'hover:shadow-lg');
+                } else {
+                    nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    nextBtn.classList.add('hover:bg-indigo-600', 'hover:shadow-lg');
+                }
             }
 
             // Navigation button handlers
