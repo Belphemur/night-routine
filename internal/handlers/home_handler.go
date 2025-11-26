@@ -99,13 +99,9 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 	var startDate, endDate string
 
 	if len(weeks) > 0 {
-		if len(weeks[0]) > 0 {
-			startDate = weeks[0][0].Date.Format("2006-01-02")
-		}
+		startDate = weeks[0][0].Date.Format("2006-01-02")
 		lastWeek := weeks[len(weeks)-1]
-		if len(lastWeek) > 0 {
-			endDate = lastWeek[len(lastWeek)-1].Date.Format("2006-01-02")
-		}
+		endDate = lastWeek[len(lastWeek)-1].Date.Format("2006-01-02")
 	}
 
 	for _, week := range weeks {
