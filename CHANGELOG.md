@@ -1,3 +1,10 @@
+## [0.19.5](https://github.com/Belphemur/night-routine/compare/v0.19.4...v0.19.5) (2025-11-29)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/golang-migrate/migrate/v4 to v4.19.1 ([#173](https://github.com/Belphemur/night-routine/issues/173)) ([5853046](https://github.com/Belphemur/night-routine/commit/58530466ee928bd15ba6bf10ceba6dc8830edff1))
+
 ## [0.19.4](https://github.com/Belphemur/night-routine/compare/v0.19.3...v0.19.4) (2025-11-26)
 
 
