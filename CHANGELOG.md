@@ -1,3 +1,10 @@
+## [0.19.8](https://github.com/Belphemur/night-routine/compare/v0.19.7...v0.19.8) (2025-12-08)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/oauth2 to v0.34.0 ([#176](https://github.com/Belphemur/night-routine/issues/176)) ([34411f5](https://github.com/Belphemur/night-routine/commit/34411f5c04f331d5d537c84efcd7d28a7ff2f51c))
+
 ## [0.19.7](https://github.com/Belphemur/night-routine/compare/v0.19.6...v0.19.7) (2025-12-03)
 
 
