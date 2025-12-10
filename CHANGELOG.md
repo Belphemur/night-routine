@@ -1,3 +1,10 @@
+# [0.20.0](https://github.com/Belphemur/night-routine/compare/v0.19.8...v0.20.0) (2025-12-10)
+
+
+### Features
+
+* **ci:** add asset generation and build to copilot-setup-steps workflow ([#180](https://github.com/Belphemur/night-routine/issues/180)) ([84618f7](https://github.com/Belphemur/night-routine/commit/84618f7e7e9cde265db299a13a26714029df1fce))
+
 ## [0.19.8](https://github.com/Belphemur/night-routine/compare/v0.19.7...v0.19.8) (2025-12-08)
 
 
