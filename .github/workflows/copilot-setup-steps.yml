@@ -61,6 +61,18 @@ jobs:
           node --version
           pnpm --version
 
+      - name: Generate assets
+        run: go generate ./...
+
+      - name: Build application
+        run: |
+          CGO_ENABLED=0 go build -o night-routine ./cmd/night-routine
+
+      - name: Verify build
+        run: |
+          ./night-routine --version || echo "Version flag not available, checking binary exists"
+          ls -lh night-routine
+
       - name: Setup complete
         run: |
           echo "✅ Go environment setup complete"
@@ -69,3 +81,5 @@ jobs:
           echo "✅ Dependencies downloaded and verified"
           echo "✅ Node LTS installed"
           echo "✅ pnpm dependencies installed"
+          echo "✅ Assets generated (CSS via Tailwind)"
+          echo "✅ Application built successfully"
