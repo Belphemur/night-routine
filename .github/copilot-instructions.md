@@ -64,6 +64,19 @@ night-routine/
 - The CSS files are generated using Tailwind CSS v4 via pnpm
 - Assets must be regenerated after any template or CSS changes
 - The generate directive is in `internal/handlers/base_handler.go`
+- Generated CSS is embedded in the binary via `//go:embed` directives
+
+### Build Artifacts and Git
+- **Never commit build artifacts** - they are gitignored
+- Gitignored items include:
+  - Binary: `night-routine` executable
+  - Dependencies: `node_modules/`
+  - Build output: `dist/`, `bin/`, `_output/`
+  - Database files: `data/*.db*`, `test_*.db`
+  - Documentation build: `site/`
+  - IDE files: `.idea/`, `.vscode/*` (except specific settings)
+  - Environment: `.env` file
+- Use `.gitignore` to exclude additional temporary or generated files
 
 ### Build Process
 1. Install Node.js dependencies: `pnpm install --frozen-lockfile`
@@ -146,6 +159,17 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - SQLite3 with CGO-free ncruces/go-sqlite3 driver
 - Migrations handled via golang-migrate/migrate
 - Configuration stored in database, not files
+- **Migrations**:
+  - Migration files in `internal/database/migrations/sqlite/`
+  - Numbered sequentially: `000001_description.up.sql` and `000001_description.down.sql`
+  - Always provide both up and down migrations
+  - Never modify existing migrations - create new ones for changes
+  - Migrations are embedded via `//go:embed migrations` and run automatically on startup
+- **Database Schema**:
+  - Use `JSONB` for storing structured data like OAuth tokens
+  - Use `TIMESTAMP` with `DEFAULT CURRENT_TIMESTAMP` for temporal fields
+  - Add indexes for frequently queried columns
+  - Use foreign key constraints where appropriate
 
 ### API Integration
 - Google Calendar API through `internal/calendar/`
@@ -163,6 +187,17 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - Templates use Go's html/template
 - Static assets served with proper caching headers
 - Settings page provides real-time configuration updates
+- **Template Patterns**:
+  - Templates are embedded via `//go:embed templates/*.html`
+  - Base layout in `templates/layout.html` provides common structure
+  - Page-specific templates parsed on-demand and executed with layout
+  - Use `BasePageData` struct for common page data (year, path, auth status)
+  - Custom template functions defined in `funcMap` (e.g., `add`, `js`)
+  - Render templates with `h.RenderTemplate(w, "page.html", data)`
+- **Asset Versioning**:
+  - CSS and logo assets use ETag versioning for cache busting
+  - Version strings generated at build time and embedded in templates
+  - Proper `Cache-Control` headers set for static assets
 
 ## Security Considerations
 - Never commit secrets or credentials
@@ -176,11 +211,113 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - Add comments for complex logic and public APIs
 - Update relevant docs when changing functionality
 
+## Coding Conventions
+
+### Error Handling
+- **Always wrap errors** with context using `fmt.Errorf` with `%w` verb
+- Examples from codebase:
+  ```go
+  return fmt.Errorf("failed to get valid token: %w", err)
+  return fmt.Errorf("failed to create calendar service: %w", err)
+  ```
+- This preserves error chains and enables `errors.Is()` and `errors.As()`
+- Use structured logging to log errors with context before returning
+- Handle errors at appropriate levels - don't ignore them
+
+### Interfaces
+- The codebase uses interfaces for dependency injection and testability
+- Key interfaces:
+  - `CalendarService` in `internal/calendar/interface.go`
+  - `SchedulerInterface` in `internal/fairness/scheduler/interface.go`
+  - `TrackerInterface` in `internal/fairness/interface.go`
+  - `ConfigStoreInterface` in `internal/config/runtime_config.go`
+- When creating new components, define interfaces for external dependencies
+- Place interface definitions near their primary usage, not in separate files unless shared widely
+
+### Logging
+- Use `zerolog` for all logging throughout the application
+- Get a component-specific logger: `logger := logging.GetLogger("component-name")`
+- Use appropriate log levels:
+  - `Debug()` - Detailed diagnostic information
+  - `Info()` - General informational messages
+  - `Warn()` - Warning messages for recoverable issues
+  - `Error()` - Error messages for failures
+- Chain context fields for structured logging:
+  ```go
+  logger.Info().Str("version", version).Msg("Starting application")
+  logger.Error().Err(err).Msg("Failed to connect")
+  ```
+
+### Comments
+- Add comments for:
+  - **All exported functions, types, and constants** (Go convention)
+  - Complex algorithms or non-obvious logic
+  - Public APIs and interfaces
+  - Important architectural decisions
+- Follow Go doc comment conventions:
+  - Start with the name of the item being documented
+  - Use complete sentences
+  - Example: `// New creates a new database connection using the provided options.`
+- Avoid obvious comments that just restate the code
+
+### Dependencies
+- Use `go mod` for dependency management
+- Keep dependencies up to date with Renovate (configured in `renovate.json`)
+- Run `go mod verify` to verify dependencies
+- Run `go mod tidy` to clean up unused dependencies
+- Pin specific versions for stability
+
+## Environment and Configuration
+
+### Environment Variables
+- `GOOGLE_OAUTH_CLIENT_ID` - Google OAuth client ID (required)
+- `GOOGLE_OAUTH_CLIENT_SECRET` - Google OAuth client secret (required)
+- `CONFIG_FILE` - Path to TOML configuration file (default: `configs/routine.toml`)
+- `PORT` - HTTP server port (default: `8080`)
+- `APP_URL` - Internal application URL
+- `PUBLIC_URL` - Public-facing URL for OAuth callbacks
+- `ENV` - Environment mode: `development` or `production`
+
+### Configuration Files
+- TOML configuration files in `configs/` directory
+- Configuration is seeded from TOML file on first run, then stored in database
+- Runtime configuration managed through web UI
+- Never commit `.env` files (they're gitignored)
+
+## Development Environment
+
+### Local Development
+- Use `ENV=development` for verbose debug logging with console output
+- Use `.env` file for local environment variables (see `.env.example`)
+- Database file typically stored in `data/` directory (gitignored)
+- Hot reload not supported - rebuild after changes
+
+### Docker Development
+- Multi-stage Dockerfile in `build/Dockerfile`
+- Pre-built images available: `ghcr.io/belphemur/night-routine:latest`
+- Docker Compose configuration in `docker-compose.yml`
+- Images support both `amd64` and `arm64` architectures
+- Dev container configuration in `.devcontainer/devcontainer.json`
+
+### CI/CD Pipeline
+- GitHub Actions workflows in `.github/workflows/`
+- **CI workflow** (`ci.yml`):
+  - Lint: runs `go fmt` and `golangci-lint`
+  - Test: runs tests with race detection and coverage
+  - Build: generates assets and builds binary
+- **Release workflow** (`release.yml`):
+  - Triggered by semantic-release
+  - Multi-platform Docker builds
+  - Binary releases with GoReleaser
+- **Docs workflow** (`docs.yml`):
+  - Builds and deploys MkDocs documentation
+
 ## Additional Guidelines
 - Follow Go best practices and idioms
 - Write clear, maintainable code
-- Add comments for complex logic
 - Ensure all tests pass before committing
-- Keep dependencies up to date
-- Use structured logging with zerolog
-- Handle errors properly with context
+- Use structured logging with zerolog for all output
+- Never use `fmt.Print` or `log.Print` - use zerolog instead
+- Keep the codebase DRY (Don't Repeat Yourself)
+- Prefer composition over inheritance
+- Write self-documenting code with clear names
