@@ -1,3 +1,10 @@
+## [0.20.1](https://github.com/Belphemur/night-routine/compare/v0.20.0...v0.20.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/burntsushi/toml to v1.6.0 ([#186](https://github.com/Belphemur/night-routine/issues/186)) ([fdf5c51](https://github.com/Belphemur/night-routine/commit/fdf5c5118d9f92908d5c86b5b1f5dd27c6cdd78a))
+
 # [0.20.0](https://github.com/Belphemur/night-routine/compare/v0.19.8...v0.20.0) (2025-12-10)
 
 
