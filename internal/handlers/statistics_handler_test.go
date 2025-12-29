@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,9 +123,9 @@ func TestStatisticsHandler_StatsOrderDescending(t *testing.T) {
 	assert.Contains(t, body, "Statistics")
 
 	// Verify month headers are in descending order (current month first)
-	currentIdx := findStringIndex(body, currentMonth)
-	lastMonthIdx := findStringIndex(body, lastMonth)
-	twoMonthsAgoIdx := findStringIndex(body, twoMonthsAgo)
+	currentIdx := strings.Index(body, currentMonth)
+	lastMonthIdx := strings.Index(body, lastMonth)
+	twoMonthsAgoIdx := strings.Index(body, twoMonthsAgo)
 
 	// In descending order, current month should appear before last month
 	// and last month should appear before two months ago
@@ -171,9 +172,9 @@ func TestStatisticsHandler_StatsOrderAscending(t *testing.T) {
 	assert.Contains(t, body, "Statistics")
 
 	// Verify month headers are in ascending order (oldest month first)
-	currentIdx := findStringIndex(body, currentMonth)
-	lastMonthIdx := findStringIndex(body, lastMonth)
-	twoMonthsAgoIdx := findStringIndex(body, twoMonthsAgo)
+	currentIdx := strings.Index(body, currentMonth)
+	lastMonthIdx := strings.Index(body, lastMonth)
+	twoMonthsAgoIdx := strings.Index(body, twoMonthsAgo)
 
 	// In ascending order, two months ago should appear before last month
 	// and last month should appear before current month
@@ -250,14 +251,4 @@ func TestStatisticsHandler_MultipleParents(t *testing.T) {
 	body := w.Body.String()
 	assert.Contains(t, body, "TestParentA")
 	assert.Contains(t, body, "TestParentB")
-}
-
-// Helper function to find the index of a string in another string
-func findStringIndex(haystack, needle string) int {
-	for i := 0; i <= len(haystack)-len(needle); i++ {
-		if haystack[i:i+len(needle)] == needle {
-			return i
-		}
-	}
-	return -1
 }

@@ -226,8 +226,8 @@ func (s *ConfigStore) GetSchedule() (updateFrequency string, lookAheadDays, past
 		return "", 0, 0, constants.StatsOrderDesc, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
 	}
 
-	statsOrder, err = constants.ParseStatsOrder(statsOrderStr)
-	if err != nil {
+	statsOrder, parseErr := constants.ParseStatsOrder(statsOrderStr)
+	if parseErr != nil {
 		s.logger.Warn().Str("stats_order", statsOrderStr).Msg("Invalid stats order in database, defaulting to desc")
 		statsOrder = constants.StatsOrderDesc
 	}
@@ -261,8 +261,8 @@ func (s *ConfigStore) GetScheduleFull() (*ConfigSchedule, error) {
 		return nil, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
 	}
 
-	statsOrder, err := constants.ParseStatsOrder(statsOrderStr)
-	if err != nil {
+	statsOrder, parseErr := constants.ParseStatsOrder(statsOrderStr)
+	if parseErr != nil {
 		s.logger.Warn().Str("stats_order", statsOrderStr).Msg("Invalid stats order in database, defaulting to desc")
 		statsOrder = constants.StatsOrderDesc
 	}
