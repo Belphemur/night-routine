@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,6 +67,7 @@ func createTestConfig() *config.Config {
 			UpdateFrequency:        "weekly",
 			LookAheadDays:          30,
 			PastEventThresholdDays: 5,
+			StatsOrder:             constants.StatsOrderDesc,
 		},
 	}
 }
@@ -106,11 +108,12 @@ func TestConfigSeeder_InitialSeeding(t *testing.T) {
 	assert.ElementsMatch(t, []string{"Friday"}, unavailableB)
 
 	// Verify schedule
-	freq, lookAhead, threshold, err := store.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err := store.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "weekly", freq)
 	assert.Equal(t, 30, lookAhead)
 	assert.Equal(t, 5, threshold)
+	assert.Equal(t, constants.StatsOrderDesc, statsOrder)
 }
 
 func TestConfigSeeder_MigrationScenario(t *testing.T) {
@@ -161,6 +164,7 @@ func TestConfigSeeder_SkipIfAlreadySeeded(t *testing.T) {
 			UpdateFrequency:        "daily",
 			LookAheadDays:          7,
 			PastEventThresholdDays: 1,
+			StatsOrder:             constants.StatsOrderAsc,
 		},
 	}
 
@@ -192,6 +196,7 @@ func TestConfigSeeder_EmptyAvailability(t *testing.T) {
 			UpdateFrequency:        "weekly",
 			LookAheadDays:          30,
 			PastEventThresholdDays: 5,
+			StatsOrder:             constants.StatsOrderDesc,
 		},
 	}
 
@@ -230,7 +235,7 @@ func TestConfigSeeder_AllFrequencyTypes(t *testing.T) {
 			err := seeder.SeedFromConfig(cfg)
 			require.NoError(t, err)
 
-			freq, _, _, err := store.GetSchedule()
+			freq, _, _, _, err := store.GetSchedule()
 			require.NoError(t, err)
 			assert.Equal(t, tt.frequency, freq)
 		})
@@ -253,7 +258,7 @@ func TestConfigSeeder_PreservesDatabaseState(t *testing.T) {
 	err = store.SaveAvailability("parent_a", []string{"Saturday", "Sunday"})
 	require.NoError(t, err)
 
-	err = store.SaveSchedule("daily", 14, 7)
+	err = store.SaveSchedule("daily", 14, 7, constants.StatsOrderAsc)
 	require.NoError(t, err)
 
 	// Application restarts and tries to seed again
@@ -270,11 +275,12 @@ func TestConfigSeeder_PreservesDatabaseState(t *testing.T) {
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"Saturday", "Sunday"}, unavailableA, "User updates should be preserved")
 
-	freq, lookAhead, threshold, err := store.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err := store.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "daily", freq, "User updates should be preserved")
 	assert.Equal(t, 14, lookAhead, "User updates should be preserved")
 	assert.Equal(t, 7, threshold, "User updates should be preserved")
+	assert.Equal(t, constants.StatsOrderAsc, statsOrder, "User updates should be preserved")
 }
 
 func TestConfigSeeder_SeedFromConfig_ParentsSeedError(t *testing.T) {
@@ -295,6 +301,7 @@ func TestConfigSeeder_SeedFromConfig_ParentsSeedError(t *testing.T) {
 			UpdateFrequency:        "weekly",
 			LookAheadDays:          30,
 			PastEventThresholdDays: 5,
+			StatsOrder:             constants.StatsOrderDesc,
 		},
 	}
 
@@ -322,6 +329,7 @@ func TestConfigSeeder_SeedFromConfig_ScheduleSeedError(t *testing.T) {
 			UpdateFrequency:        "invalid", // Invalid frequency
 			LookAheadDays:          30,
 			PastEventThresholdDays: 5,
+			StatsOrder:             constants.StatsOrderDesc,
 		},
 	}
 

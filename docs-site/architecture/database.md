@@ -78,6 +78,7 @@ Stores schedule configuration (UI-configurable).
 | `update_frequency` | TEXT NOT NULL | Update frequency (daily/weekly/monthly) |
 | `look_ahead_days` | INTEGER NOT NULL | Days to schedule in advance |
 | `past_event_threshold_days` | INTEGER NOT NULL | Days in past to accept changes |
+| `stats_order` | TEXT NOT NULL | Sort order for statistics page (desc/asc) |
 | `created_at` | DATETIME | Creation timestamp |
 | `updated_at` | DATETIME | Last update timestamp |
 
@@ -85,6 +86,7 @@ Stores schedule configuration (UI-configurable).
 - `update_frequency` must be 'daily', 'weekly', or 'monthly'
 - `look_ahead_days` must be > 0
 - `past_event_threshold_days` must be >= 0
+- `stats_order` must be 'desc' or 'asc'
 
 **Notes:**
 - Seeded from TOML file on first run
@@ -320,7 +322,7 @@ FROM config_availability
 GROUP BY parent;
 
 -- Schedule settings
-SELECT update_frequency, look_ahead_days, past_event_threshold_days
+SELECT update_frequency, look_ahead_days, past_event_threshold_days, stats_order
 FROM config_schedule;
 ```
 

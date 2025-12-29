@@ -52,6 +52,7 @@ type SettingsPageData struct {
 	UpdateFrequency        string
 	LookAheadDays          int
 	PastEventThresholdDays int
+	StatsOrder             constants.StatsOrder
 	ErrorMessage           string
 	SuccessMessage         string
 	AllDaysOfWeek          []string
@@ -88,7 +89,7 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 		parentBUnavailable = []string{}
 	}
 
-	updateFrequency, lookAheadDays, pastEventThresholdDays, err := h.configStore.GetSchedule()
+	updateFrequency, lookAheadDays, pastEventThresholdDays, statsOrder, err := h.configStore.GetSchedule()
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get schedule configuration")
 		h.RenderTemplate(w, "settings.html", SettingsPageData{
@@ -117,6 +118,7 @@ func (h *SettingsHandler) handleSettings(w http.ResponseWriter, r *http.Request)
 		UpdateFrequency:        updateFrequency,
 		LookAheadDays:          lookAheadDays,
 		PastEventThresholdDays: pastEventThresholdDays,
+		StatsOrder:             statsOrder,
 		ErrorMessage:           errorMessage,
 		SuccessMessage:         successMessage,
 		AllDaysOfWeek:          getAllDaysOfWeek(),
@@ -173,6 +175,7 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	updateFrequency := r.FormValue("update_frequency")
 	lookAheadDaysStr := r.FormValue("look_ahead_days")
 	pastEventThresholdDaysStr := r.FormValue("past_event_threshold_days")
+	statsOrderStr := r.FormValue("stats_order")
 
 	// Validate and convert numeric values with upper bounds
 	lookAheadDays, err := strconv.Atoi(lookAheadDaysStr)
@@ -189,12 +192,21 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Parse and validate stats order
+	statsOrder, err := constants.ParseStatsOrder(statsOrderStr)
+	if err != nil {
+		handlerLogger.Error().Err(err).Str("value", statsOrderStr).Msg("Invalid stats order")
+		http.Redirect(w, r, "/settings?error="+ErrCodeInvalidStatsOrder, http.StatusSeeOther)
+		return
+	}
+
 	handlerLogger.Info().
 		Str("parent_a", parentA).
 		Str("parent_b", parentB).
 		Str("update_frequency", updateFrequency).
 		Int("look_ahead_days", lookAheadDays).
 		Int("past_event_threshold_days", pastEventThresholdDays).
+		Str("stats_order", statsOrder.String()).
 		Msg("Updating configuration")
 
 	// Save parent configuration
@@ -218,7 +230,7 @@ func (h *SettingsHandler) handleUpdateSettings(w http.ResponseWriter, r *http.Re
 	}
 
 	// Save schedule configuration
-	if err := h.configStore.SaveSchedule(updateFrequency, lookAheadDays, pastEventThresholdDays); err != nil {
+	if err := h.configStore.SaveSchedule(updateFrequency, lookAheadDays, pastEventThresholdDays, statsOrder); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to save schedule configuration")
 		http.Redirect(w, r, "/settings?error="+ErrCodeFailedSaveSchedule, http.StatusSeeOther)
 		return
@@ -287,7 +299,7 @@ func (h *SettingsHandler) triggerSync(ctx context.Context, logger zerolog.Logger
 	now := time.Now()
 
 	// Fetch lookAheadDays from database to use the latest settings
-	_, lookAheadDays, _, err := h.configStore.GetSchedule()
+	_, lookAheadDays, _, _, err := h.configStore.GetSchedule()
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to fetch lookAheadDays from database")
 		return fmt.Errorf("failed to fetch lookAheadDays: %w", err)

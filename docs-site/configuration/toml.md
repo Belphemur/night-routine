@@ -38,6 +38,7 @@ parent_b_unavailable = ["Monday"]
 update_frequency = "weekly"
 look_ahead_days = 30
 past_event_threshold_days = 5
+stats_order = "desc"
 
 [service]
 state_file = "data/state.db"
@@ -265,6 +266,27 @@ This setting controls the window for manual overrides:
 
 !!! info "Purpose"
     Prevents old assignments from being accidentally modified, which could affect fairness calculations.
+
+#### `stats_order`
+
+**Type:** String  
+**Required:** No  
+**Default:** `desc`  
+**Valid values:** `desc`, `asc`  
+**Configurable via UI:** Yes
+
+Sort order for months displayed on the Statistics page.
+
+```toml
+[schedule]
+stats_order = "desc"
+```
+
+- **`desc`** - Descending order (newest month first)
+- **`asc`** - Ascending order (oldest month first)
+
+!!! tip "Mobile Experience"
+    Descending order (default) is recommended as it displays the current month first, which is particularly useful on mobile devices where horizontal scrolling would otherwise be required to see current data.
 
 ### `[service]` - Service Settings
 

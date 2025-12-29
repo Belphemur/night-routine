@@ -111,12 +111,14 @@ func (s *ConfigSeeder) seedSchedule(cfg *config.Config) error {
 		Str("update_frequency", cfg.Schedule.UpdateFrequency).
 		Int("look_ahead_days", cfg.Schedule.LookAheadDays).
 		Int("past_event_threshold_days", cfg.Schedule.PastEventThresholdDays).
+		Str("stats_order", cfg.Schedule.StatsOrder.String()).
 		Msg("Seeding schedule configuration")
 
 	if err := s.store.SaveSchedule(
 		cfg.Schedule.UpdateFrequency,
 		cfg.Schedule.LookAheadDays,
 		cfg.Schedule.PastEventThresholdDays,
+		cfg.Schedule.StatsOrder,
 	); err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/belphemur/night-routine/internal/token"
@@ -44,7 +45,7 @@ func setupTestSettingsHandler(t *testing.T) (*SettingsHandler, *database.ConfigS
 	require.NoError(t, err)
 	err = configStore.SaveAvailability("parent_b", []string{"Friday"})
 	require.NoError(t, err)
-	err = configStore.SaveSchedule("weekly", 30, 5)
+	err = configStore.SaveSchedule("weekly", 30, 5, constants.StatsOrderDesc)
 	require.NoError(t, err)
 
 	// Create token store
@@ -147,6 +148,7 @@ func TestSettingsHandler_HandleUpdateSettings_Success(t *testing.T) {
 	formData.Set("update_frequency", "daily")
 	formData.Set("look_ahead_days", "14")
 	formData.Set("past_event_threshold_days", "3")
+	formData.Set("stats_order", "asc")
 
 	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -163,11 +165,12 @@ func TestSettingsHandler_HandleUpdateSettings_Success(t *testing.T) {
 	assert.Equal(t, "NewParentA", parentA)
 	assert.Equal(t, "NewParentB", parentB)
 
-	freq, lookAhead, threshold, err := configStore.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err := configStore.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "daily", freq)
 	assert.Equal(t, 14, lookAhead)
 	assert.Equal(t, 3, threshold)
+	assert.Equal(t, constants.StatsOrderAsc, statsOrder)
 }
 
 func TestSettingsHandler_HandleUpdateSettings_NotPost(t *testing.T) {
@@ -249,6 +252,7 @@ func TestSettingsHandler_HandleUpdateSettings_ParentsSaveFails(t *testing.T) {
 	formData.Set("update_frequency", "daily")
 	formData.Set("look_ahead_days", "30")
 	formData.Set("past_event_threshold_days", "5")
+	formData.Set("stats_order", "desc")
 
 	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -270,6 +274,7 @@ func TestSettingsHandler_HandleUpdateSettings_ScheduleSaveFails(t *testing.T) {
 	formData.Set("update_frequency", "invalid") // Invalid frequency
 	formData.Set("look_ahead_days", "30")
 	formData.Set("past_event_threshold_days", "5")
+	formData.Set("stats_order", "desc")
 
 	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -362,7 +367,7 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 	// Seed initial data
 	err = configStore.SaveParents("OldA", "OldB")
 	require.NoError(t, err)
-	err = configStore.SaveSchedule("weekly", 30, 5)
+	err = configStore.SaveSchedule("weekly", 30, 5, constants.StatsOrderDesc)
 	require.NoError(t, err)
 
 	tokenStore, err := database.NewTokenStore(db)
@@ -392,6 +397,7 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 	formData.Set("update_frequency", "daily")
 	formData.Set("look_ahead_days", "14")
 	formData.Set("past_event_threshold_days", "3")
+	formData.Set("stats_order", "desc")
 
 	req := httptest.NewRequest(http.MethodPost, "/settings/update", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

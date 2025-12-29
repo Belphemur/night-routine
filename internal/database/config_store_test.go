@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -189,26 +190,28 @@ func TestConfigStore_SaveAndGetSchedule(t *testing.T) {
 	defer cleanup()
 
 	// Save schedule configuration
-	err := store.SaveSchedule("weekly", 30, 5)
+	err := store.SaveSchedule("weekly", 30, 5, constants.StatsOrderDesc)
 	require.NoError(t, err)
 
 	// Retrieve schedule configuration
-	freq, lookAhead, threshold, err := store.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err := store.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "weekly", freq)
 	assert.Equal(t, 30, lookAhead)
 	assert.Equal(t, 5, threshold)
+	assert.Equal(t, constants.StatsOrderDesc, statsOrder)
 
 	// Update schedule configuration
-	err = store.SaveSchedule("daily", 7, 3)
+	err = store.SaveSchedule("daily", 7, 3, constants.StatsOrderAsc)
 	require.NoError(t, err)
 
 	// Verify update
-	freq, lookAhead, threshold, err = store.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err = store.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "daily", freq)
 	assert.Equal(t, 7, lookAhead)
 	assert.Equal(t, 3, threshold)
+	assert.Equal(t, constants.StatsOrderAsc, statsOrder)
 }
 
 func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
@@ -220,6 +223,7 @@ func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
 		frequency   string
 		lookAhead   int
 		threshold   int
+		statsOrder  constants.StatsOrder
 		wantErr     bool
 		errContains string
 	}{
@@ -228,6 +232,7 @@ func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
 			frequency:   "biweekly",
 			lookAhead:   30,
 			threshold:   5,
+			statsOrder:  constants.StatsOrderDesc,
 			wantErr:     true,
 			errContains: "invalid update frequency",
 		},
@@ -236,6 +241,7 @@ func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
 			frequency:   "weekly",
 			lookAhead:   0,
 			threshold:   5,
+			statsOrder:  constants.StatsOrderDesc,
 			wantErr:     true,
 			errContains: "must be positive",
 		},
@@ -244,6 +250,7 @@ func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
 			frequency:   "weekly",
 			lookAhead:   -1,
 			threshold:   5,
+			statsOrder:  constants.StatsOrderDesc,
 			wantErr:     true,
 			errContains: "must be positive",
 		},
@@ -252,28 +259,40 @@ func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
 			frequency:   "weekly",
 			lookAhead:   30,
 			threshold:   -1,
+			statsOrder:  constants.StatsOrderDesc,
 			wantErr:     true,
 			errContains: "cannot be negative",
 		},
 		{
-			name:      "Valid daily",
-			frequency: "daily",
-			lookAhead: 7,
-			threshold: 0,
-			wantErr:   false,
+			name:        "Invalid stats order",
+			frequency:   "weekly",
+			lookAhead:   30,
+			threshold:   5,
+			statsOrder:  constants.StatsOrder("invalid"),
+			wantErr:     true,
+			errContains: "invalid stats order",
 		},
 		{
-			name:      "Valid monthly",
-			frequency: "monthly",
-			lookAhead: 90,
-			threshold: 10,
-			wantErr:   false,
+			name:       "Valid daily",
+			frequency:  "daily",
+			lookAhead:  7,
+			threshold:  0,
+			statsOrder: constants.StatsOrderDesc,
+			wantErr:    false,
+		},
+		{
+			name:       "Valid monthly",
+			frequency:  "monthly",
+			lookAhead:  90,
+			threshold:  10,
+			statsOrder: constants.StatsOrderAsc,
+			wantErr:    false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := store.SaveSchedule(tt.frequency, tt.lookAhead, tt.threshold)
+			err := store.SaveSchedule(tt.frequency, tt.lookAhead, tt.threshold, tt.statsOrder)
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errContains != "" {
@@ -329,7 +348,7 @@ func TestConfigStore_GetScheduleFull(t *testing.T) {
 	defer cleanup()
 
 	// Save schedule configuration
-	err := store.SaveSchedule("weekly", 30, 5)
+	err := store.SaveSchedule("weekly", 30, 5, constants.StatsOrderDesc)
 	require.NoError(t, err)
 
 	// Get full configuration
@@ -340,6 +359,7 @@ func TestConfigStore_GetScheduleFull(t *testing.T) {
 	assert.Equal(t, "weekly", config.UpdateFrequency)
 	assert.Equal(t, 30, config.LookAheadDays)
 	assert.Equal(t, 5, config.PastEventThresholdDays)
+	assert.Equal(t, constants.StatsOrderDesc, config.StatsOrder)
 	assert.False(t, config.CreatedAt.IsZero())
 	assert.False(t, config.UpdatedAt.IsZero())
 }
@@ -369,7 +389,7 @@ func TestConfigStore_GetSchedule_NoData(t *testing.T) {
 	defer cleanup()
 
 	// Try to get schedule before any is saved
-	_, _, _, err := store.GetSchedule()
+	_, _, _, _, err := store.GetSchedule()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no schedule configuration found")
 }

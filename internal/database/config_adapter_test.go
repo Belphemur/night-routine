@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +47,7 @@ func setupTestConfigAdapter(t *testing.T) (*ConfigAdapter, *ConfigStore, func())
 	require.NoError(t, err)
 	err = store.SaveAvailability("parent_b", []string{"Monday", "Thursday"})
 	require.NoError(t, err)
-	err = store.SaveSchedule("monthly", 60, 10)
+	err = store.SaveSchedule("monthly", 60, 10, constants.StatsOrderDesc)
 	require.NoError(t, err)
 
 	adapter := NewConfigAdapter(store)
@@ -111,11 +112,12 @@ func TestConfigAdapter_GetSchedule(t *testing.T) {
 	adapter, _, cleanup := setupTestConfigAdapter(t)
 	defer cleanup()
 
-	freq, lookAhead, threshold, err := adapter.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err := adapter.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "monthly", freq)
 	assert.Equal(t, 60, lookAhead)
 	assert.Equal(t, 10, threshold)
+	assert.Equal(t, constants.StatsOrderDesc, statsOrder)
 }
 
 func TestLoadRuntimeConfig_WithAdapter(t *testing.T) {
@@ -156,6 +158,7 @@ func TestLoadRuntimeConfig_WithAdapter(t *testing.T) {
 	assert.Equal(t, "monthly", runtimeCfg.Config.Schedule.UpdateFrequency)
 	assert.Equal(t, 60, runtimeCfg.Config.Schedule.LookAheadDays)
 	assert.Equal(t, 10, runtimeCfg.Config.Schedule.PastEventThresholdDays)
+	assert.Equal(t, constants.StatsOrderDesc, runtimeCfg.Config.Schedule.StatsOrder)
 
 	// Check calendar ID is preserved from file
 	assert.Equal(t, "adapter-test-calendar", runtimeCfg.Config.Schedule.CalendarID)

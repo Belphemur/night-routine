@@ -200,7 +200,7 @@ func run(ctx context.Context) error {
 	calendarHandler := handlers.NewCalendarHandler(baseHandler, runtimeCfg, calendarManager)
 	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc)
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
-	statisticsHandler := handlers.NewStatisticsHandler(baseHandler)
+	statisticsHandler := handlers.NewStatisticsHandler(baseHandler, configStore)
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
 
 	// Register routes
