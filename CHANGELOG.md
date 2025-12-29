@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/Belphemur/night-routine/compare/v0.20.3...v0.21.0) (2025-12-29)
+
+
+### Features
+
+* **stats:** add configurable sort order setting (asc/desc) ([#193](https://github.com/Belphemur/night-routine/issues/193)) ([74d8bbf](https://github.com/Belphemur/night-routine/commit/74d8bbf27c913fe57a12ff425490d08f62333421))
+
 ## [0.20.3](https://github.com/Belphemur/night-routine/compare/v0.20.2...v0.20.3) (2025-12-19)
 
 
