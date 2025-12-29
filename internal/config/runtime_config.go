@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/belphemur/night-routine/internal/constants"
 )
 
 // RuntimeConfig holds configuration loaded from database at runtime
@@ -15,7 +17,7 @@ type RuntimeConfig struct {
 type ConfigLoader interface {
 	GetParents() (parentA, parentB string, err error)
 	GetAvailability() (parentAUnavailable, parentBUnavailable []string, err error)
-	GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, err error)
+	GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder, err error)
 }
 
 // LoadRuntimeConfig loads runtime configuration from database
@@ -49,7 +51,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 	}
 
 	// Load schedule configuration from database
-	updateFrequency, lookAheadDays, pastEventThresholdDays, err := loader.GetSchedule()
+	updateFrequency, lookAheadDays, pastEventThresholdDays, statsOrder, err := loader.GetSchedule()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load schedule configuration: %w", err)
 	}
@@ -58,6 +60,7 @@ func LoadRuntimeConfig(fileConfig *Config, loader ConfigLoader) (*RuntimeConfig,
 		CalendarID:             fileConfig.Schedule.CalendarID, // CalendarID stays in token store
 		LookAheadDays:          lookAheadDays,
 		PastEventThresholdDays: pastEventThresholdDays,
+		StatsOrder:             statsOrder,
 	}
 
 	return &RuntimeConfig{Config: mergedConfig}, nil
@@ -72,7 +75,7 @@ type DatabaseConfigLoader struct {
 type ConfigStoreInterface interface {
 	GetParents() (parentA, parentB string, err error)
 	GetAvailability(parent string) ([]string, error)
-	GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, err error)
+	GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder, err error)
 }
 
 // NewDatabaseConfigLoader creates a new database config loader
@@ -101,6 +104,6 @@ func (l *DatabaseConfigLoader) GetAvailability() (parentAUnavailable, parentBUna
 }
 
 // GetSchedule loads schedule configuration
-func (l *DatabaseConfigLoader) GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, err error) {
+func (l *DatabaseConfigLoader) GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder, err error) {
 	return l.store.GetSchedule()
 }

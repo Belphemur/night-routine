@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 )
 
 // ConfigAdapter adapts ConfigStore to the ConfigStoreInterface for runtime config
@@ -25,7 +26,7 @@ func (a *ConfigAdapter) GetAvailability(parent string) ([]string, error) {
 }
 
 // GetSchedule implements ConfigStoreInterface
-func (a *ConfigAdapter) GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, err error) {
+func (a *ConfigAdapter) GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder, err error) {
 	return a.store.GetSchedule()
 }
 

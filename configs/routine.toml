@@ -10,6 +10,7 @@ parent_b_unavailable = ["Tuesday", "Thursday"]     # Days when parent B can't do
 update_frequency = "weekly"  # How often to update the calendar
 look_ahead_days = 7        # How many days to schedule in advance
 past_event_threshold_days = 5  # How many days in the past to accept event changes (default: 5)
+stats_order = "desc"  # Sort order for statistics page: "desc" (newest first) or "asc" (oldest first)
 
 [service]
 state_file = "data/state.db"  # SQLite database file for state tracking

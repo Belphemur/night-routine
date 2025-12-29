@@ -41,10 +41,10 @@ theme:
     - content.code.copy
     - content.action.edit
     - toc.follow
+  logo: assets/logo.png
+  favicon: assets/favicon.png
   icon:
     repo: fontawesome/brands/github
-    logo: assets/logo.png
-    favicon: assets/favicon.png
 
 plugins:
   - search:

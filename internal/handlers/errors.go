@@ -6,6 +6,7 @@ const (
 	ErrCodeInvalidDayOfWeek          = "invalid_day_of_week"
 	ErrCodeInvalidLookAheadDays      = "invalid_look_ahead_days"
 	ErrCodeInvalidPastEventThreshold = "invalid_past_event_threshold"
+	ErrCodeInvalidStatsOrder         = "invalid_stats_order"
 	ErrCodeFailedSaveParent          = "failed_save_parent"
 	ErrCodeFailedSaveAvailability    = "failed_save_availability"
 	ErrCodeFailedSaveSchedule        = "failed_save_schedule"
@@ -37,6 +38,7 @@ var ErrorMessages = map[string]string{
 	ErrCodeInvalidDayOfWeek:          "Invalid day of week.",
 	ErrCodeInvalidLookAheadDays:      "Look ahead days must be between 1 and 365.",
 	ErrCodeInvalidPastEventThreshold: "Past event threshold must be between 0 and 30.",
+	ErrCodeInvalidStatsOrder:         "Invalid statistics order. Must be 'desc' or 'asc'.",
 	ErrCodeFailedSaveParent:          "Failed to save parent names.",
 	ErrCodeFailedSaveAvailability:    "Failed to save availability.",
 	ErrCodeFailedSaveSchedule:        "Failed to save schedule settings.",

@@ -3,6 +3,7 @@ package config
 import (
 	"testing"
 
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -11,7 +12,7 @@ import (
 type MockConfigLoader struct {
 	parents      func() (string, string, error)
 	availability func() ([]string, []string, error)
-	schedule     func() (string, int, int, error)
+	schedule     func() (string, int, int, constants.StatsOrder, error)
 }
 
 func (m *MockConfigLoader) GetParents() (string, string, error) {
@@ -28,18 +29,18 @@ func (m *MockConfigLoader) GetAvailability() ([]string, []string, error) {
 	return []string{"Monday"}, []string{"Friday"}, nil
 }
 
-func (m *MockConfigLoader) GetSchedule() (string, int, int, error) {
+func (m *MockConfigLoader) GetSchedule() (string, int, int, constants.StatsOrder, error) {
 	if m.schedule != nil {
 		return m.schedule()
 	}
-	return "weekly", 30, 5, nil
+	return "weekly", 30, 5, constants.StatsOrderDesc, nil
 }
 
 // MockConfigStore implements ConfigStoreInterface for testing
 type MockConfigStore struct {
 	parents      func() (string, string, error)
 	availability func(string) ([]string, error)
-	schedule     func() (string, int, int, error)
+	schedule     func() (string, int, int, constants.StatsOrder, error)
 }
 
 func (m *MockConfigStore) GetParents() (string, string, error) {
@@ -59,11 +60,11 @@ func (m *MockConfigStore) GetAvailability(parent string) ([]string, error) {
 	return []string{"Thursday"}, nil
 }
 
-func (m *MockConfigStore) GetSchedule() (string, int, int, error) {
+func (m *MockConfigStore) GetSchedule() (string, int, int, constants.StatsOrder, error) {
 	if m.schedule != nil {
 		return m.schedule()
 	}
-	return "daily", 14, 3, nil
+	return "daily", 14, 3, constants.StatsOrderDesc, nil
 }
 
 func TestLoadRuntimeConfig_Success(t *testing.T) {
@@ -103,6 +104,7 @@ func TestLoadRuntimeConfig_Success(t *testing.T) {
 	assert.Equal(t, "weekly", runtimeCfg.Config.Schedule.UpdateFrequency)
 	assert.Equal(t, 30, runtimeCfg.Config.Schedule.LookAheadDays)
 	assert.Equal(t, 5, runtimeCfg.Config.Schedule.PastEventThresholdDays)
+	assert.Equal(t, constants.StatsOrderDesc, runtimeCfg.Config.Schedule.StatsOrder)
 
 	// Check calendar ID preserved from file
 	assert.Equal(t, "test-calendar-id", runtimeCfg.Config.Schedule.CalendarID)
@@ -137,8 +139,8 @@ func TestLoadRuntimeConfig_AvailabilityError(t *testing.T) {
 func TestLoadRuntimeConfig_ScheduleError(t *testing.T) {
 	fileConfig := &Config{}
 	loader := &MockConfigLoader{
-		schedule: func() (string, int, int, error) {
-			return "", 0, 0, assert.AnError
+		schedule: func() (string, int, int, constants.StatsOrder, error) {
+			return "", 0, 0, "", assert.AnError
 		},
 	}
 
@@ -201,9 +203,10 @@ func TestDatabaseConfigLoader_GetSchedule(t *testing.T) {
 	store := &MockConfigStore{}
 	loader := NewDatabaseConfigLoader(store)
 
-	freq, lookAhead, threshold, err := loader.GetSchedule()
+	freq, lookAhead, threshold, statsOrder, err := loader.GetSchedule()
 	require.NoError(t, err)
 	assert.Equal(t, "daily", freq)
 	assert.Equal(t, 14, lookAhead)
 	assert.Equal(t, 3, threshold)
+	assert.Equal(t, constants.StatsOrderDesc, statsOrder)
 }

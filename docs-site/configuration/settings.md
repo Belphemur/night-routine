@@ -111,6 +111,18 @@ Behavior: Manual changes made to events in the last 5 days
           will be respected by the fairness algorithm
 ```
 
+#### Statistics Sort Order
+
+Controls the order of months displayed on the Statistics page.
+
+**Options:**
+- **Descending (newest first)**: Shows the current month first, followed by older months
+- **Ascending (oldest first)**: Shows the oldest month first, followed by newer months
+
+**Default**: Descending (newest first)
+
+This setting is particularly useful on mobile devices where horizontal scrolling is required. With descending order (default), the most relevant current month data is immediately visible without needing to scroll.
+
 ---
 
 ## Making Changes
@@ -221,6 +233,7 @@ All settings are validated both client-side and server-side:
 - **Update Frequency**: Must be one of: daily, weekly, monthly
 - **Look Ahead Days**: Must be between 1 and 365
 - **Past Event Threshold**: Must be between 0 and 30
+- **Statistics Sort Order**: Must be one of: desc (descending), asc (ascending)
 
 Invalid inputs are rejected with clear error messages indicating what needs to be corrected.
 

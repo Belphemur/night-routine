@@ -25,6 +25,7 @@ type ConfigSchedule struct {
 	UpdateFrequency        string
 	LookAheadDays          int
 	PastEventThresholdDays int
+	StatsOrder             constants.StatsOrder
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 }
@@ -207,40 +208,49 @@ func (s *ConfigStore) SaveAvailability(parent string, unavailableDays []string) 
 }
 
 // GetSchedule retrieves schedule configuration
-func (s *ConfigStore) GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, err error) {
+func (s *ConfigStore) GetSchedule() (updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder, err error) {
 	s.logger.Debug().Msg("Retrieving schedule configuration")
+	var statsOrderStr string
 	err = s.db.QueryRow(`
-		SELECT update_frequency, look_ahead_days, past_event_threshold_days
+		SELECT update_frequency, look_ahead_days, past_event_threshold_days, stats_order
 		FROM config_schedule
 		WHERE id = 1
-	`).Scan(&updateFrequency, &lookAheadDays, &pastEventThresholdDays)
+	`).Scan(&updateFrequency, &lookAheadDays, &pastEventThresholdDays, &statsOrderStr)
 
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Msg("No schedule configuration found in database")
-		return "", 0, 0, fmt.Errorf("no schedule configuration found")
+		return "", 0, 0, constants.StatsOrderDesc, fmt.Errorf("no schedule configuration found")
 	}
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to retrieve schedule configuration")
-		return "", 0, 0, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
+		return "", 0, 0, constants.StatsOrderDesc, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
+	}
+
+	statsOrder, parseErr := constants.ParseStatsOrder(statsOrderStr)
+	if parseErr != nil {
+		s.logger.Warn().Str("stats_order", statsOrderStr).Msg("Invalid stats order in database, defaulting to desc")
+		statsOrder = constants.StatsOrderDesc
 	}
 
 	s.logger.Debug().
 		Str("update_frequency", updateFrequency).
 		Int("look_ahead_days", lookAheadDays).
 		Int("past_event_threshold_days", pastEventThresholdDays).
+		Str("stats_order", statsOrder.String()).
 		Msg("Schedule configuration retrieved")
-	return updateFrequency, lookAheadDays, pastEventThresholdDays, nil
+	return updateFrequency, lookAheadDays, pastEventThresholdDays, statsOrder, nil
 }
 
 // GetScheduleFull retrieves full schedule configuration with metadata
 func (s *ConfigStore) GetScheduleFull() (*ConfigSchedule, error) {
 	s.logger.Debug().Msg("Retrieving full schedule configuration")
 	var config ConfigSchedule
+	var statsOrderStr string
 	err := s.db.QueryRow(`
-		SELECT id, update_frequency, look_ahead_days, past_event_threshold_days, created_at, updated_at
+		SELECT id, update_frequency, look_ahead_days, past_event_threshold_days, stats_order, created_at, updated_at
 		FROM config_schedule
 		WHERE id = 1
-	`).Scan(&config.ID, &config.UpdateFrequency, &config.LookAheadDays, &config.PastEventThresholdDays, &config.CreatedAt, &config.UpdatedAt)
+	`).Scan(&config.ID, &config.UpdateFrequency, &config.LookAheadDays, &config.PastEventThresholdDays, &statsOrderStr, &config.CreatedAt, &config.UpdatedAt)
 
 	if err == sql.ErrNoRows {
 		s.logger.Debug().Msg("No schedule configuration found in database")
@@ -251,16 +261,24 @@ func (s *ConfigStore) GetScheduleFull() (*ConfigSchedule, error) {
 		return nil, fmt.Errorf("failed to retrieve schedule configuration: %w", err)
 	}
 
+	statsOrder, parseErr := constants.ParseStatsOrder(statsOrderStr)
+	if parseErr != nil {
+		s.logger.Warn().Str("stats_order", statsOrderStr).Msg("Invalid stats order in database, defaulting to desc")
+		statsOrder = constants.StatsOrderDesc
+	}
+	config.StatsOrder = statsOrder
+
 	s.logger.Debug().
 		Str("update_frequency", config.UpdateFrequency).
 		Int("look_ahead_days", config.LookAheadDays).
 		Int("past_event_threshold_days", config.PastEventThresholdDays).
+		Str("stats_order", config.StatsOrder.String()).
 		Msg("Full schedule configuration retrieved")
 	return &config, nil
 }
 
 // SaveSchedule saves or updates schedule configuration
-func (s *ConfigStore) SaveSchedule(updateFrequency string, lookAheadDays, pastEventThresholdDays int) error {
+func (s *ConfigStore) SaveSchedule(updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder) error {
 	// Validate inputs
 	if updateFrequency != "daily" && updateFrequency != "weekly" && updateFrequency != "monthly" {
 		return fmt.Errorf("invalid update frequency: %s", updateFrequency)
@@ -271,22 +289,27 @@ func (s *ConfigStore) SaveSchedule(updateFrequency string, lookAheadDays, pastEv
 	if pastEventThresholdDays < 0 {
 		return fmt.Errorf("past event threshold days cannot be negative")
 	}
+	if !statsOrder.IsValid() {
+		return fmt.Errorf("invalid stats order: %s (must be 'desc' or 'asc')", statsOrder)
+	}
 
 	s.logger.Debug().
 		Str("update_frequency", updateFrequency).
 		Int("look_ahead_days", lookAheadDays).
 		Int("past_event_threshold_days", pastEventThresholdDays).
+		Str("stats_order", statsOrder.String()).
 		Msg("Saving schedule configuration")
 
 	_, err := s.db.Exec(`
-		INSERT INTO config_schedule (id, update_frequency, look_ahead_days, past_event_threshold_days, updated_at)
-		VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
+		INSERT INTO config_schedule (id, update_frequency, look_ahead_days, past_event_threshold_days, stats_order, updated_at)
+		VALUES (1, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(id) DO UPDATE SET
 			update_frequency = excluded.update_frequency,
 			look_ahead_days = excluded.look_ahead_days,
 			past_event_threshold_days = excluded.past_event_threshold_days,
+			stats_order = excluded.stats_order,
 			updated_at = CURRENT_TIMESTAMP
-	`, updateFrequency, lookAheadDays, pastEventThresholdDays)
+	`, updateFrequency, lookAheadDays, pastEventThresholdDays, statsOrder.String())
 
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to save schedule configuration")

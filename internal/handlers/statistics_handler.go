@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"sort"
 	"time"
+
+	"github.com/belphemur/night-routine/internal/constants"
+	"github.com/belphemur/night-routine/internal/database"
 )
 
 // ParentStatsForTemplate holds processed monthly statistics for a single parent,
@@ -24,13 +27,14 @@ type StatisticsPageData struct {
 // StatisticsHandler manages statistics page functionality.
 type StatisticsHandler struct {
 	*BaseHandler
-	// Tracker is accessed via BaseHandler: h.Tracker
+	configStore *database.ConfigStore
 }
 
 // NewStatisticsHandler creates a new statistics page handler.
-func NewStatisticsHandler(baseHandler *BaseHandler) *StatisticsHandler {
+func NewStatisticsHandler(baseHandler *BaseHandler, configStore *database.ConfigStore) *StatisticsHandler {
 	return &StatisticsHandler{
 		BaseHandler: baseHandler,
+		configStore: configStore,
 	}
 }
 
@@ -48,6 +52,13 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		BasePageData: h.NewBasePageData(r, true), // Assuming authenticated
 	}
 	nowForStats := time.Now() // Use a consistent "now" for this request processing
+
+	// Get the stats order from configuration (we only need statsOrder, ignore other schedule values)
+	_, _, _, statsOrder, err := h.configStore.GetSchedule()
+	if err != nil {
+		handlerLogger.Warn().Err(err).Msg("Failed to get schedule configuration, defaulting to descending order")
+		statsOrder = constants.StatsOrderDesc
+	}
 
 	rawStats, err := h.Tracker.GetParentMonthlyStatsForLastNMonths(nowForStats, 12)
 	if err != nil {
@@ -86,14 +97,13 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	allPossibleMonthHeaders := []string{}
 	// Use the same nowForStats as used for fetching data, for consistency in month generation
 	for i := 0; i < 12; i++ {
-		// This loop generates months in chronological order:
+		// This loop generates months in chronological order (ascending):
 		// i=0: -(11-0) = -11 (oldest month in range)
 		// ...
 		// i=11: -(11-11) = 0 (current month)
 		month := nowForStats.AddDate(0, -(11 - i), 0)
 		allPossibleMonthHeaders = append(allPossibleMonthHeaders, month.Format("2006-01"))
 	}
-	// sort.Strings(allPossibleMonthHeaders) // This sort is redundant as the loop above generates them in order.
 
 	// 3. Filter month headers: only keep months where at least one parent has a non-zero count.
 	finalMonthHeaders := []string{}
@@ -121,9 +131,19 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		h.RenderTemplate(w, "statistics.html", data)
 		return
 	}
+
+	// 5. Apply the configured sort order
+	if statsOrder == constants.StatsOrderDesc {
+		// Reverse the slice for descending order (newest month first)
+		for i, j := 0, len(finalMonthHeaders)-1; i < j; i, j = i+1, j-1 {
+			finalMonthHeaders[i], finalMonthHeaders[j] = finalMonthHeaders[j], finalMonthHeaders[i]
+		}
+	}
+	// For ascending order (StatsOrderAsc), keep the order as-is (oldest first)
+
 	data.MonthHeaders = finalMonthHeaders
 
-	// 5. Build data.ParentsStats using the filtered finalMonthHeaders.
+	// 6. Build data.ParentsStats using the filtered finalMonthHeaders.
 	for _, parentName := range sortedParentNames {
 		parentStat := ParentStatsForTemplate{
 			ParentName:    parentName,
@@ -142,6 +162,10 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		data.ParentsStats = append(data.ParentsStats, parentStat)
 	}
 
-	handlerLogger.Debug().Int("parent_count", len(data.ParentsStats)).Int("month_header_count", len(data.MonthHeaders)).Msg("Processed statistics data for template")
+	handlerLogger.Debug().
+		Int("parent_count", len(data.ParentsStats)).
+		Int("month_header_count", len(data.MonthHeaders)).
+		Str("stats_order", statsOrder.String()).
+		Msg("Processed statistics data for template")
 	h.RenderTemplate(w, "statistics.html", data)
 }
