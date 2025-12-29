@@ -202,6 +202,7 @@ func run(ctx context.Context) error {
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler, configStore)
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
+	assignmentDetailsHandler := handlers.NewAssignmentDetailsHandler(baseHandler, tracker)
 
 	// Register routes
 	staticHandler.RegisterRoutes()
@@ -212,6 +213,7 @@ func run(ctx context.Context) error {
 	settingsHandler.RegisterRoutes()
 	statisticsHandler.RegisterRoutes()
 	unlockHandler.RegisterRoutes()
+	assignmentDetailsHandler.RegisterRoutes()
 
 	// Start HTTP server
 	srv := &http.Server{

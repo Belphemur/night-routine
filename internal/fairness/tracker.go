@@ -587,6 +587,97 @@ func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, n
 	return stats, nil
 }
 
+// SaveAssignmentDetails stores the fairness algorithm calculation details for an assignment
+func (t *Tracker) SaveAssignmentDetails(assignmentID int64, calculationDate time.Time, parentAName string, statsA Stats, parentBName string, statsB Stats) error {
+	saveLogger := t.logger.With().
+		Int64("assignment_id", assignmentID).
+		Str("calculation_date", calculationDate.Format(dateFormat)).
+		Logger()
+	saveLogger.Debug().Msg("Saving assignment details")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	_, err := t.db.Conn().ExecContext(ctx, `
+		INSERT INTO assignment_details (
+			assignment_id, calculation_date,
+			parent_a_name, parent_a_total_count, parent_a_last_30_days,
+			parent_b_name, parent_b_total_count, parent_b_last_30_days
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, assignmentID, calculationDate.Format(dateFormat),
+		parentAName, statsA.TotalAssignments, statsA.Last30Days,
+		parentBName, statsB.TotalAssignments, statsB.Last30Days)
+
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			saveLogger.Error().Err(err).Msg("Database insert for assignment details timed out")
+			return fmt.Errorf("database insert timed out: %w", err)
+		}
+		saveLogger.Error().Err(err).Msg("Failed to insert assignment details")
+		return fmt.Errorf("failed to save assignment details: %w", err)
+	}
+
+	saveLogger.Debug().Msg("Assignment details saved successfully")
+	return nil
+}
+
+// GetAssignmentDetails retrieves the fairness algorithm calculation details for an assignment
+func (t *Tracker) GetAssignmentDetails(assignmentID int64) (*AssignmentDetails, error) {
+	queryLogger := t.logger.With().Int64("assignment_id", assignmentID).Logger()
+	queryLogger.Debug().Msg("Getting assignment details")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	var details AssignmentDetails
+	var calculationDateStr string
+	var createdAt time.Time
+
+	err := t.db.Conn().QueryRowContext(ctx, `
+		SELECT id, assignment_id, calculation_date,
+			parent_a_name, parent_a_total_count, parent_a_last_30_days,
+			parent_b_name, parent_b_total_count, parent_b_last_30_days,
+			created_at
+		FROM assignment_details
+		WHERE assignment_id = ?
+	`, assignmentID).Scan(
+		&details.ID,
+		&details.AssignmentID,
+		&calculationDateStr,
+		&details.ParentAName,
+		&details.ParentATotalCount,
+		&details.ParentALast30Days,
+		&details.ParentBName,
+		&details.ParentBTotalCount,
+		&details.ParentBLast30Days,
+		&createdAt,
+	)
+
+	if err == sql.ErrNoRows {
+		queryLogger.Debug().Msg("No assignment details found")
+		return nil, nil
+	}
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			queryLogger.Error().Err(err).Msg("Database query for assignment details timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		queryLogger.Error().Err(err).Msg("Failed to query assignment details")
+		return nil, fmt.Errorf("failed to get assignment details: %w", err)
+	}
+
+	calculationDate, err := time.Parse(dateFormat, calculationDateStr)
+	if err != nil {
+		queryLogger.Error().Err(err).Str("date_string", calculationDateStr).Msg("Failed to parse calculation date")
+		return nil, fmt.Errorf("failed to parse calculation date: %w", err)
+	}
+	details.CalculationDate = calculationDate
+	details.CreatedAt = createdAt
+
+	queryLogger.Debug().Msg("Assignment details retrieved successfully")
+	return &details, nil
+}
+
 // Assignment represents a night routine assignment
 type Assignment struct {
 	ID                    int64
@@ -610,4 +701,18 @@ type MonthlyStatRow struct {
 	ParentName string
 	MonthYear  string // Format: "YYYY-MM"
 	Count      int
+}
+
+// AssignmentDetails represents the detailed fairness algorithm data for an assignment
+type AssignmentDetails struct {
+	ID               int64
+	AssignmentID     int64
+	CalculationDate  time.Time
+	ParentAName      string
+	ParentATotalCount int
+	ParentALast30Days int
+	ParentBName      string
+	ParentBTotalCount int
+	ParentBLast30Days int
+	CreatedAt        time.Time
 }
