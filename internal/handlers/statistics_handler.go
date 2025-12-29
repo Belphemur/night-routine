@@ -53,7 +53,7 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	}
 	nowForStats := time.Now() // Use a consistent "now" for this request processing
 
-	// Get the stats order from configuration
+	// Get the stats order from configuration (we only need statsOrder, ignore other schedule values)
 	_, _, _, statsOrder, err := h.configStore.GetSchedule()
 	if err != nil {
 		handlerLogger.Warn().Err(err).Msg("Failed to get schedule configuration, defaulting to descending order")
@@ -162,6 +162,10 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		data.ParentsStats = append(data.ParentsStats, parentStat)
 	}
 
-	handlerLogger.Debug().Int("parent_count", len(data.ParentsStats)).Int("month_header_count", len(data.MonthHeaders)).Str("stats_order", statsOrder.String()).Msg("Processed statistics data for template")
+	handlerLogger.Debug().
+		Int("parent_count", len(data.ParentsStats)).
+		Int("month_header_count", len(data.MonthHeaders)).
+		Str("stats_order", statsOrder.String()).
+		Msg("Processed statistics data for template")
 	h.RenderTemplate(w, "statistics.html", data)
 }
