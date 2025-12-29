@@ -189,7 +189,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 		parentBName := s.config.Parents.ParentB
 		statsA := stats[parentAName]
 		statsB := stats[parentBName]
-		
+
 		err = s.tracker.SaveAssignmentDetails(trackerAssignment.ID, date, parentAName, statsA, parentBName, statsB)
 		if err != nil {
 			// Log error but don't fail the assignment

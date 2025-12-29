@@ -705,14 +705,14 @@ type MonthlyStatRow struct {
 
 // AssignmentDetails represents the detailed fairness algorithm data for an assignment
 type AssignmentDetails struct {
-	ID               int64
-	AssignmentID     int64
-	CalculationDate  time.Time
-	ParentAName      string
+	ID                int64
+	AssignmentID      int64
+	CalculationDate   time.Time
+	ParentAName       string
 	ParentATotalCount int
 	ParentALast30Days int
-	ParentBName      string
+	ParentBName       string
 	ParentBTotalCount int
 	ParentBLast30Days int
-	CreatedAt        time.Time
+	CreatedAt         time.Time
 }
