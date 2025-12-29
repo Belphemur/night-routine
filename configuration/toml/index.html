@@ -24,8 +24,8 @@
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -100,8 +100,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="Night Routine Scheduler" class="md-header__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -413,8 +412,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Night Routine Scheduler" class="md-nav__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     Night Routine Scheduler
@@ -991,6 +989,17 @@
     <span class="md-ellipsis">
       
         past_event_threshold_days
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stats_order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats_order
       
     </span>
   </a>
@@ -1896,6 +1905,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#stats_order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        stats_order
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2137,11 +2157,12 @@
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;weekly&quot;</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">past_event_threshold_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="k">[service]</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="n">stats_order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;desc&quot;</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="k">[service]</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
 <h2 id="configuration-sections">Configuration Sections<a class="headerlink" href="#configuration-sections" title="Permanent link">&para;</a></h2>
 <h3 id="app-application-settings"><code>[app]</code> - Application Settings<a class="headerlink" href="#app-application-settings" title="Permanent link">&para;</a></h3>
@@ -2332,14 +2353,32 @@
 <p class="admonition-title">Purpose</p>
 <p>Prevents old assignments from being accidentally modified, which could affect fairness calculations.</p>
 </div>
+<h4 id="stats_order"><code>stats_order</code><a class="headerlink" href="#stats_order" title="Permanent link">&para;</a></h4>
+<p><strong>Type:</strong> String<br />
+<strong>Required:</strong> No<br />
+<strong>Default:</strong> <code>desc</code><br />
+<strong>Valid values:</strong> <code>desc</code>, <code>asc</code><br />
+<strong>Configurable via UI:</strong> Yes</p>
+<p>Sort order for months displayed on the Statistics page.</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">[schedule]</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">stats_order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;desc&quot;</span>
+</span></code></pre></div>
+<ul>
+<li><strong><code>desc</code></strong> - Descending order (newest month first)</li>
+<li><strong><code>asc</code></strong> - Ascending order (oldest month first)</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Mobile Experience</p>
+<p>Descending order (default) is recommended as it displays the current month first, which is particularly useful on mobile devices where horizontal scrolling would otherwise be required to see current data.</p>
+</div>
 <h3 id="service-service-settings"><code>[service]</code> - Service Settings<a class="headerlink" href="#service-service-settings" title="Permanent link">&para;</a></h3>
 <h4 id="state_file"><code>state_file</code><a class="headerlink" href="#state_file" title="Permanent link">&para;</a></h4>
 <p><strong>Type:</strong> String (file path)<br />
 <strong>Required:</strong> Yes<br />
 <strong>Default:</strong> None</p>
 <p>Path to the SQLite database file for persistent storage.</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">[service]</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">[service]</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
 </span></code></pre></div>
 <p><strong>Path handling:</strong>
 - Relative paths are resolved from the working directory
@@ -2348,7 +2387,7 @@
 <div class="admonition tip">
 <p class="admonition-title">Docker Deployment</p>
 <p>Use a path inside a mounted volume to persist data:
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
 </span></code></pre></div>
 With volume mount: <code>-v ./data:/app/data</code></p>
 </div>
@@ -2358,8 +2397,8 @@ With volume mount: <code>-v ./data:/app/data</code></p>
 <strong>Default:</strong> <code>info</code><br />
 <strong>Valid values:</strong> <code>trace</code>, <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>, <code>fatal</code>, <code>panic</code></p>
 <p>Logging verbosity level.</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">[service]</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[service]</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
 </span></code></pre></div>
 <p><strong>Level descriptions:</strong></p>
 <table>
@@ -2417,8 +2456,8 @@ With volume mount: <code>-v ./data:/app/data</code></p>
 <strong>Required:</strong> No<br />
 <strong>Default:</strong> <code>true</code></p>
 <p>Whether to perform a schedule synchronization when the application starts.</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[service]</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[service]</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
 <ul>
 <li><strong><code>true</code></strong> - Sync schedule on startup (default)</li>
@@ -2436,91 +2475,91 @@ With volume mount: <code>-v ./data:/app/data</code></p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>The application validates the configuration on startup. Common validation errors:</p>
 <h3 id="missing-required-fields">Missing Required Fields<a class="headerlink" href="#missing-required-fields" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Error: missing required configuration: parents.parent_a
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Error: missing required configuration: parents.parent_a
 </span></code></pre></div>
 <p><strong>Solution:</strong> Add the missing field to your configuration.</p>
 <h3 id="invalid-values">Invalid Values<a class="headerlink" href="#invalid-values" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Error: invalid update_frequency: &#39;biweekly&#39; (must be daily, weekly, or monthly)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Error: invalid update_frequency: &#39;biweekly&#39; (must be daily, weekly, or monthly)
 </span></code></pre></div>
 <p><strong>Solution:</strong> Use one of the valid values.</p>
 <h3 id="same-parent-names">Same Parent Names<a class="headerlink" href="#same-parent-names" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Error: parent_a and parent_b must have different names
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Error: parent_a and parent_b must have different names
 </span></code></pre></div>
 <p><strong>Solution:</strong> Ensure parent names are unique.</p>
 <h3 id="invalid-url-format">Invalid URL Format<a class="headerlink" href="#invalid-url-format" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Error: app_url must be a valid URL (e.g., http://localhost:8080)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Error: app_url must be a valid URL (e.g., http://localhost:8080)
 </span></code></pre></div>
 <p><strong>Solution:</strong> Provide a complete URL with protocol.</p>
 <h2 id="complete-examples">Complete Examples<a class="headerlink" href="#complete-examples" title="Permanent link">&para;</a></h2>
 <h3 id="basic-configuration">Basic Configuration<a class="headerlink" href="#basic-configuration" title="Permanent link">&para;</a></h3>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">[app]</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8080</span>
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:8080&quot;</span>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:8080&quot;</span>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="k">[parents]</span>
-</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Alice&quot;</span>
-</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="n">parent_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Bob&quot;</span>
-</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>
-</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="k">[availability]</span>
-</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
-</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
-</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>
-</span><span id="__span-22-14"><a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="k">[schedule]</span>
-</span><span id="__span-22-15"><a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;weekly&quot;</span>
-</span><span id="__span-22-16"><a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
-</span><span id="__span-22-17"><a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>
-</span><span id="__span-22-18"><a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a><span class="k">[service]</span>
-</span><span id="__span-22-19"><a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
-</span><span id="__span-22-20"><a id="__codelineno-22-20" name="__codelineno-22-20" href="#__codelineno-22-20"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
-</span></code></pre></div>
-<h3 id="production-configuration">Production Configuration<a class="headerlink" href="#production-configuration" title="Permanent link">&para;</a></h3>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">[app]</span>
 </span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8080</span>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://192.168.1.100:8080&quot;</span>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://night-routine.example.com&quot;</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:8080&quot;</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:8080&quot;</span>
 </span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>
 </span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="k">[parents]</span>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Parent One&quot;</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="n">parent_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Parent Two&quot;</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Alice&quot;</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="n">parent_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Bob&quot;</span>
 </span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>
 </span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="k">[availability]</span>
-</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">]</span>
-</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Monday&quot;</span><span class="p">]</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
 </span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>
 </span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="k">[schedule]</span>
 </span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;weekly&quot;</span>
 </span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
-</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="n">past_event_threshold_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span>
-</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>
-</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a><span class="k">[service]</span>
-</span><span id="__span-23-20"><a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/var/lib/night-routine/state.db&quot;</span>
-</span><span id="__span-23-21"><a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;warn&quot;</span>
-</span><span id="__span-23-22"><a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>
+</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a><span class="k">[service]</span>
+</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/state.db&quot;</span>
+</span><span id="__span-23-20"><a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;info&quot;</span>
 </span></code></pre></div>
-<h3 id="development-configuration">Development Configuration<a class="headerlink" href="#development-configuration" title="Permanent link">&para;</a></h3>
+<h3 id="production-configuration">Production Configuration<a class="headerlink" href="#production-configuration" title="Permanent link">&para;</a></h3>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">[app]</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3000</span>
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:3000&quot;</span>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:3000&quot;</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8080</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://192.168.1.100:8080&quot;</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://night-routine.example.com&quot;</span>
 </span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>
 </span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="k">[parents]</span>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;TestParentA&quot;</span>
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="n">parent_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;TestParentB&quot;</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Parent One&quot;</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="n">parent_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Parent Two&quot;</span>
 </span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>
 </span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="k">[availability]</span>
-</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
-</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">]</span>
+</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Monday&quot;</span><span class="p">]</span>
 </span><span id="__span-24-13"><a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a>
 </span><span id="__span-24-14"><a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a><span class="k">[schedule]</span>
-</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;daily&quot;</span>
-</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span>
-</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="n">past_event_threshold_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;weekly&quot;</span>
+</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
+</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="n">past_event_threshold_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span>
 </span><span id="__span-24-18"><a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a>
 </span><span id="__span-24-19"><a id="__codelineno-24-19" name="__codelineno-24-19" href="#__codelineno-24-19"></a><span class="k">[service]</span>
-</span><span id="__span-24-20"><a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test-data/state.db&quot;</span>
-</span><span id="__span-24-21"><a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;debug&quot;</span>
-</span><span id="__span-24-22"><a id="__codelineno-24-22" name="__codelineno-24-22" href="#__codelineno-24-22"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-24-20"><a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/var/lib/night-routine/state.db&quot;</span>
+</span><span id="__span-24-21"><a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;warn&quot;</span>
+</span><span id="__span-24-22"><a id="__codelineno-24-22" name="__codelineno-24-22" href="#__codelineno-24-22"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span></code></pre></div>
+<h3 id="development-configuration">Development Configuration<a class="headerlink" href="#development-configuration" title="Permanent link">&para;</a></h3>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">[app]</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3000</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="n">app_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:3000&quot;</span>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="n">public_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://localhost:3000&quot;</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="k">[parents]</span>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="n">parent_a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;TestParentA&quot;</span>
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="n">parent_b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;TestParentB&quot;</span>
+</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>
+</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="k">[availability]</span>
+</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-25-12"><a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-25-13"><a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>
+</span><span id="__span-25-14"><a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="k">[schedule]</span>
+</span><span id="__span-25-15"><a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;daily&quot;</span>
+</span><span id="__span-25-16"><a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="n">look_ahead_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span>
+</span><span id="__span-25-17"><a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a><span class="n">past_event_threshold_days</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+</span><span id="__span-25-18"><a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a>
+</span><span id="__span-25-19"><a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a><span class="k">[service]</span>
+</span><span id="__span-25-20"><a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a><span class="n">state_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test-data/state.db&quot;</span>
+</span><span id="__span-25-21"><a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;debug&quot;</span>
+</span><span id="__span-25-22"><a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a><span class="n">manual_sync_on_startup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </span></code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2599,10 +2638,10 @@ With volume mount: <code>-v ./data:/app/data</code></p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

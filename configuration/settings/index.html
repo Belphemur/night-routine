@@ -24,8 +24,8 @@
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -100,8 +100,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="Night Routine Scheduler" class="md-header__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -413,8 +412,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Night Routine Scheduler" class="md-nav__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     Night Routine Scheduler
@@ -851,6 +849,17 @@
     <span class="md-ellipsis">
       
         Past Event Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statistics-sort-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics Sort Order
       
     </span>
   </a>
@@ -1778,6 +1787,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#statistics-sort-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics Sort Order
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2118,6 +2138,13 @@
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Behavior: Manual changes made to events in the last 5 days 
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>          will be respected by the fairness algorithm
 </span></code></pre></div></p>
+<h4 id="statistics-sort-order">Statistics Sort Order<a class="headerlink" href="#statistics-sort-order" title="Permanent link">&para;</a></h4>
+<p>Controls the order of months displayed on the Statistics page.</p>
+<p><strong>Options:</strong>
+- <strong>Descending (newest first)</strong>: Shows the current month first, followed by older months
+- <strong>Ascending (oldest first)</strong>: Shows the oldest month first, followed by newer months</p>
+<p><strong>Default</strong>: Descending (newest first)</p>
+<p>This setting is particularly useful on mobile devices where horizontal scrolling is required. With descending order (default), the most relevant current month data is immediately visible without needing to scroll.</p>
 <hr />
 <h2 id="making-changes">Making Changes<a class="headerlink" href="#making-changes" title="Permanent link">&para;</a></h2>
 <h3 id="save-settings">Save Settings<a class="headerlink" href="#save-settings" title="Permanent link">&para;</a></h3>
@@ -2214,6 +2241,7 @@
 <li><strong>Update Frequency</strong>: Must be one of: daily, weekly, monthly</li>
 <li><strong>Look Ahead Days</strong>: Must be between 1 and 365</li>
 <li><strong>Past Event Threshold</strong>: Must be between 0 and 30</li>
+<li><strong>Statistics Sort Order</strong>: Must be one of: desc (descending), asc (ascending)</li>
 </ul>
 <p>Invalid inputs are rejected with clear error messages indicating what needs to be corrected.</p>
 <hr />
@@ -2326,10 +2354,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

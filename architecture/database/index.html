@@ -24,8 +24,8 @@
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -100,8 +100,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="Night Routine Scheduler" class="md-header__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -413,8 +412,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Night Routine Scheduler" class="md-nav__button md-logo" aria-label="Night Routine Scheduler" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     Night Routine Scheduler
@@ -2628,6 +2626,11 @@
 <td>Days in past to accept changes</td>
 </tr>
 <tr>
+<td><code>stats_order</code></td>
+<td>TEXT NOT NULL</td>
+<td>Sort order for statistics page (desc/asc)</td>
+</tr>
+<tr>
 <td><code>created_at</code></td>
 <td>DATETIME</td>
 <td>Creation timestamp</td>
@@ -2642,7 +2645,8 @@
 <p><strong>Constraints:</strong>
 - <code>update_frequency</code> must be 'daily', 'weekly', or 'monthly'
 - <code>look_ahead_days</code> must be &gt; 0
-- <code>past_event_threshold_days</code> must be &gt;= 0</p>
+- <code>past_event_threshold_days</code> must be &gt;= 0
+- <code>stats_order</code> must be 'desc' or 'asc'</p>
 <p><strong>Notes:</strong>
 - Seeded from TOML file on first run
 - Updated via Settings page UI
@@ -2959,7 +2963,7 @@
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">parent</span><span class="p">;</span>
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1">-- Schedule settings</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">update_frequency</span><span class="p">,</span><span class="w"> </span><span class="n">look_ahead_days</span><span class="p">,</span><span class="w"> </span><span class="n">past_event_threshold_days</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">update_frequency</span><span class="p">,</span><span class="w"> </span><span class="n">look_ahead_days</span><span class="p">,</span><span class="w"> </span><span class="n">past_event_threshold_days</span><span class="p">,</span><span class="w"> </span><span class="n">stats_order</span>
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="k">FROM</span><span class="w"> </span><span class="n">config_schedule</span><span class="p">;</span>
 </span></code></pre></div></p>
 <p><strong>Get current month's assignments:</strong>
@@ -3183,10 +3187,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.action.edit", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
