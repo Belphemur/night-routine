@@ -71,15 +71,15 @@ If both parents are available, compare their total lifetime assignment counts.
 
 ### 3. Recent Count Balance
 
-Compare assignment counts from the recent period (last 14-30 days, configurable).
+Compare assignment counts from the recent period (last 30 days).
 
 **Logic:**
-- Count recent assignments for each parent
+- Count recent assignments (last 30 days) for each parent
 - If one parent has fewer recent assignments, assign that parent
 
 **Example:**
-- Parent A: 3 assignments in last 14 days
-- Parent B: 6 assignments in last 14 days
+- Parent A: 3 assignments in last 30 days
+- Parent B: 6 assignments in last 30 days
 - Assign Parent A
 
 **Decision Reason:** `Recent Count`
@@ -90,10 +90,10 @@ Prevent one parent from having too many consecutive night assignments.
 
 **Logic:**
 - Check how many consecutive nights the current parent has been assigned
-- If limit reached (typically 3-5 nights), switch to the other parent
+- If limit reached (2 consecutive nights), switch to the other parent
 
 **Example:**
-- Last 3 nights: Parent A, Parent A, Parent A
+- Last 2 nights: Parent A, Parent A
 - Tonight: Assign Parent B (consecutive limit reached)
 
 **Decision Reason:** `Consecutive Limit`
@@ -148,11 +148,11 @@ if totalCountA < totalCountB - threshold {
 
 ### Recent Count Window
 
-Recent counts use a sliding window (default: 14 days):
+Recent counts use a sliding window of 30 days:
 
 ```go
-recentCountA := countAssignments(ParentA, last14Days)
-recentCountB := countAssignments(ParentB, last14Days)
+recentCountA := countAssignments(ParentA, last30Days)
+recentCountB := countAssignments(ParentB, last30Days)
 
 if recentCountA < recentCountB {
     assign(ParentA, "Recent Count")
@@ -164,21 +164,21 @@ if recentCountA < recentCountB {
 ### Consecutive Limit Logic
 
 ```go
-consecutiveCount := 0
-for date := today; date > today-7days; date-- {
-    if assignment[date].parent == currentParent {
+consecutiveCount := 1
+for i := 1; i < len(lastAssignments); i++ {
+    if lastAssignments[i].parent == lastParent {
         consecutiveCount++
     } else {
         break
     }
 }
 
-if consecutiveCount >= consecutiveLimit {
+if consecutiveCount >= 2 {
     assign(otherParent, "Consecutive Limit")
 }
 ```
 
-**Limit:** Typically 3-5 consecutive assignments
+**Limit:** 2 consecutive assignments
 
 ## Example Scenarios
 
@@ -232,12 +232,12 @@ Fri: Parent A (Alternating)
 ### Scenario 4: Consecutive Limit
 
 **Setup:**
-- Last 3 nights: Parent A
-- Consecutive limit: 3
+- Last 2 nights: Parent A
+- Consecutive limit: 2
 
 **Result:**
 ```
-Thu: Parent B (Consecutive Limit - A had 3 in a row)
+Thu: Parent B (Consecutive Limit - A had 2 in a row)
 Fri: Parent A (Alternating)
 Sat: Parent B (Alternating)
 ```
