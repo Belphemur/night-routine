@@ -150,6 +150,11 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
   - `assignments` table includes `decision_reason` field for tracking assignment logic
 - Always verify data insertion with SQL queries before running the application
 - Use the documented process for creating demo databases with proper OAuth tokens
+- **CRITICAL: Any UI changes MUST include screenshots**
+  - Take screenshots showing before/after for UI modifications
+  - Include screenshots in PR descriptions to demonstrate visual impact
+  - Use Playwright or similar tools to capture UI states
+  - Test on both desktop and mobile viewports when applicable
 
 ## Architecture Guidelines
 

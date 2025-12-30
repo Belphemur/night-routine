@@ -89,6 +89,19 @@ func (m *MockTracker) UnlockAssignment(id int64) error {
 	return args.Error(0)
 }
 
+func (m *MockTracker) SaveAssignmentDetails(assignmentID int64, calculationDate time.Time, parentAName string, statsA fairness.Stats, parentBName string, statsB fairness.Stats) error {
+	args := m.Called(assignmentID, calculationDate, parentAName, statsA, parentBName, statsB)
+	return args.Error(0)
+}
+
+func (m *MockTracker) GetAssignmentDetails(assignmentID int64) (*fairness.AssignmentDetails, error) {
+	args := m.Called(assignmentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*fairness.AssignmentDetails), args.Error(1)
+}
+
 // MockCalendarService is a mock implementation of the calendar.CalendarService interface
 type MockCalendarService struct {
 	mock.Mock

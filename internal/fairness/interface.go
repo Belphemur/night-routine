@@ -39,6 +39,12 @@ type TrackerInterface interface {
 	// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months,
 	// relative to the given referenceTime.
 	GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]MonthlyStatRow, error)
+
+	// SaveAssignmentDetails stores the fairness algorithm calculation details for an assignment
+	SaveAssignmentDetails(assignmentID int64, calculationDate time.Time, parentAName string, statsA Stats, parentBName string, statsB Stats) error
+
+	// GetAssignmentDetails retrieves the fairness algorithm calculation details for an assignment
+	GetAssignmentDetails(assignmentID int64) (*AssignmentDetails, error)
 }
 
 // Ensure Tracker implements the TrackerInterface

@@ -217,33 +217,12 @@
 {{end}}
 <!-- End Calendar Section -->
 
-<!-- Confirmation Modal -->
-<div id="unlock-modal" class="relative z-10 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <!--
-      Background backdrop, show/hide based on modal state.
-  
-      Entering: "ease-out duration-300"
-        From: "opacity-0"
-        To: "opacity-100"
-      Leaving: "ease-in duration-200"
-        From: "opacity-100"
-        To: "opacity-0"
-    -->
-    <div id="modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
-  
+<!-- Unlock Modal -->
+<div id="unlock-modal" class="relative z-10 hidden" aria-labelledby="unlock-modal-title" role="dialog" aria-modal="true">
+    <div id="unlock-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
     <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
       <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        <!--
-          Modal panel, show/hide based on modal state.
-  
-          Entering: "ease-out duration-300"
-            From: "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            To: "opacity-100 translate-y-0 sm:scale-100"
-          Leaving: "ease-in duration-200"
-            From: "opacity-100 translate-y-0 sm:scale-100"
-            To: "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        -->
-        <div id="modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-lg">
+        <div id="unlock-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-lg">
             <div class="sm:flex sm:items-start">
                 <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
                     <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
@@ -251,22 +230,52 @@
                     </svg>
                 </div>
                 <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Unlock Event</h3>
+                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="unlock-modal-title">Unlock Event</h3>
                     <div class="mt-2">
-                        <p class="text-sm text-gray-500" id="modal-description">
+                        <p class="text-sm text-gray-500">
                             This event will be re-evaluated by the scheduler. Are you sure you want to unlock this assignment?
                         </p>
                     </div>
                 </div>
             </div>
             <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                <button type="button" id="modal-confirm"
+                <button type="button" id="unlock-modal-confirm"
                     class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:ml-3 sm:w-auto">
                     Unlock Event
                 </button>
-                <button type="button" id="modal-cancel"
+                <button type="button" id="unlock-modal-cancel"
                     class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 sm:mt-0 sm:w-auto">
                     Cancel
+                </button>
+            </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Assignment Details Modal -->
+<div id="details-modal" class="relative z-10 hidden" aria-labelledby="details-modal-title" role="dialog" aria-modal="true">
+    <div id="details-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div id="details-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-lg">
+            <div class="sm:flex sm:items-start">
+                <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left flex-1">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="details-modal-title">Assignment Details</h3>
+                    <div class="mt-4" id="details-modal-content">
+                        <p class="text-sm text-gray-500">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button type="button" id="details-modal-close"
+                    class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto">
+                    Close
                 </button>
             </div>
         </div>
@@ -300,14 +309,22 @@
         if (calendar) {
             // Handle clicks on calendar
             calendar.addEventListener('click', function (e) {
-                const cell = e.target.closest('td.overridden');
+                const cell = e.target.closest('td[data-assignment-id]');
 
-                // If clicked on an overridden cell, show unlock modal
-                if (cell) {
-                    e.stopPropagation();
-                    const assignmentId = cell.dataset.assignmentId;
+                if (!cell) return;
+
+                e.stopPropagation();
+                const assignmentId = cell.dataset.assignmentId;
+                
+                // Check if this is an overridden cell (has priority)
+                if (cell.classList.contains('overridden')) {
                     if (assignmentId) {
                         showUnlockModal(assignmentId);
+                    }
+                } else {
+                    // Show details modal for non-overridden assignments
+                    if (assignmentId) {
+                        showDetailsModal(assignmentId);
                     }
                 }
             });
@@ -472,13 +489,18 @@
 
                 // Add click handlers for overridden cells in both tables
                 [tbody1, tbody2].forEach(tbody => {
-                    tbody.querySelectorAll('td.overridden').forEach(cell => {
+                    tbody.querySelectorAll('td[data-assignment-id]').forEach(cell => {
                         cell.style.cursor = 'pointer';
                         cell.addEventListener('click', function(e) {
                             e.stopPropagation();
                             const assignmentId = this.getAttribute('data-assignment-id');
                             if (assignmentId) {
-                                showUnlockModal(assignmentId);
+                                // Check if overridden
+                                if (this.classList.contains('overridden')) {
+                                    showUnlockModal(assignmentId);
+                                } else {
+                                    showDetailsModal(assignmentId);
+                                }
                             }
                         });
                     });
@@ -539,47 +561,47 @@
         }
 
         // Modal management functions
-        const modal = document.getElementById('unlock-modal');
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        const modalPanel = document.getElementById('modal-panel');
-        const modalCancel = document.getElementById('modal-cancel');
-        const modalConfirm = document.getElementById('modal-confirm');
+        const unlockModal = document.getElementById('unlock-modal');
+        const unlockModalBackdrop = document.getElementById('unlock-modal-backdrop');
+        const unlockModalPanel = document.getElementById('unlock-modal-panel');
+        const unlockModalCancel = document.getElementById('unlock-modal-cancel');
+        const unlockModalConfirm = document.getElementById('unlock-modal-confirm');
         let currentAssignmentId = null;
 
         function showUnlockModal(assignmentId) {
             currentAssignmentId = assignmentId;
-            modal.classList.remove('hidden');
+            unlockModal.classList.remove('hidden');
             
             // Use requestAnimationFrame to ensure the browser paints the removal of 'hidden'
             // before applying the transition classes.
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     // Backdrop enter
-                    modalBackdrop.classList.remove('opacity-0');
-                    modalBackdrop.classList.add('opacity-100');
+                    unlockModalBackdrop.classList.remove('opacity-0');
+                    unlockModalBackdrop.classList.add('opacity-100');
 
                     // Panel enter
-                    modalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-                    modalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                    unlockModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                    unlockModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
                 });
             });
 
             // Focus the confirm button for accessibility
-            setTimeout(() => modalConfirm.focus(), 100);
+            setTimeout(() => unlockModalConfirm.focus(), 100);
         }
 
         function hideUnlockModal() {
             // Backdrop leave
-            modalBackdrop.classList.remove('opacity-100');
-            modalBackdrop.classList.add('opacity-0');
+            unlockModalBackdrop.classList.remove('opacity-100');
+            unlockModalBackdrop.classList.add('opacity-0');
 
             // Panel leave
-            modalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
-            modalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            unlockModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            unlockModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
 
             // Wait for transition to finish
-            modalPanel.addEventListener('transitionend', function() {
-                modal.classList.add('hidden');
+            unlockModalPanel.addEventListener('transitionend', function() {
+                unlockModal.classList.add('hidden');
             }, { once: true });
             
             currentAssignmentId = null;
@@ -602,43 +624,214 @@
             }
         }
 
-        // Modal event listeners
-        if (modalCancel) {
-            modalCancel.addEventListener('click', hideUnlockModal);
+        // Unlock modal event listeners
+        if (unlockModalCancel) {
+            unlockModalCancel.addEventListener('click', hideUnlockModal);
         }
-        if (modalConfirm) {
-            modalConfirm.addEventListener('click', function () {
+        if (unlockModalConfirm) {
+            unlockModalConfirm.addEventListener('click', function () {
                 unlockAssignment();
                 hideUnlockModal();
             });
         }
 
-        // Close modal on backdrop click (clicking outside the panel)
-        // Since we have a dedicated backdrop element now, we can just listen on that or the container
-        // The container covers the whole screen, but the panel is inside it.
-        // We can listen on the container, but check if the click target is the container or the backdrop.
-        // Actually, the structure is: Container -> [Backdrop, ScrollContainer -> [CenteringDiv -> Panel]]
-        // Clicking on ScrollContainer or CenteringDiv should close it.
-        
-        // Let's listen on the backdrop specifically if it's clickable, or the wrapper.
-        // In the current structure, the backdrop is a sibling of the scroll container.
-        // But the scroll container covers the backdrop.
-        // So we should listen on the scroll container (the parent of the panel wrapper).
-        
-        // Let's just listen on the main modal container and check if the click is outside the panel.
-        if (modal) {
-            modal.addEventListener('click', function (e) {
-                // If the click is on the backdrop or the wrapper (not inside the panel)
-                if (!modalPanel.contains(e.target)) {
+        // Details Modal management
+        const detailsModal = document.getElementById('details-modal');
+        const detailsModalBackdrop = document.getElementById('details-modal-backdrop');
+        const detailsModalPanel = document.getElementById('details-modal-panel');
+        const detailsModalClose = document.getElementById('details-modal-close');
+        const detailsModalContent = document.getElementById('details-modal-content');
+
+        function showDetailsModal(assignmentId) {
+            detailsModal.classList.remove('hidden');
+            detailsModalContent.innerHTML = '<p class="text-sm text-gray-500">Loading...</p>';
+            
+            // Use requestAnimationFrame for smooth transitions
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    detailsModalBackdrop.classList.remove('opacity-0');
+                    detailsModalBackdrop.classList.add('opacity-100');
+                    detailsModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                    detailsModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                });
+            });
+
+            // Fetch assignment details via AJAX
+            fetch(`/api/assignment-details?assignment_id=${assignmentId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch assignment details');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Build the details HTML using DOM manipulation to prevent XSS
+                    const container = document.createElement('div');
+                    container.className = 'space-y-3';
+
+                    // Calculation date section
+                    const dateSection = document.createElement('div');
+                    dateSection.className = 'bg-gray-50 rounded-lg p-3';
+                    
+                    const dateLabel = document.createElement('p');
+                    dateLabel.className = 'text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2';
+                    dateLabel.textContent = 'Calculation Date';
+                    
+                    const dateValue = document.createElement('p');
+                    dateValue.className = 'text-sm font-medium text-gray-900';
+                    dateValue.textContent = data.calculation_date;
+                    
+                    dateSection.appendChild(dateLabel);
+                    dateSection.appendChild(dateValue);
+                    container.appendChild(dateSection);
+
+                    // Parents grid
+                    const grid = document.createElement('div');
+                    grid.className = 'grid grid-cols-2 gap-3';
+
+                    // Parent A section
+                    const parentASection = document.createElement('div');
+                    parentASection.className = 'bg-blue-50 rounded-lg p-3';
+                    
+                    const parentAName = document.createElement('p');
+                    parentAName.className = 'text-xs text-blue-700 uppercase tracking-wide font-semibold mb-2';
+                    parentAName.textContent = data.parent_a_name;
+                    
+                    const parentAStats = document.createElement('div');
+                    parentAStats.className = 'space-y-1';
+                    
+                    const parentATotal = document.createElement('p');
+                    parentATotal.className = 'text-sm text-gray-700';
+                    const parentATotalLabel = document.createElement('span');
+                    parentATotalLabel.className = 'font-medium';
+                    parentATotalLabel.textContent = 'Total:';
+                    parentATotal.appendChild(parentATotalLabel);
+                    parentATotal.appendChild(document.createTextNode(' ' + data.parent_a_total_count));
+                    
+                    const parentALast30 = document.createElement('p');
+                    parentALast30.className = 'text-sm text-gray-700';
+                    const parentALast30Label = document.createElement('span');
+                    parentALast30Label.className = 'font-medium';
+                    parentALast30Label.textContent = 'Last 30 days:';
+                    parentALast30.appendChild(parentALast30Label);
+                    parentALast30.appendChild(document.createTextNode(' ' + data.parent_a_last_30_days));
+                    
+                    parentAStats.appendChild(parentATotal);
+                    parentAStats.appendChild(parentALast30);
+                    parentASection.appendChild(parentAName);
+                    parentASection.appendChild(parentAStats);
+                    grid.appendChild(parentASection);
+
+                    // Parent B section
+                    const parentBSection = document.createElement('div');
+                    parentBSection.className = 'bg-orange-50 rounded-lg p-3';
+                    
+                    const parentBName = document.createElement('p');
+                    parentBName.className = 'text-xs text-orange-700 uppercase tracking-wide font-semibold mb-2';
+                    parentBName.textContent = data.parent_b_name;
+                    
+                    const parentBStats = document.createElement('div');
+                    parentBStats.className = 'space-y-1';
+                    
+                    const parentBTotal = document.createElement('p');
+                    parentBTotal.className = 'text-sm text-gray-700';
+                    const parentBTotalLabel = document.createElement('span');
+                    parentBTotalLabel.className = 'font-medium';
+                    parentBTotalLabel.textContent = 'Total:';
+                    parentBTotal.appendChild(parentBTotalLabel);
+                    parentBTotal.appendChild(document.createTextNode(' ' + data.parent_b_total_count));
+                    
+                    const parentBLast30 = document.createElement('p');
+                    parentBLast30.className = 'text-sm text-gray-700';
+                    const parentBLast30Label = document.createElement('span');
+                    parentBLast30Label.className = 'font-medium';
+                    parentBLast30Label.textContent = 'Last 30 days:';
+                    parentBLast30.appendChild(parentBLast30Label);
+                    parentBLast30.appendChild(document.createTextNode(' ' + data.parent_b_last_30_days));
+                    
+                    parentBStats.appendChild(parentBTotal);
+                    parentBStats.appendChild(parentBLast30);
+                    parentBSection.appendChild(parentBName);
+                    parentBSection.appendChild(parentBStats);
+                    grid.appendChild(parentBSection);
+
+                    container.appendChild(grid);
+
+                    // Explanation section
+                    const explanationSection = document.createElement('div');
+                    explanationSection.className = 'bg-indigo-50 rounded-lg p-3';
+                    
+                    const explanationTitle = document.createElement('p');
+                    explanationTitle.className = 'text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-1';
+                    explanationTitle.textContent = 'How the decision was made';
+                    
+                    const explanationText = document.createElement('p');
+                    explanationText.className = 'text-sm text-gray-700';
+                    explanationText.textContent = 'The fairness algorithm compared these statistics at the time of assignment to ensure balanced distribution between parents.';
+                    
+                    explanationSection.appendChild(explanationTitle);
+                    explanationSection.appendChild(explanationText);
+                    container.appendChild(explanationSection);
+
+                    // Replace modal content
+                    detailsModalContent.replaceChildren(container);
+                })
+                .catch(error => {
+                    console.error('Error fetching assignment details:', error);
+                    const errorContainer = document.createElement('div');
+                    errorContainer.className = 'bg-red-50 rounded-lg p-3';
+                    const errorText = document.createElement('p');
+                    errorText.className = 'text-sm text-red-700';
+                    errorText.textContent = 'Failed to load assignment details. This assignment may not have detailed information available.';
+                    errorContainer.appendChild(errorText);
+                    detailsModalContent.replaceChildren(errorContainer);
+                });
+
+            setTimeout(() => detailsModalClose.focus(), 100);
+        }
+
+        function hideDetailsModal() {
+            detailsModalBackdrop.classList.remove('opacity-100');
+            detailsModalBackdrop.classList.add('opacity-0');
+            detailsModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            detailsModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+            detailsModalPanel.addEventListener('transitionend', function() {
+                detailsModal.classList.add('hidden');
+            }, { once: true });
+        }
+
+        // Details modal event listeners
+        if (detailsModalClose) {
+            detailsModalClose.addEventListener('click', hideDetailsModal);
+        }
+
+        // Close modals on backdrop click
+        if (unlockModal) {
+            unlockModal.addEventListener('click', function (e) {
+                if (!unlockModalPanel.contains(e.target)) {
                     hideUnlockModal();
+                }
+            });
+        }
+        
+        if (detailsModal) {
+            detailsModal.addEventListener('click', function (e) {
+                if (!detailsModalPanel.contains(e.target)) {
+                    hideDetailsModal();
                 }
             });
         }
         
         // Close on Escape key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                hideUnlockModal();
+            if (e.key === 'Escape') {
+                if (!unlockModal.classList.contains('hidden')) {
+                    hideUnlockModal();
+                }
+                if (!detailsModal.classList.contains('hidden')) {
+                    hideDetailsModal();
+                }
             }
         });
     });

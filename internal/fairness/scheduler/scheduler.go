@@ -182,6 +182,23 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	}
 	assignLogger.Info().Int64("assignment_id", trackerAssignment.ID).Msg("Assignment recorded successfully")
 
+	// Save assignment details for non-override decisions
+	if decisionReason != fairness.DecisionReasonOverride {
+		assignLogger.Debug().Msg("Saving assignment details")
+		parentAName := s.config.Parents.ParentA
+		parentBName := s.config.Parents.ParentB
+		statsA := stats[parentAName]
+		statsB := stats[parentBName]
+
+		err = s.tracker.SaveAssignmentDetails(trackerAssignment.ID, date, parentAName, statsA, parentBName, statsB)
+		if err != nil {
+			// Log error but don't fail the assignment
+			assignLogger.Error().Err(err).Msg("Failed to save assignment details")
+		} else {
+			assignLogger.Debug().Msg("Assignment details saved successfully")
+		}
+	}
+
 	// Convert to scheduler assignment
 	parentType := ParentTypeB
 	if trackerAssignment.Parent == s.config.Parents.ParentA {
