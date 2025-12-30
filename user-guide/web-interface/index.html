@@ -2809,20 +2809,36 @@
 <li><strong>Gray background</strong> - Days from previous/next month (padding)</li>
 </ul>
 <h4 id="assignment-details">Assignment Details<a class="headerlink" href="#assignment-details" title="Permanent link">&para;</a></h4>
+<p>Click on any assignment to view detailed information about how the fairness algorithm made its decision:</p>
+<p><img alt="Assignment Details Modal - Desktop" src="../../screenshots/assignment-details-modal-desktop.png" />
+<em>Click any assignment to see the calculation details in a modal dialog</em></p>
+<p>The assignment details modal shows:</p>
+<ul>
+<li><strong>Calculation Date</strong> - When the fairness algorithm evaluated this assignment</li>
+<li><strong>Parent Statistics</strong> - Both parents' total assignments and last 30-day counts at decision time</li>
+<li><strong>Decision Explanation</strong> - How the algorithm compared these statistics</li>
+</ul>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Desktop</label><label for="__tabbed_2_2">Mobile</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p><strong>Hover</strong> over any date to see:</p>
+<p><strong>Click</strong> on any assignment cell to open the details modal. The modal displays:</p>
 <ul>
-<li>Parent name</li>
-<li>Decision reason (why this parent was assigned)</li>
-<li>Date</li>
+<li>Calculation date</li>
+<li>Parent A's total count and last 30 days</li>
+<li>Parent B's total count and last 30 days</li>
+<li>Explanation of the fairness algorithm's decision process</li>
 </ul>
 </div>
 <div class="tabbed-block">
-<p><strong>Tap</strong> on any date to toggle the decision reason display. Tap again to hide.</p>
+<p><strong>Tap</strong> on any assignment cell to open the details modal. The modal is fully responsive and provides the same information on mobile devices.</p>
 </div>
 </div>
+</div>
+<p><img alt="Assignment Details Modal - Mobile" src="../../screenshots/assignment-details-modal-mobile.png" />
+<em>Mobile view of the assignment details modal</em></p>
+<div class="admonition note">
+<p class="admonition-title">Override Assignments</p>
+<p>Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed.</p>
 </div>
 <h4 id="decision-reasons">Decision Reasons<a class="headerlink" href="#decision-reasons" title="Permanent link">&para;</a></h4>
 <p>Each assignment includes a reason explaining why that parent was chosen:</p>
