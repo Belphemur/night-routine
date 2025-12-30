@@ -52,6 +52,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 
 	if !h.CheckAuthentication(r.Context(), handlerLogger) {
 		handlerLogger.Warn().Msg("Unauthenticated access attempt to assignment details")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode unauthorized response")
@@ -62,6 +63,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 	assignmentIDStr := r.URL.Query().Get("assignment_id")
 	if assignmentIDStr == "" {
 		handlerLogger.Warn().Msg("No assignment_id provided")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Missing assignment_id parameter"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode bad request response")
@@ -72,6 +74,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 	assignmentID, err := strconv.ParseInt(assignmentIDStr, 10, 64)
 	if err != nil {
 		handlerLogger.Error().Err(err).Str("assignment_id_str", assignmentIDStr).Msg("Invalid assignment ID format")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid assignment_id format"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode bad request response")
@@ -85,6 +88,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 	details, err := h.Tracker.GetAssignmentDetails(assignmentID)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get assignment details")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve assignment details"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode error response")
@@ -94,6 +98,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 
 	if details == nil {
 		handlerLogger.Debug().Msg("No details found for assignment")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
 		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Assignment details not found"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode not found response")

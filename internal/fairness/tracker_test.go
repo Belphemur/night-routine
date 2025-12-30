@@ -577,3 +577,52 @@ func TestAssignmentDetailsCascadeDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, details)
 }
+
+// TestSaveAssignmentDetailsUpsert tests that SaveAssignmentDetails can update existing records
+func TestSaveAssignmentDetailsUpsert(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	// Create an assignment
+	date := time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, DecisionReasonTotalCount)
+	assert.NoError(t, err)
+
+	// Save initial assignment details
+	statsA := Stats{TotalAssignments: 5, Last30Days: 3}
+	statsB := Stats{TotalAssignments: 7, Last30Days: 4}
+	err = tracker.SaveAssignmentDetails(assignment.ID, date, "Alice", statsA, "Bob", statsB)
+	assert.NoError(t, err)
+
+	// Retrieve and verify initial details
+	details, err := tracker.GetAssignmentDetails(assignment.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, details)
+	assert.Equal(t, 5, details.ParentATotalCount)
+	assert.Equal(t, 7, details.ParentBTotalCount)
+
+	// Update the details with new stats (simulating schedule recalculation)
+	statsA2 := Stats{TotalAssignments: 10, Last30Days: 6}
+	statsB2 := Stats{TotalAssignments: 12, Last30Days: 8}
+	err = tracker.SaveAssignmentDetails(assignment.ID, date, "Alice", statsA2, "Bob", statsB2)
+	assert.NoError(t, err)
+
+	// Retrieve and verify updated details
+	updatedDetails, err := tracker.GetAssignmentDetails(assignment.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, updatedDetails)
+	assert.Equal(t, assignment.ID, updatedDetails.AssignmentID)
+	assert.Equal(t, 10, updatedDetails.ParentATotalCount)
+	assert.Equal(t, 12, updatedDetails.ParentBTotalCount)
+	assert.Equal(t, 6, updatedDetails.ParentALast30Days)
+	assert.Equal(t, 8, updatedDetails.ParentBLast30Days)
+
+	// Verify there's still only one record (not duplicate)
+	var count int
+	err = db.Conn().QueryRow("SELECT COUNT(*) FROM assignment_details WHERE assignment_id = ?", assignment.ID).Scan(&count)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count, "Should only have one record after upsert")
+}

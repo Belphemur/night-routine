@@ -665,54 +665,126 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Build the details HTML
-                    const html = `
-                        <div class="space-y-3">
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Calculation Date</p>
-                                <p class="text-sm font-medium text-gray-900">${data.calculation_date}</p>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="bg-blue-50 rounded-lg p-3">
-                                    <p class="text-xs text-blue-700 uppercase tracking-wide font-semibold mb-2">${data.parent_a_name}</p>
-                                    <div class="space-y-1">
-                                        <p class="text-sm text-gray-700">
-                                            <span class="font-medium">Total:</span> ${data.parent_a_total_count}
-                                        </p>
-                                        <p class="text-sm text-gray-700">
-                                            <span class="font-medium">Last 30 days:</span> ${data.parent_a_last_30_days}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="bg-orange-50 rounded-lg p-3">
-                                    <p class="text-xs text-orange-700 uppercase tracking-wide font-semibold mb-2">${data.parent_b_name}</p>
-                                    <div class="space-y-1">
-                                        <p class="text-sm text-gray-700">
-                                            <span class="font-medium">Total:</span> ${data.parent_b_total_count}
-                                        </p>
-                                        <p class="text-sm text-gray-700">
-                                            <span class="font-medium">Last 30 days:</span> ${data.parent_b_last_30_days}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-indigo-50 rounded-lg p-3">
-                                <p class="text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-1">How the decision was made</p>
-                                <p class="text-sm text-gray-700">
-                                    The fairness algorithm compared these statistics at the time of assignment to ensure balanced distribution between parents.
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                    detailsModalContent.innerHTML = html;
+                    // Build the details HTML using DOM manipulation to prevent XSS
+                    const container = document.createElement('div');
+                    container.className = 'space-y-3';
+
+                    // Calculation date section
+                    const dateSection = document.createElement('div');
+                    dateSection.className = 'bg-gray-50 rounded-lg p-3';
+                    
+                    const dateLabel = document.createElement('p');
+                    dateLabel.className = 'text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2';
+                    dateLabel.textContent = 'Calculation Date';
+                    
+                    const dateValue = document.createElement('p');
+                    dateValue.className = 'text-sm font-medium text-gray-900';
+                    dateValue.textContent = data.calculation_date;
+                    
+                    dateSection.appendChild(dateLabel);
+                    dateSection.appendChild(dateValue);
+                    container.appendChild(dateSection);
+
+                    // Parents grid
+                    const grid = document.createElement('div');
+                    grid.className = 'grid grid-cols-2 gap-3';
+
+                    // Parent A section
+                    const parentASection = document.createElement('div');
+                    parentASection.className = 'bg-blue-50 rounded-lg p-3';
+                    
+                    const parentAName = document.createElement('p');
+                    parentAName.className = 'text-xs text-blue-700 uppercase tracking-wide font-semibold mb-2';
+                    parentAName.textContent = data.parent_a_name;
+                    
+                    const parentAStats = document.createElement('div');
+                    parentAStats.className = 'space-y-1';
+                    
+                    const parentATotal = document.createElement('p');
+                    parentATotal.className = 'text-sm text-gray-700';
+                    const parentATotalLabel = document.createElement('span');
+                    parentATotalLabel.className = 'font-medium';
+                    parentATotalLabel.textContent = 'Total:';
+                    parentATotal.appendChild(parentATotalLabel);
+                    parentATotal.appendChild(document.createTextNode(' ' + data.parent_a_total_count));
+                    
+                    const parentALast30 = document.createElement('p');
+                    parentALast30.className = 'text-sm text-gray-700';
+                    const parentALast30Label = document.createElement('span');
+                    parentALast30Label.className = 'font-medium';
+                    parentALast30Label.textContent = 'Last 30 days:';
+                    parentALast30.appendChild(parentALast30Label);
+                    parentALast30.appendChild(document.createTextNode(' ' + data.parent_a_last_30_days));
+                    
+                    parentAStats.appendChild(parentATotal);
+                    parentAStats.appendChild(parentALast30);
+                    parentASection.appendChild(parentAName);
+                    parentASection.appendChild(parentAStats);
+                    grid.appendChild(parentASection);
+
+                    // Parent B section
+                    const parentBSection = document.createElement('div');
+                    parentBSection.className = 'bg-orange-50 rounded-lg p-3';
+                    
+                    const parentBName = document.createElement('p');
+                    parentBName.className = 'text-xs text-orange-700 uppercase tracking-wide font-semibold mb-2';
+                    parentBName.textContent = data.parent_b_name;
+                    
+                    const parentBStats = document.createElement('div');
+                    parentBStats.className = 'space-y-1';
+                    
+                    const parentBTotal = document.createElement('p');
+                    parentBTotal.className = 'text-sm text-gray-700';
+                    const parentBTotalLabel = document.createElement('span');
+                    parentBTotalLabel.className = 'font-medium';
+                    parentBTotalLabel.textContent = 'Total:';
+                    parentBTotal.appendChild(parentBTotalLabel);
+                    parentBTotal.appendChild(document.createTextNode(' ' + data.parent_b_total_count));
+                    
+                    const parentBLast30 = document.createElement('p');
+                    parentBLast30.className = 'text-sm text-gray-700';
+                    const parentBLast30Label = document.createElement('span');
+                    parentBLast30Label.className = 'font-medium';
+                    parentBLast30Label.textContent = 'Last 30 days:';
+                    parentBLast30.appendChild(parentBLast30Label);
+                    parentBLast30.appendChild(document.createTextNode(' ' + data.parent_b_last_30_days));
+                    
+                    parentBStats.appendChild(parentBTotal);
+                    parentBStats.appendChild(parentBLast30);
+                    parentBSection.appendChild(parentBName);
+                    parentBSection.appendChild(parentBStats);
+                    grid.appendChild(parentBSection);
+
+                    container.appendChild(grid);
+
+                    // Explanation section
+                    const explanationSection = document.createElement('div');
+                    explanationSection.className = 'bg-indigo-50 rounded-lg p-3';
+                    
+                    const explanationTitle = document.createElement('p');
+                    explanationTitle.className = 'text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-1';
+                    explanationTitle.textContent = 'How the decision was made';
+                    
+                    const explanationText = document.createElement('p');
+                    explanationText.className = 'text-sm text-gray-700';
+                    explanationText.textContent = 'The fairness algorithm compared these statistics at the time of assignment to ensure balanced distribution between parents.';
+                    
+                    explanationSection.appendChild(explanationTitle);
+                    explanationSection.appendChild(explanationText);
+                    container.appendChild(explanationSection);
+
+                    // Replace modal content
+                    detailsModalContent.replaceChildren(container);
                 })
                 .catch(error => {
                     console.error('Error fetching assignment details:', error);
-                    detailsModalContent.innerHTML = `
-                        <div class="bg-red-50 rounded-lg p-3">
-                            <p class="text-sm text-red-700">Failed to load assignment details. This assignment may not have detailed information available.</p>
-                        </div>
-                    `;
+                    const errorContainer = document.createElement('div');
+                    errorContainer.className = 'bg-red-50 rounded-lg p-3';
+                    const errorText = document.createElement('p');
+                    errorText.className = 'text-sm text-red-700';
+                    errorText.textContent = 'Failed to load assignment details. This assignment may not have detailed information available.';
+                    errorContainer.appendChild(errorText);
+                    detailsModalContent.replaceChildren(errorContainer);
                 });
 
             setTimeout(() => detailsModalClose.focus(), 100);

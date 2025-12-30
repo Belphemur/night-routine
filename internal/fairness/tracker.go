@@ -588,6 +588,7 @@ func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, n
 }
 
 // SaveAssignmentDetails stores the fairness algorithm calculation details for an assignment
+// Uses UPSERT to handle both new inserts and updates when recalculating schedules
 func (t *Tracker) SaveAssignmentDetails(assignmentID int64, calculationDate time.Time, parentAName string, statsA Stats, parentBName string, statsB Stats) error {
 	saveLogger := t.logger.With().
 		Int64("assignment_id", assignmentID).
@@ -604,16 +605,24 @@ func (t *Tracker) SaveAssignmentDetails(assignmentID int64, calculationDate time
 			parent_a_name, parent_a_total_count, parent_a_last_30_days,
 			parent_b_name, parent_b_total_count, parent_b_last_30_days
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(assignment_id) DO UPDATE SET
+			calculation_date = excluded.calculation_date,
+			parent_a_name = excluded.parent_a_name,
+			parent_a_total_count = excluded.parent_a_total_count,
+			parent_a_last_30_days = excluded.parent_a_last_30_days,
+			parent_b_name = excluded.parent_b_name,
+			parent_b_total_count = excluded.parent_b_total_count,
+			parent_b_last_30_days = excluded.parent_b_last_30_days
 	`, assignmentID, calculationDate.Format(dateFormat),
 		parentAName, statsA.TotalAssignments, statsA.Last30Days,
 		parentBName, statsB.TotalAssignments, statsB.Last30Days)
 
 	if err != nil {
 		if err == context.DeadlineExceeded {
-			saveLogger.Error().Err(err).Msg("Database insert for assignment details timed out")
-			return fmt.Errorf("database insert timed out: %w", err)
+			saveLogger.Error().Err(err).Msg("Database upsert for assignment details timed out")
+			return fmt.Errorf("database upsert timed out: %w", err)
 		}
-		saveLogger.Error().Err(err).Msg("Failed to insert assignment details")
+		saveLogger.Error().Err(err).Msg("Failed to upsert assignment details")
 		return fmt.Errorf("failed to save assignment details: %w", err)
 	}
 
