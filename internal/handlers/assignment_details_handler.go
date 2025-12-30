@@ -102,7 +102,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 		handlerLogger.Debug().Msg("Assignment not found")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Assignment not found"}); err != nil {
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Assignment details not found"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode not found response")
 		}
 		return

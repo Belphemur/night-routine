@@ -61,7 +61,7 @@ The assignment details modal shows:
 _Mobile view of the assignment details modal_
 
 !!! note "Override Assignments"
-    Clicking on an assignment marked as "Override" (with 🔒 icon) will show the unlock modal instead of the details modal, allowing you to remove the manual override if needed.
+    Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed.
 
 #### Decision Reasons
 
