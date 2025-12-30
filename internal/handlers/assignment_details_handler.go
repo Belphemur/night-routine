@@ -31,6 +31,7 @@ func (h *AssignmentDetailsHandler) RegisterRoutes() {
 type AssignmentDetailsResponse struct {
 	AssignmentID      int64  `json:"assignment_id"`
 	CalculationDate   string `json:"calculation_date"`
+	DecisionReason    string `json:"decision_reason"`
 	ParentAName       string `json:"parent_a_name"`
 	ParentATotalCount int    `json:"parent_a_total_count"`
 	ParentALast30Days int    `json:"parent_a_last_30_days"`
@@ -83,8 +84,31 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 	}
 
 	handlerLogger = handlerLogger.With().Int64("assignment_id", assignmentID).Logger()
-	handlerLogger.Debug().Msg("Fetching assignment details")
+	handlerLogger.Debug().Msg("Fetching assignment and details")
 
+	// First get the assignment to retrieve the decision reason
+	assignment, err := h.Tracker.GetAssignmentByID(assignmentID)
+	if err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to get assignment")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve assignment"}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode error response")
+		}
+		return
+	}
+
+	if assignment == nil {
+		handlerLogger.Debug().Msg("Assignment not found")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Assignment details not found"}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode not found response")
+		}
+		return
+	}
+
+	// Then get the assignment details
 	details, err := h.Tracker.GetAssignmentDetails(assignmentID)
 	if err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to get assignment details")
@@ -109,6 +133,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 	response := AssignmentDetailsResponse{
 		AssignmentID:      details.AssignmentID,
 		CalculationDate:   details.CalculationDate.Format("2006-01-02"),
+		DecisionReason:    assignment.DecisionReason.String(),
 		ParentAName:       details.ParentAName,
 		ParentATotalCount: details.ParentATotalCount,
 		ParentALast30Days: details.ParentALast30Days,

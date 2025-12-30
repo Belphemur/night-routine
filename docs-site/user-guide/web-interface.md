@@ -35,15 +35,33 @@ The centerpiece of the home page is a visual calendar showing the current month'
 
 #### Assignment Details
 
+Click on any assignment to view detailed information about how the fairness algorithm made its decision:
+
+![Assignment Details Modal - Desktop](../screenshots/assignment-details-modal-desktop.png)
+_Click any assignment to see the calculation details in a modal dialog_
+
+The assignment details modal shows:
+
+- **Calculation Date** - When the fairness algorithm evaluated this assignment
+- **Parent Statistics** - Both parents' total assignments and last 30-day counts at decision time
+- **Decision Explanation** - How the algorithm compared these statistics
+
 === "Desktop"
-    **Hover** over any date to see:
+    **Click** on any assignment cell to open the details modal. The modal displays:
     
-    - Parent name
-    - Decision reason (why this parent was assigned)
-    - Date
+    - Calculation date
+    - Parent A's total count and last 30 days
+    - Parent B's total count and last 30 days
+    - Explanation of the fairness algorithm's decision process
 
 === "Mobile"
-    **Tap** on any date to toggle the decision reason display. Tap again to hide.
+    **Tap** on any assignment cell to open the details modal. The modal is fully responsive and provides the same information on mobile devices.
+
+![Assignment Details Modal - Mobile](../screenshots/assignment-details-modal-mobile.png)
+_Mobile view of the assignment details modal_
+
+!!! note "Override Assignments"
+    Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed.
 
 #### Decision Reasons
 

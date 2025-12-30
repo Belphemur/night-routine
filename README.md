@@ -50,7 +50,8 @@ The application ensures both parents share night routine duties fairly while mai
 
 - **Fair Distribution** - Sophisticated algorithm balances assignments between parents
 - **Availability Awareness** - Respects each parent's unavailable days
-- **Transparency** - Every assignment includes a clear decision reason
+- **Transparency** - Every assignment includes a clear decision reason with detailed fairness calculations
+- **Assignment Details** - Click any assignment to view the fairness algorithm calculations that determined the assignment
 - **Flexibility** - Supports manual overrides when life happens
 - **Google Calendar Integration** - Seamlessly syncs with your existing calendar workflow
 
@@ -69,6 +70,23 @@ The application features a completely modernized user interface with:
 
 ![Home Page - Modern Design](docs/screenshots/2025-modern/home-page-modernized.png)
 _Modern home dashboard with streamlined navigation (Home, Stats, Settings), gradient background, and card-based layout. Calendar management accessible via "Change Calendar" button. The UI features smooth animations and contemporary design patterns._
+
+### Assignment Details Feature
+
+Click on any assignment in the calendar to view detailed information about how the fairness algorithm made its decision:
+
+![Assignment Details Modal - Desktop](docs/screenshots/assignment-details-modal-desktop.png)
+_Desktop view: Click any assignment to see the calculation date and both parents' statistics (total assignments and last 30 days count) at the time the assignment was made._
+
+![Assignment Details Modal - Mobile](docs/screenshots/assignment-details-modal-mobile.png)
+_Mobile view: The assignment details modal is fully responsive and provides the same transparency on mobile devices._
+
+The assignment details modal shows:
+- **Calculation Date** - When the fairness algorithm evaluated this assignment
+- **Parent Statistics** - Total assignments and last 30-day counts for both parents at decision time
+- **Decision Explanation** - How the algorithm used these statistics to ensure balanced distribution
+
+This feature provides complete transparency into the scheduling logic, helping families understand and trust the automated assignment process.
 
 ## Quick Start with Docker
 

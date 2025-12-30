@@ -81,6 +81,7 @@ _Modern home dashboard with streamlined navigation, gradient background, and car
   - Subtle today highlight with yellow background
   - Rounded corners and modern table design
   - Assignment decision reasons (elegant tooltips on desktop, inline on mobile)
+  - **Click assignments to view details** - Interactive modal shows fairness algorithm calculations
   - Lock icons (🔒) for manual overrides with unlock functionality
 - **Quick Action Buttons**:
   - Gradient connect button with hover effects (when not authenticated)
@@ -88,6 +89,25 @@ _Modern home dashboard with streamlined navigation, gradient background, and car
   - Statistics and Settings accessible via navigation bar
   - Icon-enhanced buttons for better visual recognition
   - Smooth hover animations and shadow effects
+
+#### Assignment Details Modal
+
+Click on any assignment in the calendar to view detailed information about how the fairness algorithm made its decision:
+
+![Assignment Details Modal - Desktop](screenshots/assignment-details-modal-desktop.png)
+_Desktop view: Assignment details modal showing calculation date and parent statistics_
+
+![Assignment Details Modal - Mobile](screenshots/assignment-details-modal-mobile.png)
+_Mobile view: Fully responsive assignment details on mobile devices_
+
+The modal displays:
+
+- **Calculation Date** - When the fairness algorithm evaluated this assignment
+- **Parent A Statistics** - Total assignments and last 30-day count at decision time
+- **Parent B Statistics** - Total assignments and last 30-day count at decision time
+- **Decision Explanation** - How the algorithm compared these statistics to ensure balanced distribution
+
+This transparency feature helps users understand and trust the automated assignment process by providing complete visibility into the fairness calculations.
 
 ### Calendar Selection Page
 

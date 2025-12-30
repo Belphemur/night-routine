@@ -757,17 +757,49 @@
 
                     container.appendChild(grid);
 
+                    // Decision Reason section
+                    const reasonSection = document.createElement('div');
+                    reasonSection.className = 'bg-purple-50 rounded-lg p-3';
+                    
+                    const reasonTitle = document.createElement('p');
+                    reasonTitle.className = 'text-xs text-purple-700 uppercase tracking-wide font-semibold mb-2';
+                    reasonTitle.textContent = 'Decision Reason';
+                    
+                    const reasonBadge = document.createElement('p');
+                    reasonBadge.className = 'text-sm font-bold text-purple-900 mb-2';
+                    reasonBadge.textContent = data.decision_reason;
+                    
+                    reasonSection.appendChild(reasonTitle);
+                    reasonSection.appendChild(reasonBadge);
+
+                    // Add explanation based on decision reason
+                    const explanations = {
+                        'Unavailability': 'One parent was unavailable on this day based on configured schedule constraints.',
+                        'Total Count': 'This parent had fewer total assignments overall, helping maintain long-term balance.',
+                        'Recent Count': 'This parent had fewer assignments in the last 30 days, ensuring fair recent distribution.',
+                        'Consecutive Limit': 'Prevents one parent from having too many consecutive night assignments (limit: 2).',
+                        'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
+                        'Override': 'This assignment was manually changed in Google Calendar by a user.'
+                    };
+                    
+                    const reasonExplanation = document.createElement('p');
+                    reasonExplanation.className = 'text-xs text-gray-600 italic';
+                    reasonExplanation.textContent = explanations[data.decision_reason] || 'Assignment made by the fairness algorithm.';
+                    
+                    reasonSection.appendChild(reasonExplanation);
+                    container.appendChild(reasonSection);
+
                     // Explanation section
                     const explanationSection = document.createElement('div');
                     explanationSection.className = 'bg-indigo-50 rounded-lg p-3';
                     
                     const explanationTitle = document.createElement('p');
                     explanationTitle.className = 'text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-1';
-                    explanationTitle.textContent = 'How the decision was made';
+                    explanationTitle.textContent = 'How the algorithm works';
                     
                     const explanationText = document.createElement('p');
                     explanationText.className = 'text-sm text-gray-700';
-                    explanationText.textContent = 'The fairness algorithm compared these statistics at the time of assignment to ensure balanced distribution between parents.';
+                    explanationText.textContent = 'The fairness algorithm evaluates multiple criteria in priority order: (1) Parent availability, (2) Total assignment counts, (3) Recent counts (last 30 days), (4) Consecutive limit (max 2), (5) Alternating pattern.';
                     
                     explanationSection.appendChild(explanationTitle);
                     explanationSection.appendChild(explanationText);
