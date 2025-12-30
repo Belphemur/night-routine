@@ -1,3 +1,10 @@
+# [0.22.0](https://github.com/Belphemur/night-routine/compare/v0.21.0...v0.22.0) (2025-12-30)
+
+
+### Features
+
+* add decision reason explanations to assignment details modal and fix algorithm documentation ([#196](https://github.com/Belphemur/night-routine/issues/196)) ([3fd9601](https://github.com/Belphemur/night-routine/commit/3fd9601b82d47ab94cd00f2bc127e022aa20a2fd))
+
 # [0.21.0](https://github.com/Belphemur/night-routine/compare/v0.20.3...v0.21.0) (2025-12-29)
 
 
