@@ -1,3 +1,10 @@
+## [0.22.1](https://github.com/Belphemur/night-routine/compare/v0.22.0...v0.22.1) (2026-01-04)
+
+
+### Bug Fixes
+
+* **scheduler:** recalculate days after override regardless of current time ([#199](https://github.com/Belphemur/night-routine/issues/199)) ([473f98f](https://github.com/Belphemur/night-routine/commit/473f98f021dbb9dcb2dc3ac37a589bb7134a9709))
+
 # [0.22.0](https://github.com/Belphemur/night-routine/compare/v0.21.0...v0.22.0) (2025-12-30)
 
 
