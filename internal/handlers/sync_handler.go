@@ -86,6 +86,8 @@ func (h *SyncHandler) handleAPISync(w http.ResponseWriter, r *http.Request) {
 	// Validate and parse the start date
 	var startDate time.Time
 	if req.StartDate != "" {
+		// Parse the date string in UTC to ensure consistent timezone handling
+		// The client sends their local date as YYYY-MM-DD, we interpret it as the start of that day in UTC
 		parsed, err := time.Parse("2006-01-02", req.StartDate)
 		if err != nil {
 			handlerLogger.Warn().Err(err).Str("start_date", req.StartDate).Msg("Invalid start date format")
@@ -98,11 +100,12 @@ func (h *SyncHandler) handleAPISync(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		startDate = parsed
-		handlerLogger.Debug().Time("start_date", startDate).Msg("Using provided start date")
+		// Ensure the parsed date is in UTC (time.Parse with this format defaults to UTC)
+		startDate = parsed.UTC()
+		handlerLogger.Debug().Time("start_date", startDate).Msg("Using provided start date (interpreted as UTC)")
 	} else {
-		startDate = time.Now()
-		handlerLogger.Debug().Time("start_date", startDate).Msg("Using current time as start date")
+		startDate = time.Now().UTC()
+		handlerLogger.Debug().Time("start_date", startDate).Msg("Using current UTC time as start date")
 	}
 
 	// Validate authentication and calendar
@@ -146,28 +149,34 @@ func (h *SyncHandler) validateSyncPrerequisites(r *http.Request) error {
 	// Check if we have a token
 	hasToken, err := h.TokenManager.HasToken()
 	if err != nil {
-		return fmt.Errorf("authentication required")
+		return fmt.Errorf("failed to check authentication status: %w", err)
 	}
 	if !hasToken {
-		return fmt.Errorf("authentication required")
+		return fmt.Errorf("authentication required: no token found")
 	}
 
 	// Verify token is valid
 	token, err := h.TokenManager.GetValidToken(r.Context())
-	if err != nil || token == nil {
-		return fmt.Errorf("authentication required")
+	if err != nil {
+		return fmt.Errorf("authentication required: %w", err)
+	}
+	if token == nil {
+		return fmt.Errorf("authentication required: token is invalid")
 	}
 
 	// Check if a calendar is selected
 	calendarID, err := h.TokenStore.GetSelectedCalendar()
-	if err != nil || calendarID == "" {
-		return fmt.Errorf("calendar selection required")
+	if err != nil {
+		return fmt.Errorf("failed to get selected calendar: %w", err)
+	}
+	if calendarID == "" {
+		return fmt.Errorf("calendar selection required: no calendar selected")
 	}
 
 	// Initialize calendar service if needed
 	if !h.CalendarService.IsInitialized() {
 		if err := h.CalendarService.Initialize(r.Context()); err != nil {
-			return fmt.Errorf("failed to initialize calendar service")
+			return fmt.Errorf("failed to initialize calendar service: %w", err)
 		}
 	}
 
