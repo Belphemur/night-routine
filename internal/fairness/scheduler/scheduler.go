@@ -58,7 +58,8 @@ func New(cfg *config.Config, tracker fairness.TrackerInterface) *Scheduler {
 }
 
 // GenerateSchedule creates a schedule for the specified date range, considering a current time.
-// Assignments that are overridden or occurred before/on currentTime are considered fixed.
+// Assignments that are overridden or occurred before currentTime are considered fixed.
+// When an override exists on or after the current day, all non-override days after that override are recalculated.
 func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time) ([]*Assignment, error) {
 	genLogger := s.logger.With().
 		Time("start_date", start).
@@ -79,23 +80,73 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 	}
 	genLogger.Debug().Int("count", len(existingAssignments)).Msg("Fetched existing assignments")
 
-	// Map assignments fixed in time (overridden or before/on currentTime) by date for easy lookup
-	assigmentFixedInTime := make(map[string]*fairness.Assignment)
-	fixedCount := 0
 	// Truncate currentTime to the beginning of the day for comparison
 	currentDay := currentTime.Truncate(24 * time.Hour)
+
+	// First pass: find the earliest override in the range.
+	// Days after this override that are on or after currentDay need recalculation.
+	var earliestOverride *time.Time
+	for _, a := range existingAssignments {
+		if a.Override {
+			assignmentDay := a.Date.Truncate(24 * time.Hour)
+			if earliestOverride == nil || assignmentDay.Before(*earliestOverride) {
+				t := assignmentDay
+				earliestOverride = &t
+			}
+		}
+	}
+	if earliestOverride != nil {
+		genLogger.Debug().Time("earliest_override", *earliestOverride).Msg("Found earliest override in range")
+	} else {
+		genLogger.Debug().Msg("No override found in range")
+	}
+
+	// Second pass: map assignments that are fixed
+	// Fixed assignments are:
+	// 1. Assignments strictly before currentDay (in the past) - these cannot be changed
+	// 2. Override assignments (always fixed - user explicitly set them)
+	// NOT fixed (will be recalculated):
+	// - Non-override assignments on or after currentDay that are after an override
+	// - Non-override assignments strictly after currentDay (future, no override) - existing behavior
+	assigmentFixedInTime := make(map[string]*fairness.Assignment)
+	fixedCount := 0
 	for _, a := range existingAssignments {
 		assignmentDay := a.Date.Truncate(24 * time.Hour)
-		// Skip assignment if it's NOT overridden AND its date is AFTER the current time's date
-		if !a.Override && assignmentDay.After(currentDay) {
-			continue // This assignment is neither overridden nor in the past/present, so it's not fixed
+
+		// Overrides are always fixed
+		if a.Override {
+			dateStr := a.Date.Format("2006-01-02")
+			assigmentFixedInTime[dateStr] = a
+			fixedCount++
+			continue
 		}
-		// Otherwise, the assignment is fixed (either overridden or past/present)
-		dateStr := a.Date.Format("2006-01-02")
-		assigmentFixedInTime[dateStr] = a
-		fixedCount++
+
+		// Past assignments (strictly before currentDay) are fixed - they already happened
+		if assignmentDay.Before(currentDay) {
+			dateStr := a.Date.Format("2006-01-02")
+			assigmentFixedInTime[dateStr] = a
+			fixedCount++
+			continue
+		}
+
+		// For assignments on or after currentDay:
+		// If there's an override and this assignment is after it, recalculate
+		if earliestOverride != nil && assignmentDay.After(*earliestOverride) {
+			continue // Not fixed, will be recalculated
+		}
+
+		// No override affecting this day, or assignment is on/before the override date
+		// For currentDay: mark as fixed only if no override affects it
+		// For future days: recalculate (existing behavior)
+		if !assignmentDay.After(currentDay) {
+			// This is currentDay - only fix if not affected by an override
+			dateStr := a.Date.Format("2006-01-02")
+			assigmentFixedInTime[dateStr] = a
+			fixedCount++
+		}
+		// Else: it's in the future, recalculate (current behavior)
 	}
-	genLogger.Debug().Int("fixed_count", fixedCount).Msg("Mapped fixed assignments (overridden or past/present)")
+	genLogger.Debug().Int("fixed_count", fixedCount).Msg("Mapped fixed assignments (overridden or past)")
 
 	// Process each day in the range
 	genLogger.Debug().Msg("Processing days in range")
@@ -103,7 +154,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		dateStr := current.Format("2006-01-02")
 		dayLogger := genLogger.With().Str("date", dateStr).Logger()
 
-		// Check if there's a fixed assignment (overridden or past/present) for this date
+		// Check if there's a fixed assignment (overridden, past, or before override) for this date
 		if fixedAssignment, ok := assigmentFixedInTime[dateStr]; ok {
 			dayLogger.Info().Int64("assignment_id", fixedAssignment.ID).Str("parent", fixedAssignment.Parent).Str("reason", string(fixedAssignment.DecisionReason)).Bool("override", fixedAssignment.Override).Msg("Using fixed assignment")
 			// Convert to scheduler assignment
