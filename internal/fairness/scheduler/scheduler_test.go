@@ -347,3 +347,151 @@ func TestGenerateScheduleWithCurrentTimeFiltering(t *testing.T) {
 	// The generated schedule should reflect the reason of the *fixed* assignment
 	assert.Equal(t, finalDay3Assignment.DecisionReason, schedule[2].DecisionReason)
 }
+
+// TestOverrideRecalculatesFollowingDays tests that when an override is created,
+// subsequent days are recalculated to account for the override.
+// This is the bug fix for: "Bug with override not recalculating the following days"
+func TestOverrideRecalculatesFollowingDays(t *testing.T) {
+	// Create config with no unavailability to make fairness rules predictable
+	cfg := &config.Config{
+		Parents: config.ParentsConfig{
+			ParentA: "Alice",
+			ParentB: "Bob",
+		},
+		Availability: config.AvailabilityConfig{
+			ParentAUnavailable: []string{},
+			ParentBUnavailable: []string{},
+		},
+	}
+
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	scheduler := New(cfg, tracker)
+
+	// Scenario from the issue:
+	// - Days alternate between Alice and Bob
+	// - User overrides a day to the same parent as the previous day (creating consecutive assignments)
+	// - The day AFTER the override should switch to the other parent because they have fewer total assignments
+
+	// Define dates - use a week starting Wednesday to avoid any day-of-week unavailability
+	wed := time.Date(2026, 1, 7, 0, 0, 0, 0, time.UTC)  // Wednesday
+	sat := time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC) // Saturday
+	sun := time.Date(2026, 1, 11, 0, 0, 0, 0, time.UTC) // Sunday
+
+	// Step 1: Generate initial schedule (before any override)
+	// Current time is Wednesday, generating schedule for Wed-Sun
+	initialSchedule, err := scheduler.GenerateSchedule(wed, sun, wed)
+	assert.NoError(t, err)
+	assert.Len(t, initialSchedule, 5)
+
+	// With no prior assignments and balanced stats, assignments should alternate
+	// Wed: Alice (first assignment), Thu: Bob, Fri: Alice, Sat: Bob, Sun: Alice
+	assert.Equal(t, "Alice", initialSchedule[0].Parent, "Wed should be Alice")
+	assert.Equal(t, "Bob", initialSchedule[1].Parent, "Thu should be Bob")
+	assert.Equal(t, "Alice", initialSchedule[2].Parent, "Fri should be Alice")
+	assert.Equal(t, "Bob", initialSchedule[3].Parent, "Sat should be Bob")
+	assert.Equal(t, "Alice", initialSchedule[4].Parent, "Sun should be Alice")
+
+	// Step 2: User overrides Saturday to Alice (instead of Bob)
+	// This creates consecutive assignments: Fri=Alice, Sat=Alice (override)
+	satAssignment, err := tracker.GetAssignmentByDate(sat)
+	assert.NoError(t, err)
+	err = tracker.UpdateAssignmentParent(satAssignment.ID, "Alice", true)
+	assert.NoError(t, err)
+
+	// Step 3: Regenerate schedule with current time = Saturday (the override day)
+	// Sunday should be recalculated to Bob
+	// Stats after override: Alice=3 (Wed, Fri, Sat), Bob=1 (Thu)
+	// Bob has fewer total assignments, so Bob is chosen
+	newSchedule, err := scheduler.GenerateSchedule(wed, sun, sat)
+	assert.NoError(t, err)
+	assert.Len(t, newSchedule, 5)
+
+	// Verify the schedule after override:
+	// Wed, Thu, Fri: Fixed (in the past)
+	// Sat: Fixed (override)
+	// Sun: Recalculated - should be Bob (fewer total assignments)
+	assert.Equal(t, "Alice", newSchedule[0].Parent, "Wed should still be Alice (past)")
+	assert.Equal(t, "Bob", newSchedule[1].Parent, "Thu should still be Bob (past)")
+	assert.Equal(t, "Alice", newSchedule[2].Parent, "Fri should still be Alice (past)")
+	assert.Equal(t, "Alice", newSchedule[3].Parent, "Sat should be Alice (override)")
+	assert.Equal(t, fairness.DecisionReasonOverride, newSchedule[3].DecisionReason, "Sat should have Override reason")
+
+	// The key assertion: Sunday should now be Bob (not Alice as originally scheduled)
+	// This proves the day after the override was recalculated
+	assert.Equal(t, "Bob", newSchedule[4].Parent, "Sun should be Bob after override (recalculated)")
+	assert.Equal(t, fairness.DecisionReasonTotalCount, newSchedule[4].DecisionReason,
+		"Sun should have TotalCount reason (Alice=3, Bob=1)")
+}
+
+// TestOverrideOnPastDayRecalculatesFollowingDays tests that when an override is on a past day (yesterday),
+// subsequent days are still recalculated.
+func TestOverrideOnPastDayRecalculatesFollowingDays(t *testing.T) {
+	cfg := &config.Config{
+		Parents: config.ParentsConfig{
+			ParentA: "Alice",
+			ParentB: "Bob",
+		},
+		Availability: config.AvailabilityConfig{
+			ParentAUnavailable: []string{},
+			ParentBUnavailable: []string{},
+		},
+	}
+
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	scheduler := New(cfg, tracker)
+
+	// Scenario matching the issue:
+	// - Today is Jan 4th (currentDay)
+	// - User overrides Jan 3rd (yesterday) to Bob
+	// - Jan 2nd was Bob, so now Jan 2=Bob, Jan 3=Bob (override)
+	// - Jan 4th (today) should be recalculated to Alice because she has fewer total assignments (TotalCount)
+
+	day1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC) // Thursday
+	// day2 is Jan 2 (Friday) - generated as Bob in initial schedule
+	day3 := time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC) // Saturday (override day - yesterday)
+	day4 := time.Date(2026, 1, 4, 0, 0, 0, 0, time.UTC) // Sunday (today = currentDay)
+
+	// Step 1: Generate initial schedule from day1 to day4, with current time at day1
+	initialSchedule, err := scheduler.GenerateSchedule(day1, day4, day1)
+	assert.NoError(t, err)
+	assert.Len(t, initialSchedule, 4)
+
+	// Initial: Alice, Bob, Alice, Bob (alternating)
+	assert.Equal(t, "Alice", initialSchedule[0].Parent) // day1 = Alice
+	assert.Equal(t, "Bob", initialSchedule[1].Parent)   // day2 = Bob
+	assert.Equal(t, "Alice", initialSchedule[2].Parent) // day3 = Alice
+	assert.Equal(t, "Bob", initialSchedule[3].Parent)   // day4 = Bob
+
+	// Step 2: Override day3 (Saturday) to Bob (same as day2)
+	// Now we have: day2=Bob, day3=Bob (override) - two consecutive Bob days
+	day3Assignment, err := tracker.GetAssignmentByDate(day3)
+	assert.NoError(t, err)
+	err = tracker.UpdateAssignmentParent(day3Assignment.ID, "Bob", true)
+	assert.NoError(t, err)
+
+	// Step 3: Regenerate with current time = day4 (today)
+	// The override is on day3 (yesterday), day4 (today) should be recalculated
+	// Alice has fewer total assignments (1) than Bob (2), so Alice is chosen
+	newSchedule, err := scheduler.GenerateSchedule(day1, day4, day4)
+	assert.NoError(t, err)
+	assert.Len(t, newSchedule, 4)
+
+	// Verify:
+	// day1, day2, day3: Fixed (in the past, day3 is also an override)
+	// day4: Recalculated - should be Alice (fewer total assignments: Alice=1, Bob=2)
+	assert.Equal(t, "Alice", newSchedule[0].Parent, "day1 should be Alice (past)")
+	assert.Equal(t, "Bob", newSchedule[1].Parent, "day2 should be Bob (past)")
+	assert.Equal(t, "Bob", newSchedule[2].Parent, "day3 should be Bob (override)")
+	assert.Equal(t, "Alice", newSchedule[3].Parent, "day4 should be Alice (recalculated)")
+	// The reason is TotalCount because Alice has fewer total assignments than Bob
+	assert.Equal(t, fairness.DecisionReasonTotalCount, newSchedule[3].DecisionReason,
+		"day4 should have TotalCount reason (Alice=1, Bob=2)")
+}
