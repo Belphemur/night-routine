@@ -56,10 +56,10 @@
             class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-5 rounded-xl text-center transition-all duration-200 hover:shadow-lg hover:scale-105">
             📅 Change Calendar
         </a>
-        <a href="/sync"
+        <button type="button" id="sync-btn"
             class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-5 rounded-xl text-center transition-all duration-200 hover:shadow-lg hover:scale-105">
             🔄 Sync Now
-        </a>
+        </button>
     </div>
     {{else}}
     <p class="text-slate-700 mb-6">No calendar selected yet</p>
@@ -275,6 +275,62 @@
             <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                 <button type="button" id="details-modal-close"
                     class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto">
+                    Close
+                </button>
+            </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Sync Loading Modal -->
+<div id="sync-modal" class="relative z-10 hidden" aria-labelledby="sync-modal-title" role="dialog" aria-modal="true">
+    <div id="sync-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div id="sync-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+            <div class="text-center">
+                <!-- Loading State -->
+                <div id="sync-loading" class="block">
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-4">
+                        <svg class="h-6 w-6 text-emerald-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="sync-modal-title">Syncing Calendar</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">Please wait while we sync your schedule with Google Calendar...</p>
+                    </div>
+                </div>
+                <!-- Success State -->
+                <div id="sync-success" class="hidden">
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-4">
+                        <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Sync Complete!</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500" id="sync-success-message">Your schedule has been synced successfully.</p>
+                    </div>
+                </div>
+                <!-- Error State -->
+                <div id="sync-error" class="hidden">
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Sync Failed</h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500" id="sync-error-message">An error occurred while syncing.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 hidden" id="sync-modal-close-container">
+                <button type="button" id="sync-modal-close"
+                    class="inline-flex w-full justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
                     Close
                 </button>
             </div>
@@ -864,8 +920,130 @@
                 if (!detailsModal.classList.contains('hidden')) {
                     hideDetailsModal();
                 }
+                const syncModal = document.getElementById('sync-modal');
+                if (syncModal && !syncModal.classList.contains('hidden')) {
+                    // Only allow closing if not in loading state
+                    const closeContainer = document.getElementById('sync-modal-close-container');
+                    if (closeContainer && !closeContainer.classList.contains('hidden')) {
+                        hideSyncModal();
+                    }
+                }
             }
         });
+
+        // Sync Modal Management
+        const syncBtn = document.getElementById('sync-btn');
+        const syncModal = document.getElementById('sync-modal');
+        const syncModalBackdrop = document.getElementById('sync-modal-backdrop');
+        const syncModalPanel = document.getElementById('sync-modal-panel');
+        const syncLoading = document.getElementById('sync-loading');
+        const syncSuccess = document.getElementById('sync-success');
+        const syncError = document.getElementById('sync-error');
+        const syncModalCloseContainer = document.getElementById('sync-modal-close-container');
+        const syncModalClose = document.getElementById('sync-modal-close');
+
+        function showSyncModal() {
+            // Reset to loading state
+            syncLoading.classList.remove('hidden');
+            syncSuccess.classList.add('hidden');
+            syncError.classList.add('hidden');
+            syncModalCloseContainer.classList.add('hidden');
+            
+            syncModal.classList.remove('hidden');
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    syncModalBackdrop.classList.remove('opacity-0');
+                    syncModalBackdrop.classList.add('opacity-100');
+                    syncModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                    syncModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                });
+            });
+        }
+
+        function showSyncSuccess(message) {
+            syncLoading.classList.add('hidden');
+            syncSuccess.classList.remove('hidden');
+            syncError.classList.add('hidden');
+            syncModalCloseContainer.classList.remove('hidden');
+            if (message) {
+                document.getElementById('sync-success-message').textContent = message;
+            }
+        }
+
+        function showSyncError(message) {
+            syncLoading.classList.add('hidden');
+            syncSuccess.classList.add('hidden');
+            syncError.classList.remove('hidden');
+            syncModalCloseContainer.classList.remove('hidden');
+            if (message) {
+                document.getElementById('sync-error-message').textContent = message;
+            }
+        }
+
+        function hideSyncModal() {
+            syncModalBackdrop.classList.remove('opacity-100');
+            syncModalBackdrop.classList.add('opacity-0');
+            syncModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            syncModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+            syncModalPanel.addEventListener('transitionend', function handler() {
+                syncModal.classList.add('hidden');
+                syncModalPanel.removeEventListener('transitionend', handler);
+            });
+        }
+
+        async function performSync() {
+            showSyncModal();
+            
+            // Get today's date in the user's local timezone (YYYY-MM-DD format)
+            const startDate = getLocalDateString(new Date());
+            
+            try {
+                const response = await fetch('/api/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ start_date: startDate }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSyncSuccess(data.message || 'Your schedule has been synced successfully.');
+                    // Reload the page after a short delay to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showSyncError(data.error || 'An error occurred while syncing.');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                showSyncError('Network error. Please check your connection and try again.');
+            }
+        }
+
+        if (syncBtn) {
+            syncBtn.addEventListener('click', performSync);
+        }
+
+        if (syncModalClose) {
+            syncModalClose.addEventListener('click', hideSyncModal);
+        }
+
+        // Close sync modal on backdrop click (only if not loading)
+        if (syncModal) {
+            syncModal.addEventListener('click', function(e) {
+                if (!syncModalPanel.contains(e.target)) {
+                    // Only allow closing if not in loading state
+                    if (!syncModalCloseContainer.classList.contains('hidden')) {
+                        hideSyncModal();
+                    }
+                }
+            });
+        }
     });
 </script>
 {{end}}

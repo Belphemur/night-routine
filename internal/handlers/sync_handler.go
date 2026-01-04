@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -32,9 +33,148 @@ func NewSyncHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler, to
 // RegisterRoutes registers sync related routes
 func (h *SyncHandler) RegisterRoutes() {
 	http.HandleFunc("/sync", h.handleManualSync)
+	http.HandleFunc("/api/sync", h.handleAPISync)
 }
 
-// handleManualSync handles manual synchronization requests
+// SyncRequest represents the JSON request body for sync
+type SyncRequest struct {
+	// StartDate is the start date for sync in YYYY-MM-DD format (user's local date)
+	StartDate string `json:"start_date"`
+}
+
+// SyncResponse represents the JSON response for sync
+type SyncResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
+// handleAPISync handles AJAX sync requests
+func (h *SyncHandler) handleAPISync(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.logger.With().Str("handler", "handleAPISync").Logger()
+	handlerLogger.Info().Msg("Handling API sync request")
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Only accept POST requests
+	if r.Method != http.MethodPost {
+		handlerLogger.Warn().Str("method", r.Method).Msg("Invalid method for API sync")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		if err := json.NewEncoder(w).Encode(SyncResponse{
+			Success: false,
+			Error:   "Method not allowed",
+		}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
+		}
+		return
+	}
+
+	// Parse the request body
+	var req SyncRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		handlerLogger.Warn().Err(err).Msg("Failed to parse request body")
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(SyncResponse{
+			Success: false,
+			Error:   "Invalid request body",
+		}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
+		}
+		return
+	}
+
+	// Validate and parse the start date
+	var startDate time.Time
+	if req.StartDate != "" {
+		parsed, err := time.Parse("2006-01-02", req.StartDate)
+		if err != nil {
+			handlerLogger.Warn().Err(err).Str("start_date", req.StartDate).Msg("Invalid start date format")
+			w.WriteHeader(http.StatusBadRequest)
+			if err := json.NewEncoder(w).Encode(SyncResponse{
+				Success: false,
+				Error:   "Invalid start date format. Expected YYYY-MM-DD",
+			}); err != nil {
+				handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
+			}
+			return
+		}
+		startDate = parsed
+		handlerLogger.Debug().Time("start_date", startDate).Msg("Using provided start date")
+	} else {
+		startDate = time.Now()
+		handlerLogger.Debug().Time("start_date", startDate).Msg("Using current time as start date")
+	}
+
+	// Validate authentication and calendar
+	if err := h.validateSyncPrerequisites(r); err != nil {
+		handlerLogger.Warn().Err(err).Msg("Sync prerequisites not met")
+		w.WriteHeader(http.StatusUnauthorized)
+		if err := json.NewEncoder(w).Encode(SyncResponse{
+			Success: false,
+			Error:   err.Error(),
+		}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
+		}
+		return
+	}
+
+	// Run the schedule update with the provided start date
+	handlerLogger.Info().Time("start_date", startDate).Msg("Starting schedule update process")
+	if err := h.updateScheduleWithDate(r.Context(), startDate); err != nil {
+		handlerLogger.Error().Err(err).Msg("Schedule update process failed")
+		w.WriteHeader(http.StatusInternalServerError)
+		if err := json.NewEncoder(w).Encode(SyncResponse{
+			Success: false,
+			Error:   "Sync failed. Please try again.",
+		}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
+		}
+		return
+	}
+
+	handlerLogger.Info().Msg("API sync completed successfully")
+	if err := json.NewEncoder(w).Encode(SyncResponse{
+		Success: true,
+		Message: "Schedule synced successfully",
+	}); err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
+	}
+}
+
+// validateSyncPrerequisites checks if sync can proceed (auth, calendar, etc.)
+func (h *SyncHandler) validateSyncPrerequisites(r *http.Request) error {
+	// Check if we have a token
+	hasToken, err := h.TokenManager.HasToken()
+	if err != nil {
+		return fmt.Errorf("authentication required")
+	}
+	if !hasToken {
+		return fmt.Errorf("authentication required")
+	}
+
+	// Verify token is valid
+	token, err := h.TokenManager.GetValidToken(r.Context())
+	if err != nil || token == nil {
+		return fmt.Errorf("authentication required")
+	}
+
+	// Check if a calendar is selected
+	calendarID, err := h.TokenStore.GetSelectedCalendar()
+	if err != nil || calendarID == "" {
+		return fmt.Errorf("calendar selection required")
+	}
+
+	// Initialize calendar service if needed
+	if !h.CalendarService.IsInitialized() {
+		if err := h.CalendarService.Initialize(r.Context()); err != nil {
+			return fmt.Errorf("failed to initialize calendar service")
+		}
+	}
+
+	return nil
+}
+
+// handleManualSync handles manual synchronization requests (GET for backwards compatibility)
 func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.logger.With().Str("handler", "handleManualSync").Logger()
 	handlerLogger.Info().Msg("Handling manual sync request")
@@ -110,19 +250,23 @@ func (h *SyncHandler) handleManualSync(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/?success="+SuccessCodeSyncComplete, http.StatusSeeOther)
 }
 
-// updateSchedule generates and syncs a new schedule
+// updateSchedule generates and syncs a new schedule using current time
 func (h *SyncHandler) updateSchedule(ctx context.Context) error {
+	return h.updateScheduleWithDate(ctx, time.Now())
+}
+
+// updateScheduleWithDate generates and syncs a new schedule starting from the specified date
+func (h *SyncHandler) updateScheduleWithDate(ctx context.Context, startDate time.Time) error {
 	updateLogger := h.logger.With().Str("operation", "updateSchedule").Logger()
-	updateLogger.Info().Msg("Starting schedule generation and sync")
+	updateLogger.Info().Time("start_date", startDate).Msg("Starting schedule generation and sync")
 
 	// Calculate date range
-	now := time.Now()
-	end := now.AddDate(0, 0, h.RuntimeConfig.Config.Schedule.LookAheadDays)
-	updateLogger.Debug().Time("start_date", now).Time("end_date", end).Int("lookahead_days", h.RuntimeConfig.Config.Schedule.LookAheadDays).Msg("Calculated date range")
+	end := startDate.AddDate(0, 0, h.RuntimeConfig.Config.Schedule.LookAheadDays)
+	updateLogger.Debug().Time("start_date", startDate).Time("end_date", end).Int("lookahead_days", h.RuntimeConfig.Config.Schedule.LookAheadDays).Msg("Calculated date range")
 
-	// Generate schedule
+	// Generate schedule - use startDate as both the start and currentTime
 	updateLogger.Debug().Msg("Generating schedule")
-	assignments, err := h.Scheduler.GenerateSchedule(now, end, time.Now())
+	assignments, err := h.Scheduler.GenerateSchedule(startDate, end, startDate)
 	if err != nil {
 		updateLogger.Error().Err(err).Msg("Failed to generate schedule")
 		// Wrap error for context

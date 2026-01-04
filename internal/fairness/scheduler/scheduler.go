@@ -58,7 +58,7 @@ func New(cfg *config.Config, tracker fairness.TrackerInterface) *Scheduler {
 }
 
 // GenerateSchedule creates a schedule for the specified date range, considering a current time.
-// Assignments that are overridden or occurred before currentTime are considered fixed.
+// Assignments that are overridden or occurred before/on currentTime are considered fixed.
 // When an override exists on or after the current day, all non-override days after that override are recalculated.
 func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time) ([]*Assignment, error) {
 	genLogger := s.logger.With().

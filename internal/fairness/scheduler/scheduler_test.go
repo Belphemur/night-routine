@@ -374,7 +374,7 @@ func TestOverrideRecalculatesFollowingDays(t *testing.T) {
 	// Scenario from the issue:
 	// - Days alternate between Alice and Bob
 	// - User overrides a day to the same parent as the previous day (creating consecutive assignments)
-	// - The day AFTER the override should switch to the other parent due to consecutive limit
+	// - The day AFTER the override should switch to the other parent because they have fewer total assignments
 
 	// Define dates - use a week starting Wednesday to avoid any day-of-week unavailability
 	wed := time.Date(2026, 1, 7, 0, 0, 0, 0, time.UTC)  // Wednesday
@@ -427,9 +427,9 @@ func TestOverrideRecalculatesFollowingDays(t *testing.T) {
 		"Sun should have TotalCount reason (Alice=3, Bob=1)")
 }
 
-// TestOverrideOnCurrentDayRecalculatesFollowingDays tests that when an override is on the current day,
+// TestOverrideOnPastDayRecalculatesFollowingDays tests that when an override is on a past day (yesterday),
 // subsequent days are still recalculated.
-func TestOverrideOnCurrentDayRecalculatesFollowingDays(t *testing.T) {
+func TestOverrideOnPastDayRecalculatesFollowingDays(t *testing.T) {
 	cfg := &config.Config{
 		Parents: config.ParentsConfig{
 			ParentA: "Alice",
@@ -452,7 +452,7 @@ func TestOverrideOnCurrentDayRecalculatesFollowingDays(t *testing.T) {
 	// - Today is Jan 4th (currentDay)
 	// - User overrides Jan 3rd (yesterday) to Bob
 	// - Jan 2nd was Bob, so now Jan 2=Bob, Jan 3=Bob (override)
-	// - Jan 4th (today) should be recalculated to Alice due to consecutive limit
+	// - Jan 4th (today) should be recalculated to Alice because she has fewer total assignments (TotalCount)
 
 	day1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC) // Thursday
 	// day2 is Jan 2 (Friday) - generated as Bob in initial schedule
