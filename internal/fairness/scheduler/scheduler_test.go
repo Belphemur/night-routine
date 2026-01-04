@@ -418,7 +418,7 @@ func TestOverrideRecalculatesFollowingDays(t *testing.T) {
 	assert.Equal(t, "Bob", newSchedule[1].Parent, "Thu should still be Bob (past)")
 	assert.Equal(t, "Alice", newSchedule[2].Parent, "Fri should still be Alice (past)")
 	assert.Equal(t, "Alice", newSchedule[3].Parent, "Sat should be Alice (override)")
-	assert.True(t, newSchedule[3].DecisionReason == fairness.DecisionReasonOverride, "Sat should have Override reason")
+	assert.Equal(t, fairness.DecisionReasonOverride, newSchedule[3].DecisionReason, "Sat should have Override reason")
 
 	// The key assertion: Sunday should now be Bob (not Alice as originally scheduled)
 	// This proves the day after the override was recalculated
