@@ -108,7 +108,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 	// NOT fixed (will be recalculated):
 	// - Non-override assignments on or after currentDay that are after an override
 	// - Non-override assignments strictly after currentDay (future, no override) - existing behavior
-	assigmentFixedInTime := make(map[string]*fairness.Assignment)
+	assignmentFixedInTime := make(map[string]*fairness.Assignment)
 	fixedCount := 0
 	for _, a := range existingAssignments {
 		assignmentDay := a.Date.Truncate(24 * time.Hour)
@@ -116,7 +116,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		// Overrides are always fixed
 		if a.Override {
 			dateStr := a.Date.Format("2006-01-02")
-			assigmentFixedInTime[dateStr] = a
+			assignmentFixedInTime[dateStr] = a
 			fixedCount++
 			continue
 		}
@@ -124,7 +124,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		// Past assignments (strictly before currentDay) are fixed - they already happened
 		if assignmentDay.Before(currentDay) {
 			dateStr := a.Date.Format("2006-01-02")
-			assigmentFixedInTime[dateStr] = a
+			assignmentFixedInTime[dateStr] = a
 			fixedCount++
 			continue
 		}
@@ -141,7 +141,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		if !assignmentDay.After(currentDay) {
 			// This is currentDay - only fix if not affected by an override
 			dateStr := a.Date.Format("2006-01-02")
-			assigmentFixedInTime[dateStr] = a
+			assignmentFixedInTime[dateStr] = a
 			fixedCount++
 		}
 		// Else: it's in the future, recalculate (current behavior)
@@ -155,7 +155,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		dayLogger := genLogger.With().Str("date", dateStr).Logger()
 
 		// Check if there's a fixed assignment (overridden, past, or before override) for this date
-		if fixedAssignment, ok := assigmentFixedInTime[dateStr]; ok {
+		if fixedAssignment, ok := assignmentFixedInTime[dateStr]; ok {
 			dayLogger.Info().Int64("assignment_id", fixedAssignment.ID).Str("parent", fixedAssignment.Parent).Str("reason", string(fixedAssignment.DecisionReason)).Bool("override", fixedAssignment.Override).Msg("Using fixed assignment")
 			// Convert to scheduler assignment
 			parentType := ParentTypeB
