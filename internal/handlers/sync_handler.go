@@ -114,7 +114,7 @@ func (h *SyncHandler) handleAPISync(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		if err := json.NewEncoder(w).Encode(SyncResponse{
 			Success: false,
-			Error:   err.Error(),
+			Error:   "Sync prerequisites are not met. Please verify your authentication and calendar settings.",
 		}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode JSON response")
 		}
