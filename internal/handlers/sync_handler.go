@@ -273,7 +273,13 @@ func (h *SyncHandler) updateScheduleWithDate(ctx context.Context, startDate time
 	end := startDate.AddDate(0, 0, h.RuntimeConfig.Config.Schedule.LookAheadDays)
 	updateLogger.Debug().Time("start_date", startDate).Time("end_date", end).Int("lookahead_days", h.RuntimeConfig.Config.Schedule.LookAheadDays).Msg("Calculated date range")
 
-	// Generate schedule - use startDate as both the start and currentTime
+	// Generate schedule.
+	// We intentionally use startDate as both the schedule start and the currentTime:
+	//   - startDate represents the user's "today" (in UTC) when they trigger a manual sync.
+	//   - currentTime is used by the scheduler to distinguish fixed past days from
+	//     recalculatable present/future days.
+	// By passing startDate as currentTime, all assignments from startDate onward are treated
+	// as current/future and can be recalculated if needed.
 	updateLogger.Debug().Msg("Generating schedule")
 	assignments, err := h.Scheduler.GenerateSchedule(startDate, end, startDate)
 	if err != nil {
