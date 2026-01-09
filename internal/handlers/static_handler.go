@@ -69,7 +69,7 @@ func NewStaticHandler() (*StaticHandler, error) {
 	logger.Debug().Str("etag", logoETag).Int("content_size", len(logo)).Msg("Cached Logo file with ETag")
 
 	// Pre-load and cache all JS files with ETags
-	jsFiles := []string{"home.js", "settings.js"}
+	jsFiles := []string{"home.js", "settings.js", "dom.js"}
 	jsETags := make(map[string]string)
 	jsContent := make(map[string][]byte)
 
@@ -77,6 +77,11 @@ func NewStaticHandler() (*StaticHandler, error) {
 		jsPath := fmt.Sprintf("assets/js/%s", filename)
 		jsData, err := assetsFS.ReadFile(jsPath)
 		if err != nil {
+			// dom.js might not exist if Vite didn't create it
+			if filename == "dom.js" {
+				logger.Debug().Str("file", filename).Msg("Skipping dom.js as it doesn't exist")
+				continue
+			}
 			logger.Error().Err(err).Str("file", filename).Msg("Failed to read JS file for ETag calculation")
 			return nil, fmt.Errorf("failed to read JS file %s: %w", filename, err)
 		}
@@ -137,6 +142,15 @@ func (h *StaticHandler) serveHomeJS(w http.ResponseWriter, r *http.Request) {
 // serveSettingsJS serves the embedded settings.js file with ETag support
 func (h *StaticHandler) serveSettingsJS(w http.ResponseWriter, r *http.Request) {
 	h.serveAsset(w, r, h.jsContent["settings.js"], h.jsETags["settings.js"], "application/javascript; charset=utf-8")
+}
+
+// serveDomJS serves the embedded dom.js file with ETag support
+func (h *StaticHandler) serveDomJS(w http.ResponseWriter, r *http.Request) {
+	if content, ok := h.jsContent["dom.js"]; ok {
+		h.serveAsset(w, r, content, h.jsETags["dom.js"], "application/javascript; charset=utf-8")
+	} else {
+		http.NotFound(w, r)
+	}
 }
 
 // serveAsset is a helper to serve static assets with ETag support

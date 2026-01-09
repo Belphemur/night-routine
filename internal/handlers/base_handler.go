@@ -51,8 +51,8 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		},
 	}
 
-	// Parse only layout.html initially
-	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/layout.html")
+	// Parse layout.html and all page templates upfront
+	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse templates")
 		return nil, fmt.Errorf("failed to parse templates: %w", err)
@@ -76,18 +76,20 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 func (h *BaseHandler) RenderTemplate(w http.ResponseWriter, name string, data interface{}) {
 	h.logger.Debug().Str("template_name", name).Msg("Executing template")
 
-	// Clone the base template (which contains layout.html)
-	tmpl, err := h.tmpl.Clone()
-	if err != nil {
-		h.logger.Error().Err(err).Msg("Failed to clone template")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	// Parse templates fresh to ensure latest version
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"js": func(v interface{}) template.JS {
+			a, _ := json.Marshal(v)
+			return template.JS(a)
+		},
 	}
-
-	// Parse the specific page template into the clone
-	_, err = tmpl.ParseFS(templateFS, "templates/"+name)
+	
+	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
-		h.logger.Error().Err(err).Str("template", name).Msg("Failed to parse page template")
+		h.logger.Error().Err(err).Str("template", name).Msg("Failed to parse templates")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

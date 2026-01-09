@@ -32,6 +32,9 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
 
+      - name: Generate assets
+        run: go generate ./...
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:

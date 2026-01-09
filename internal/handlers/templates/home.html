@@ -346,5 +346,5 @@
     window.CALENDAR_DATA = {{.CalendarData | js}};
 </script>
 <!-- Load bundled JavaScript -->
-<script src="/static/js/home.js?v={{.JSETags.home}}" defer></script>
+<script type="module" src="/static/js/home.js?v={{.JSETags.home}}"></script>
 {{end}}
