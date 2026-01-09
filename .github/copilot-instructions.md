@@ -14,6 +14,15 @@ Night Routine Scheduler is a Go application that manages night routine schedulin
 ```
 night-routine/
 ├── cmd/night-routine/     # Application entry point
+├── frontend/              # Frontend TypeScript/JavaScript code
+│   ├── src/               # TypeScript source files
+│   │   ├── home/          # Home page modules
+│   │   ├── utils/         # Shared utilities
+│   │   ├── home.ts        # Home page entry point
+│   │   └── settings.ts    # Settings page entry point
+│   ├── tsconfig.json      # TypeScript configuration
+│   ├── vite.config.ts     # Vite bundler configuration
+│   └── .eslintrc.json     # ESLint configuration
 ├── internal/              # Internal packages
 │   ├── calendar/          # Google Calendar API integration
 │   ├── config/            # Configuration management
@@ -21,7 +30,10 @@ night-routine/
 │   ├── fairness/          # Assignment scheduling algorithm
 │   │   └── scheduler/     # Core scheduling logic
 │   ├── handlers/          # HTTP handlers and web UI
-│   │   ├── assets/        # CSS and static assets
+│   │   ├── assets/        # Static assets (CSS, JS, images)
+│   │   │   ├── css/       # Tailwind CSS files
+│   │   │   ├── js/        # Built JavaScript bundles (generated)
+│   │   │   └── images/    # Images (favicon, logo)
 │   │   └── templates/     # HTML templates
 │   ├── constants/         # Application constants
 │   ├── logging/           # Zerolog configuration
@@ -59,19 +71,39 @@ night-routine/
   - `internal/config/` - Configuration tests
 
 ### Building Assets
-- **Always run `go generate` before building** to generate CSS and other assets
+- **Always run `go generate` before building** to generate CSS and JavaScript assets
 - Run `go generate ./...` from the project root to generate all assets
-- The CSS files are generated using Tailwind CSS v4 via pnpm
-- Assets must be regenerated after any template or CSS changes
+- The CSS files are generated using Tailwind CSS v4 via `@tailwindcss/cli`
+- The JavaScript files are built from TypeScript using Vite
+- Assets must be regenerated after any template, CSS, or TypeScript changes
 - The generate directive is in `internal/handlers/base_handler.go`
-- Generated CSS is embedded in the binary via `//go:embed` directives
+- Generated CSS and JS are embedded in the binary via `//go:embed` directives
+- Build commands:
+  - `pnpm run build` - Build both CSS and JavaScript
+  - `pnpm run build:css` - Build only Tailwind CSS
+  - `pnpm run build:js` - Build only TypeScript to JavaScript
+
+### TypeScript and Frontend Code
+- **Always run TypeScript linter** before committing: `pnpm run lint:ts`
+- Run `pnpm run type-check` to validate TypeScript types
+- Frontend code is in `frontend/src/` directory
+- Follow TypeScript strict mode conventions
+- Use ESLint with TypeScript parser for code quality
+- Key TypeScript areas:
+  - `frontend/src/home/` - Home page modules (calendar, modals, sync)
+  - `frontend/src/utils/` - Shared utilities (DOM, date, modal helpers)
+  - `frontend/src/settings.ts` - Settings page logic
+- TypeScript bundles are generated to `internal/handlers/assets/js/`
+- Each page has its own bundle (home.js, settings.js) to minimize payload
 
 ### Build Artifacts and Git
 - **Never commit build artifacts** - they are gitignored
 - Gitignored items include:
   - Binary: `night-routine` executable
-  - Dependencies: `node_modules/`
+  - Dependencies: `node_modules/`, `frontend/node_modules/`
   - Build output: `dist/`, `bin/`, `_output/`
+  - Generated assets: `internal/handlers/assets/js/*.js`, `internal/handlers/assets/css/tailwind.css`
+  - Source maps: `*.js.map`
   - Database files: `data/*.db*`, `test_*.db`
   - Documentation build: `site/`
   - IDE files: `.idea/`, `.vscode/*` (except specific settings)
@@ -80,9 +112,11 @@ night-routine/
 
 ### Build Process
 1. Install Node.js dependencies: `pnpm install --frozen-lockfile`
-2. Generate assets: `go generate ./...`
+2. Generate assets: `go generate ./...` (builds both CSS and JS)
 3. Build the application: `go build -o night-routine ./cmd/night-routine`
-4. Run tests: `go test ./...`
+4. Run Go tests: `go test ./...`
+5. Run TypeScript linter: `pnpm run lint:ts`
+6. Run TypeScript type check: `pnpm run type-check`
 
 ### Using Go Language Server (gopls)
 
@@ -190,33 +224,57 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 ### HTTP Handlers
 - All web handlers in `internal/handlers/`
 - Templates use Go's html/template
-- Static assets served with proper caching headers
+- Static assets served with proper caching headers and ETag versioning
 - Settings page provides real-time configuration updates
 - **Template Patterns**:
   - Templates are embedded via `//go:embed templates/*.html`
   - Base layout in `templates/layout.html` provides common structure
   - Page-specific templates parsed on-demand and executed with layout
-  - Use `BasePageData` struct for common page data (year, path, auth status)
+  - Use `BasePageData` struct for common page data (year, path, auth status, asset ETags)
   - Custom template functions defined in `funcMap` (e.g., `add`, `js`)
   - Render templates with `h.RenderTemplate(w, "page.html", data)`
-- **Asset Versioning**:
-  - CSS and logo assets use ETag versioning for cache busting
-  - Version strings generated at build time and embedded in templates
-  - Proper `Cache-Control` headers set for static assets
-
-## Security Considerations
-- Never commit secrets or credentials
-- OAuth tokens stored securely in database
-- Use environment variables for sensitive configuration
-- Follow Go security best practices
-
-## Documentation
-- Architecture docs in `docs/` directory
+- **Asset Versioning and Serving**:
+  - CSS and JavaScript assets served with ETag versioning for cache busting
+  - ETags generated from SHA-256 hash of file content
+  - Static handler pre-loads and caches all assets with ETags on startup
+  - Proper `Cache-Control` headers set for browser caching
+  - JS bundles loaded via `<script src="/static/js/home.js?v={{.JSETags.home}}" defer></script>`
+  - Data injected to JavaScript via `window` object in inline `<script>` tags
+- **JavaScript Integration**:
+  - Each page has its own bundle to minimize payload
+  - Template data passed via `window.CALENDAR_DATA`, `window.SETTINGS_DATA`, etc.
+  - Bundles loaded with `defer` attribute for optimal page load performance
+  - ETags in URL query parameters ensure browsers fetch updated bundles
 - User documentation in `docs-site/` (MkDocs)
 - Add comments for complex logic and public APIs
 - Update relevant docs when changing functionality
 
 ## Coding Conventions
+
+### TypeScript Conventions
+- **Strict mode enabled** - All TypeScript code must pass strict type checking
+- **Use explicit types** for function parameters and return values when not obvious
+- **Avoid `any` type** - Use proper types or `unknown` if type is truly unknown
+- **Handle promises properly**:
+  - Always await promises or handle with `.then()/.catch()`
+  - Use `void` operator for intentionally ignored promises
+  - Example: `void performAsyncOperation()` when fire-and-forget is intended
+- **Type assertions**:
+  - Use `as Type` syntax instead of type assertions in response parsing
+  - Example: `const data = await response.json() as MyType`
+- **Module organization**:
+  - Keep related functionality in feature modules (e.g., `home/`, `utils/`)
+  - Export only what's needed by other modules
+  - Use barrel exports (`index.ts`) sparingly
+- **Data injection from templates**:
+  - Templates inject data via `window` object (e.g., `window.CALENDAR_DATA`)
+  - Always check for data existence before using
+  - Use TypeScript interfaces to define expected data shape
+  - Extend `Window` interface for type safety
+- **Event handlers**:
+  - Use `addEventListener` instead of inline handlers
+  - Remove event listeners when no longer needed if applicable
+  - Use event delegation for dynamically created elements
 
 ### Error Handling
 - **Always wrap errors** with context using `fmt.Errorf` with `%w` verb
