@@ -36,6 +36,12 @@ bin/
 dist/
 _output/
 
+# TypeScript build artifacts
+internal/handlers/assets/js/*.js
+internal/handlers/assets/js/*.js.map
+internal/handlers/assets/css/styles.css
+internal/handlers/assets/css/styles.css.map
+
 # MkDocs build output
 site/
 

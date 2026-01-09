@@ -1,6 +1,6 @@
 package handlers
 
-//go:generate pnpm run build:css
+//go:generate pnpm run build
 
 import (
 	"context"

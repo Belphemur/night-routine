@@ -8,7 +8,10 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i ./internal/handlers/assets/css/input.css -o ./internal/handlers/assets/css/tailwind.css --minify"
+    "build": "cd frontend && pnpm run build",
+    "lint:ts": "cd frontend && pnpm run lint",
+    "lint:ts:fix": "cd frontend && pnpm run lint:fix",
+    "type-check": "cd frontend && pnpm run type-check"
   },
   "repository": {
     "type": "git",
@@ -27,12 +30,7 @@
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/release-notes-generator": "^14.0.3",
-    "@tailwindcss/cli": "^4.1.17",
-    "autoprefixer": "^10.4.22",
-    "postcss": "^8.5.6",
-    "semantic-release": "^25.0.0",
-    "tailwindcss": "^4.0.0"
+    "@semantic-release/release-notes-generator": "^14.0.3"
   },
   "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a"
 }
