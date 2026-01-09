@@ -10,18 +10,24 @@ interface SettingsData {
   parentBUnavailable: string[];
 }
 
+// Extend Window interface for type safety
+declare global {
+  interface Window {
+    SETTINGS_DATA?: SettingsData;
+  }
+}
+
 /**
  * Initializes the settings page
  */
 function initSettings(): void {
-  // Get data from the template (injected via Go template)
-  const settingsDataElement = document.getElementById('settings-data');
-  if (!settingsDataElement) {
-    console.error('Settings data element not found');
+  // Get data from the window object (injected via template)
+  const settingsData = window.SETTINGS_DATA;
+  if (!settingsData) {
+    console.error('Settings data not found on window object');
     return;
   }
 
-  const settingsData: SettingsData = JSON.parse(settingsDataElement.textContent || '{}');
   const { parentAUnavailable, parentBUnavailable } = settingsData;
 
   // Set Parent A checkboxes

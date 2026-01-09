@@ -34,7 +34,7 @@ export function showDetailsModal(assignmentId: string): void {
   showModal({ modal, backdrop, panel }, closeBtn);
 
   // Fetch assignment details
-  fetchAssignmentDetails(assignmentId, content);
+  void fetchAssignmentDetails(assignmentId, content);
 }
 
 /**
@@ -55,7 +55,7 @@ async function fetchAssignmentDetails(assignmentId: string, content: HTMLElement
       throw new Error('Failed to fetch assignment details');
     }
 
-    const data: AssignmentDetails = await response.json();
+    const data = await response.json() as AssignmentDetails;
     content.replaceChildren(buildDetailsContent(data));
   } catch (error) {
     console.error('Error fetching assignment details:', error);

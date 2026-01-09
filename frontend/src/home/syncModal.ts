@@ -25,7 +25,9 @@ export function initSyncModal(): void {
   const closeBtn = getRequiredElement('sync-modal-close');
   const closeContainer = getRequiredElement('sync-modal-close-container');
 
-  syncBtn.addEventListener('click', () => performSync({ modal, backdrop, panel }));
+  syncBtn.addEventListener('click', () => {
+    void performSync({ modal, backdrop, panel });
+  });
   closeBtn.addEventListener('click', () => hideSyncModal({ modal, backdrop, panel }));
 
   // Close on backdrop click only if not loading
@@ -56,7 +58,7 @@ async function performSync(elements: ModalElements): Promise<void> {
     if (!response.ok) {
       let errorMessage = `Server error: ${response.status}`;
       try {
-        const errorData: SyncResponse = await response.json();
+        const errorData = await response.json() as SyncResponse;
         errorMessage = errorData.error || errorMessage;
       } catch {
         errorMessage = `${response.status} ${response.statusText}`;
@@ -65,7 +67,7 @@ async function performSync(elements: ModalElements): Promise<void> {
       return;
     }
 
-    const data: SyncResponse = await response.json();
+    const data = await response.json() as SyncResponse;
 
     if (data.success) {
       showSyncSuccess(data.message || 'Your schedule has been synced successfully.');

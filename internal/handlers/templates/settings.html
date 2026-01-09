@@ -177,22 +177,13 @@
 {{end}}
 
 {{define "scripts"}}
+<!-- Inject settings data for JavaScript -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const parentAChecked = {{js .ParentAUnavailable}};
-        const parentBChecked = {{js .ParentBUnavailable}};
-
-        document.querySelectorAll('input[name="parent_a_unavailable"]').forEach(function (checkbox) {
-            if (parentAChecked.includes(checkbox.value)) {
-                checkbox.checked = true;
-            }
-        });
-
-        document.querySelectorAll('input[name="parent_b_unavailable"]').forEach(function (checkbox) {
-            if (parentBChecked.includes(checkbox.value)) {
-                checkbox.checked = true;
-            }
-        });
-    });
+    window.SETTINGS_DATA = {
+        parentAUnavailable: {{js .ParentAUnavailable}},
+        parentBUnavailable: {{js .ParentBUnavailable}}
+    };
 </script>
+<!-- Load bundled JavaScript -->
+<script src="/static/js/settings.js?v={{.JSETags.settings}}" defer></script>
 {{end}}

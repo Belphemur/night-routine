@@ -8,6 +8,13 @@ import { showUnlockModal } from './unlockModal';
 import { showDetailsModal } from './detailsModal';
 import type { CalendarData, DayData } from './types';
 
+// Extend Window interface for type safety
+declare global {
+  interface Window {
+    CALENDAR_DATA?: CalendarData;
+  }
+}
+
 /**
  * Initializes the mobile calendar with weekly navigation
  */
@@ -17,13 +24,13 @@ export function initMobileCalendar(): void {
   
   if (!row1 || !row2) return;
 
-  const calendarDataElement = document.getElementById('calendar-data');
-  if (!calendarDataElement) {
-    console.error('Calendar data element not found');
+  // Get data from window object (injected via template)
+  const mobileData = window.CALENDAR_DATA;
+  if (!mobileData) {
+    console.error('Calendar data not found on window object');
     return;
   }
 
-  const mobileData: CalendarData = JSON.parse(calendarDataElement.textContent || '{}');
   const allDays = mobileData.days.map(day => ({
     ...day,
     date: parseDateString(day.dateStr)

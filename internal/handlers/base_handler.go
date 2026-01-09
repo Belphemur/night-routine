@@ -31,11 +31,12 @@ type BaseHandler struct {
 	Tracker       fairness.TrackerInterface
 	cssVersion    string
 	logoVersion   string
+	staticHandler *StaticHandler
 	logger        zerolog.Logger
 }
 
 // NewBaseHandler creates a common base handler with shared components
-func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface, cssVersion, logoVersion string) (*BaseHandler, error) {
+func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface, cssVersion, logoVersion string, staticHandler *StaticHandler) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
 
@@ -66,6 +67,7 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 		Tracker:       tracker,
 		cssVersion:    cssVersion,
 		logoVersion:   logoVersion,
+		staticHandler: staticHandler,
 		logger:        logger,
 	}, nil
 }
@@ -131,15 +133,23 @@ type BasePageData struct {
 	IsAuthenticated bool
 	CSSETag         string
 	LogoETag        string
+	JSETags         map[string]string
 }
 
 // NewBasePageData creates a new BasePageData with common fields populated
 func (h *BaseHandler) NewBasePageData(r *http.Request, isAuthenticated bool) BasePageData {
+	jsETags := make(map[string]string)
+	if h.staticHandler != nil {
+		jsETags["home"] = h.staticHandler.GetJSETag("home.js")
+		jsETags["settings"] = h.staticHandler.GetJSETag("settings.js")
+	}
+
 	return BasePageData{
 		CurrentYear:     time.Now().Year(),
 		CurrentPath:     r.URL.Path,
 		IsAuthenticated: isAuthenticated,
 		CSSETag:         h.cssVersion,
 		LogoETag:        h.logoVersion,
+		JSETags:         jsETags,
 	}
 }
