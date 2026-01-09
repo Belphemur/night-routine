@@ -31,9 +31,9 @@ func NewStaticHandler() (*StaticHandler, error) {
 	logger := logging.GetLogger("static-handler")
 
 	// Pre-load and cache CSS file with ETag
-	css, err := assetsFS.ReadFile("assets/css/styles.css")
+	css, err := assetsFS.ReadFile("assets/css/tailwind.css")
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to read styles CSS for ETag calculation")
+		logger.Error().Err(err).Msg("Failed to read Tailwind CSS for ETag calculation")
 		return nil, fmt.Errorf("failed to read CSS file: %w", err)
 	}
 
@@ -79,14 +79,14 @@ func NewStaticHandler() (*StaticHandler, error) {
 
 // RegisterRoutes registers static asset routes
 func (h *StaticHandler) RegisterRoutes() {
-	http.HandleFunc("/static/css/styles.css", h.serveCSS)
+	http.HandleFunc("/static/css/tailwind.css", h.serveTailwindCSS)
 	http.HandleFunc("/favicon.ico", h.serveFavicon)               // Standard browser location
 	http.HandleFunc("/static/images/favicon.png", h.serveFavicon) // Explicit path
 	http.HandleFunc("/static/images/logo.png", h.serveLogo)       // Logo path
 }
 
-// serveCSS serves the embedded CSS file with ETag support
-func (h *StaticHandler) serveCSS(w http.ResponseWriter, r *http.Request) {
+// serveTailwindCSS serves the embedded Tailwind CSS file with ETag support
+func (h *StaticHandler) serveTailwindCSS(w http.ResponseWriter, r *http.Request) {
 	h.serveAsset(w, r, h.cssContent, h.cssETag, "text/css; charset=utf-8")
 }
 

@@ -1,3 +1,7 @@
+@import "tailwindcss";
+
+@source "../../templates";
+
 /* Minimal custom styles for lock icon and special calendar states */
 .overridden::after {
   content: "🔒";
@@ -30,17 +34,13 @@
   border-width: 0;
 }
 
-/* Today cell highlighting - using plain CSS instead of @apply */
+/* Today cell highlighting */
 .today-cell {
-  background: linear-gradient(to bottom right, #d1fae5, #bbf7d0);
-  color: #065f46;
-  border: 2px solid #10b981;
-  font-weight: bold;
+  @apply bg-linear-to-br from-emerald-100 to-green-200 text-emerald-900 border-emerald-500 border-2 font-bold;
 }
 
 .today-cell:hover {
-  background: linear-gradient(to bottom right, #a7f3d0, #86efac);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  @apply from-emerald-200 to-green-300 shadow-xl;
 }
 
 /* Dialog/Modal styling for proper centering and backdrop */

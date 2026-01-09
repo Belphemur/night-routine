@@ -39,8 +39,7 @@ _output/
 # TypeScript build artifacts
 internal/handlers/assets/js/*.js
 internal/handlers/assets/js/*.js.map
-internal/handlers/assets/css/styles.css
-internal/handlers/assets/css/styles.css.map
+internal/handlers/assets/css/tailwind.css
 
 # MkDocs build output
 site/
