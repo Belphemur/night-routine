@@ -8,7 +8,12 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i ./internal/handlers/assets/css/input.css -o ./internal/handlers/assets/css/tailwind.css --minify"
+    "build:css": "tailwindcss -i ./internal/handlers/assets/css/input.css -o ./internal/handlers/assets/css/tailwind.css --minify",
+    "build:js": "cd frontend && pnpm run build",
+    "build": "pnpm run build:css && pnpm run build:js",
+    "lint:ts": "cd frontend && pnpm run lint",
+    "lint:ts:fix": "cd frontend && pnpm run lint:fix",
+    "type-check": "cd frontend && pnpm run type-check"
   },
   "repository": {
     "type": "git",

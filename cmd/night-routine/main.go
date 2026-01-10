@@ -183,7 +183,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Initialize base handler first, as other handlers depend on it
-	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag())
+	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag(), staticHandler)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")

@@ -1,0 +1,22 @@
+{
+  "name": "night-routine-frontend",
+  "version": "1.0.0",
+  "description": "Frontend build for Night Routine application",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint 'src/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.22.0",
+    "@typescript-eslint/parser": "^8.22.0",
+    "eslint": "^8.57.1",
+    "terser": "^5.44.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

@@ -12,18 +12,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:embed assets/css/*.css assets/images/*.png
+//go:embed assets/css/*.css assets/images/*.png assets/js/*.js
 var assetsFS embed.FS
 
 // StaticHandler manages static file serving with ETag support
 type StaticHandler struct {
 	logger         zerolog.Logger
-	cssETag        string // Cached ETag for CSS file
-	cssContent     []byte // Cached CSS file content
-	faviconETag    string // Cached ETag for favicon
-	faviconContent []byte // Cached favicon content
-	logoETag       string // Cached ETag for logo
-	logoContent    []byte // Cached logo content
+	cssETag        string            // Cached ETag for CSS file
+	cssContent     []byte            // Cached CSS file content
+	faviconETag    string            // Cached ETag for favicon
+	faviconContent []byte            // Cached favicon content
+	logoETag       string            // Cached ETag for logo
+	logoContent    []byte            // Cached logo content
+	jsETags        map[string]string // Cached ETags for JS files
+	jsContent      map[string][]byte // Cached JS file content
 }
 
 // NewStaticHandler creates a new static file handler
@@ -66,6 +68,32 @@ func NewStaticHandler() (*StaticHandler, error) {
 	logoETag := fmt.Sprintf("\"%s\"", hex.EncodeToString(logoHash[:]))
 	logger.Debug().Str("etag", logoETag).Int("content_size", len(logo)).Msg("Cached Logo file with ETag")
 
+	// Pre-load and cache all JS files with ETags
+	jsFiles := []string{"home.js", "settings.js", "dom.js"}
+	jsETags := make(map[string]string)
+	jsContent := make(map[string][]byte)
+
+	for _, filename := range jsFiles {
+		jsPath := fmt.Sprintf("assets/js/%s", filename)
+		jsData, err := assetsFS.ReadFile(jsPath)
+		if err != nil {
+			// dom.js might not exist if Vite didn't create it
+			if filename == "dom.js" {
+				logger.Debug().Str("file", filename).Msg("Skipping dom.js as it doesn't exist")
+				continue
+			}
+			logger.Error().Err(err).Str("file", filename).Msg("Failed to read JS file for ETag calculation")
+			return nil, fmt.Errorf("failed to read JS file %s: %w", filename, err)
+		}
+
+		// Calculate SHA-256 hash for JS ETag
+		jsHash := sha256.Sum256(jsData)
+		jsETag := fmt.Sprintf("\"%s\"", hex.EncodeToString(jsHash[:]))
+		jsETags[filename] = jsETag
+		jsContent[filename] = jsData
+		logger.Debug().Str("file", filename).Str("etag", jsETag).Int("content_size", len(jsData)).Msg("Cached JS file with ETag")
+	}
+
 	return &StaticHandler{
 		logger:         logger,
 		cssETag:        cssETag,
@@ -74,6 +102,8 @@ func NewStaticHandler() (*StaticHandler, error) {
 		faviconContent: favicon,
 		logoETag:       logoETag,
 		logoContent:    logo,
+		jsETags:        jsETags,
+		jsContent:      jsContent,
 	}, nil
 }
 
@@ -83,6 +113,10 @@ func (h *StaticHandler) RegisterRoutes() {
 	http.HandleFunc("/favicon.ico", h.serveFavicon)               // Standard browser location
 	http.HandleFunc("/static/images/favicon.png", h.serveFavicon) // Explicit path
 	http.HandleFunc("/static/images/logo.png", h.serveLogo)       // Logo path
+
+	// Register JS file routes
+	http.HandleFunc("/static/js/home.js", h.serveHomeJS)
+	http.HandleFunc("/static/js/settings.js", h.serveSettingsJS)
 }
 
 // serveTailwindCSS serves the embedded Tailwind CSS file with ETag support
@@ -98,6 +132,25 @@ func (h *StaticHandler) serveFavicon(w http.ResponseWriter, r *http.Request) {
 // serveLogo serves the embedded logo file with ETag support
 func (h *StaticHandler) serveLogo(w http.ResponseWriter, r *http.Request) {
 	h.serveAsset(w, r, h.logoContent, h.logoETag, "image/png")
+}
+
+// serveHomeJS serves the embedded home.js file with ETag support
+func (h *StaticHandler) serveHomeJS(w http.ResponseWriter, r *http.Request) {
+	h.serveAsset(w, r, h.jsContent["home.js"], h.jsETags["home.js"], "application/javascript; charset=utf-8")
+}
+
+// serveSettingsJS serves the embedded settings.js file with ETag support
+func (h *StaticHandler) serveSettingsJS(w http.ResponseWriter, r *http.Request) {
+	h.serveAsset(w, r, h.jsContent["settings.js"], h.jsETags["settings.js"], "application/javascript; charset=utf-8")
+}
+
+// serveDomJS serves the embedded dom.js file with ETag support
+func (h *StaticHandler) serveDomJS(w http.ResponseWriter, r *http.Request) {
+	if content, ok := h.jsContent["dom.js"]; ok {
+		h.serveAsset(w, r, content, h.jsETags["dom.js"], "application/javascript; charset=utf-8")
+	} else {
+		http.NotFound(w, r)
+	}
 }
 
 // serveAsset is a helper to serve static assets with ETag support
@@ -163,4 +216,12 @@ func (h *StaticHandler) GetFaviconETag() string {
 // GetLogoETag returns the ETag for the logo, stripping quotes
 func (h *StaticHandler) GetLogoETag() string {
 	return strings.Trim(h.logoETag, "\"")
+}
+
+// GetJSETag returns the ETag for a JS file, stripping quotes
+func (h *StaticHandler) GetJSETag(filename string) string {
+	if etag, ok := h.jsETags[filename]; ok {
+		return strings.Trim(etag, "\"")
+	}
+	return ""
 }
