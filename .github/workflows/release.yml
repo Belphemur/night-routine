@@ -42,7 +42,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25" # Keep aligned with go.mod
+          go-version: "1.26" # Keep aligned with go.mod
           cache: true
 
       # Install Syft for SBOM generation (if GoReleaser is configured to use it or for other steps)
