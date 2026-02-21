@@ -67,7 +67,7 @@ jobs:
 
       # Install GoReleaser CLI (for semantic-release-goreleaser plugin)
       - name: Install GoReleaser CLI
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: latest
           install-only: true
