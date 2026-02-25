@@ -141,15 +141,7 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - Final PR should contain meaningful, well-structured commits
 
 ### Testing and Screenshots
-- **Check `docs/FAKE_DATABASE_SETUP.md`** when you need to create test data or take screenshots
-- The application uses SQLite with migrations that must run first
-- Never create database tables manually - let migrations run automatically
-- Key schema details:
-  - `oauth_tokens` table stores token data as JSONB in the `token_data` column
-  - `calendar_settings` table uses `calendar_id` column (not `selected_calendar_id`)
-  - `assignments` table includes `decision_reason` field for tracking assignment logic
-- Always verify data insertion with SQL queries before running the application
-- Use the documented process for creating demo databases with proper OAuth tokens
+- Use the `fake-database-setup` skill when you need to create test data or take screenshots
 - **CRITICAL: Any UI changes MUST include screenshots**
   - Take screenshots showing before/after for UI modifications
   - Include screenshots in PR descriptions to demonstrate visual impact

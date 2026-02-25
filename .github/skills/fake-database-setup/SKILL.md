@@ -1,8 +1,13 @@
+---
+name: fake-database-setup
+description: >
+  Guide for setting up a fake/demo SQLite database with sample data for testing
+  the Night Routine application and taking screenshots. Use this skill when you
+  need to create test data, set up a demo database, take screenshots of the UI,
+  or verify the application with sample assignments and calendar data.
+---
+
 # Setting Up a Fake Database for Testing and Screenshots
-
-This guide explains how to properly set up a fake database with demo data for testing the Night Routine application and taking screenshots.
-
-## Overview
 
 The application uses SQLite with migrations that must be applied in order. To create a working demo database, you need to:
 
@@ -10,11 +15,9 @@ The application uses SQLite with migrations that must be applied in order. To cr
 2. Insert demo data that matches the schema
 3. Configure OAuth tokens and calendar settings properly
 
-## Step-by-Step Instructions
+## Step 1: Create Configuration File
 
-### 1. Create Configuration File
-
-Create a demo configuration file (e.g., `/tmp/night-routine-demo-config.toml`):
+Create a demo configuration file at `/tmp/night-routine-demo-config.toml`:
 
 ```toml
 [parents]
@@ -47,7 +50,7 @@ time_zone = "America/New_York"
 lookback_days = 90
 ```
 
-### 2. Initialize Database with Migrations
+## Step 2: Initialize Database with Migrations
 
 Start the application once to let it create the database and run all migrations:
 
@@ -60,11 +63,12 @@ CONFIG_FILE=/tmp/night-routine-demo-config.toml \
 
 Stop the application after it starts successfully (Ctrl+C). The database schema is now properly initialized.
 
-### 3. Insert Demo Data
+## Step 3: Insert Demo Data
 
-Now insert demo assignment data. The key tables are:
+The key tables and their schemas are:
 
-#### assignments table
+### assignments table
+
 ```sql
 CREATE TABLE assignments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +82,8 @@ CREATE TABLE assignments (
 );
 ```
 
-#### assignment_details table
+### assignment_details table
+
 ```sql
 CREATE TABLE assignment_details (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +100,8 @@ CREATE TABLE assignment_details (
 );
 ```
 
-#### oauth_tokens table
+### oauth_tokens table
+
 ```sql
 CREATE TABLE oauth_tokens (
     id INTEGER PRIMARY KEY,
@@ -104,7 +110,8 @@ CREATE TABLE oauth_tokens (
 );
 ```
 
-#### calendar_settings table
+### calendar_settings table
+
 ```sql
 CREATE TABLE calendar_settings (
     id INTEGER PRIMARY KEY,
@@ -114,7 +121,7 @@ CREATE TABLE calendar_settings (
 );
 ```
 
-### 4. Populate with Sample Data
+## Step 4: Populate with Sample Data
 
 Use SQLite to insert demo data:
 
@@ -170,7 +177,7 @@ VALUES (1, 'demo-calendar@example.com', 'Family Night Routine');
 EOF
 ```
 
-### 5. Start Application with Demo Data
+## Step 5: Start Application with Demo Data
 
 ```bash
 GOOGLE_OAUTH_CLIENT_ID="demo-client-id" \
@@ -181,30 +188,21 @@ CONFIG_FILE=/tmp/night-routine-demo-config.toml \
 
 The application will now show the calendar with demo data at `http://localhost:8080`.
 
-## Important Notes
-
-### Schema Differences to Watch For
+## Important Schema Notes
 
 1. **calendar_settings table**: The column is named `calendar_id`, NOT `selected_calendar_id`
 2. **oauth_tokens table**: Stores token data as JSONB in the `token_data` column, not individual columns
 3. **assignments table**: The `decision_reason` field shows why an assignment was made (Override, Total Count, Recent Count, Consecutive Limit, Alternating, Unavailability)
 4. **assignment_details table**: Stores the fairness algorithm calculation data (parent stats) used when making non-override assignments. This data is displayed in a modal when clicking on assignments in the UI.
 
-### Common Mistakes
+## Common Mistakes
 
-❌ **Wrong**: Trying to create tables manually before migrations run
-✅ **Correct**: Let the application run migrations first, then insert data
+- **Wrong**: Trying to create tables manually before migrations run. **Correct**: Let the application run migrations first, then insert data.
+- **Wrong**: Using wrong column names (e.g., `selected_calendar_id`). **Correct**: Check the schema with `.schema table_name` in sqlite3.
+- **Wrong**: Inserting OAuth token with individual columns. **Correct**: Insert as JSON string in the `token_data` column.
+- **Wrong**: Creating assignment details for override assignments. **Correct**: Only create assignment details for non-override assignments (where override=0).
 
-❌ **Wrong**: Using wrong column names (e.g., `selected_calendar_id`)
-✅ **Correct**: Check the schema with `.schema table_name` in sqlite3
-
-❌ **Wrong**: Inserting OAuth token with individual columns
-✅ **Correct**: Insert as JSON string in the `token_data` column
-
-❌ **Wrong**: Creating assignment details for override assignments
-✅ **Correct**: Only create assignment details for non-override assignments (where override=0)
-
-### Verifying Data
+## Verifying Data
 
 Check your data was inserted correctly:
 
@@ -220,7 +218,7 @@ sqlite3 /tmp/night-routine-demo.db "SELECT COUNT(*) FROM assignment_details;"
 
 # View assignment with its details
 sqlite3 /tmp/night-routine-demo.db "
-SELECT a.id, a.parent_name, a.assignment_date, a.decision_reason, 
+SELECT a.id, a.parent_name, a.assignment_date, a.decision_reason,
        d.parent_a_total_count, d.parent_a_last_30_days,
        d.parent_b_total_count, d.parent_b_last_30_days
 FROM assignments a
@@ -243,20 +241,19 @@ Once the demo database is set up, use a browser or automated tool to take screen
 - Default viewport: 1280x720 or larger
 - Shows full month calendar view
 
-### Mobile View  
+### Mobile View
 - Viewport: 375x667 (iPhone SE size)
 - Shows weekly calendar with navigation buttons
-
-The mobile view uses client-side JavaScript to filter the full month data to show only one week at a time.
+- Mobile view uses client-side JavaScript to filter the full month data to show only one week at a time
 
 ### Testing the Assignment Details Modal
 
-When taking screenshots, demonstrate the new assignment details feature:
+When taking screenshots, demonstrate the assignment details feature:
 
 1. **Non-Override Assignments**: Click on any non-overridden assignment (shows regular background colors)
    - A modal will appear showing the fairness algorithm calculations
    - Displays the calculation date and both parents' statistics (total count and last 30 days)
-   
+
 2. **Override Assignments**: Click on an overridden assignment (shows "Override" decision reason)
    - The unlock modal will appear instead (has priority over details modal)
    - This allows users to unlock the override
