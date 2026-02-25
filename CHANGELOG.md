@@ -1,3 +1,10 @@
+## [0.23.1](https://github.com/Belphemur/night-routine/compare/v0.23.0...v0.23.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* upgrade Go version to 1.26 ([#239](https://github.com/Belphemur/night-routine/issues/239)) ([bd890ec](https://github.com/Belphemur/night-routine/commit/bd890ecde99afcdb0b7283224d95a5fb1dd2f5af))
+
 # [0.23.0](https://github.com/Belphemur/night-routine/compare/v0.22.14...v0.23.0) (2026-02-25)
 
 
