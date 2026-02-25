@@ -28,7 +28,7 @@ importers:
         version: 4.2.1
       autoprefixer:
         specifier: ^10.4.22
-        version: 10.4.25(postcss@8.5.6)
+        version: 10.4.26(postcss@8.5.6)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -438,8 +438,8 @@ packages:
   array-ify@1.0.0:
     resolution: {integrity: sha512-c5AMf34bKdvPhQ7tBGhqkgKNUzMr4WUs+WDtC2ZUGOUncbxKMTvqxYctiseW3+L4bA8ec+GcZ6/A/FW4m8ukng==}
 
-  autoprefixer@10.4.25:
-    resolution: {integrity: sha512-haPdJifHzYbmnDxx0be44kvj89RWIe+1DZBUyM5BIsT/1bpI5pwK+v30cqz+EfxsxanHq8q2YUvy7LfdRXd/rQ==}
+  autoprefixer@10.4.26:
+    resolution: {integrity: sha512-c6Hxv5eR12gQmANICaAGM967LGOXZ4SVAuwkiDrqPqZ5oReOnj/ZBtj3dyfwAnEV5qbzspNzjMM8lZENDK8f5A==}
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
@@ -2066,7 +2066,7 @@ snapshots:
 
   array-ify@1.0.0: {}
 
-  autoprefixer@10.4.25(postcss@8.5.6):
+  autoprefixer@10.4.26(postcss@8.5.6):
     dependencies:
       browserslist: 4.28.1
       caniuse-lite: 1.0.30001774
