@@ -1,3 +1,10 @@
+# [0.23.0](https://github.com/Belphemur/night-routine/compare/v0.22.14...v0.23.0) (2026-02-25)
+
+
+### Features
+
+* **skills:** transform fake database setup doc into copilot agent skill ([#236](https://github.com/Belphemur/night-routine/issues/236)) ([608ce01](https://github.com/Belphemur/night-routine/commit/608ce013a44df630135ea4ee1dc1b86e32b0d0e7))
+
 ## [0.22.14](https://github.com/Belphemur/night-routine/compare/v0.22.13...v0.22.14) (2026-02-24)
 
 
