@@ -51,7 +51,7 @@ jobs:
 
       # Set up QEMU for multi-platform builds (used by GoReleaser's Docker buildx)
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       # Set up Docker Buildx for multi-platform builds
       - name: Set up Docker Buildx
