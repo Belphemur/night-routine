@@ -55,7 +55,7 @@ jobs:
 
       # Set up Docker Buildx for multi-platform builds
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # Log in to GitHub Container Registry (GHCR) (for GoReleaser)
       - name: Log in to GHCR
