@@ -41,27 +41,38 @@ type WebhookHandler struct {
 ```
 
 `BaseHandler` provides:
-- `RuntimeConfig *config.RuntimeConfig` — application configuration loaded at startup
+- `ConfigStore config.ConfigStoreInterface` — the **single source of truth** for all application configuration; reads schedule/parent/availability settings live from the database and returns the static OAuth config from the file/env config
 - `TokenStore *database.TokenStore` — OAuth token and notification-channel storage
 - `Tracker fairness.TrackerInterface` — assignment history
 - `RenderTemplate(w, name, data)` — clones + executes templates from the embedded FS
 - `CheckAuthentication(ctx, logger)` — validates the stored OAuth token
 
-### Live Configuration Reading (critical)
+### Single Source of Truth — `ConfigStoreInterface`
 
-`RuntimeConfig` is loaded **once** at startup and is **not refreshed** when the user changes settings via the UI. If a handler (or any function) needs a setting that the user can change (e.g. `PastEventThresholdDays`, `LookAheadDays`, `UpdateFrequency`), it must read from `ConfigStore` directly:
+`ConfigStoreInterface` (implemented by `database.ConfigAdapter`) is the **only** place handlers and services read configuration from. It provides:
+
+- `GetSchedule()` — live DB read of `UpdateFrequency`, `LookAheadDays`, `PastEventThresholdDays`, `StatsOrder`
+- `GetParents()` — live DB read of parent names
+- `GetAvailability(parent)` — live DB read of unavailability days
+- `GetOAuthConfig()` — returns the static `*oauth2.Config` (from environment / file config)
+
+Never read from `RuntimeConfig` directly in handlers or services:
 
 ```go
-// ✅ Correct – reads the value the user just saved to the database
+// ✅ Correct – reads live from the database
 _, lookAheadDays, thresholdDays, _, err := h.ConfigStore.GetSchedule()
+oauthCfg := h.ConfigStore.GetOAuthConfig()
 
-// ❌ Wrong – stale copy from startup; does not reflect UI changes
+// ❌ Wrong – stale startup snapshot; does not reflect UI changes
 thresholdDays := h.RuntimeConfig.Config.Schedule.PastEventThresholdDays
+oauthCfg := h.RuntimeConfig.Config.OAuth
 ```
 
-All handlers and functions that read any user-configurable schedule setting follow this pattern:
-- `WebhookHandler.processEventsWithinTransaction` — reads `PastEventThresholdDays` live
+All handlers and functions that read any user-configurable setting follow this pattern:
+- `WebhookHandler.processEvents` — reads `PastEventThresholdDays` live
 - `WebhookHandler.recalculateSchedule` — reads `LookAheadDays` live
+- `WebhookHandler.processEventChanges` — reads OAuth config live via `ConfigStore.GetOAuthConfig()`
+- `OAuthHandler` — reads OAuth config via `BaseHandler.ConfigStore.GetOAuthConfig()`
 - `SyncHandler.updateScheduleWithDate` — reads `LookAheadDays` live
 - `main.updateSchedule` — reads `LookAheadDays` live
 - `main` service loop ticker — reads `UpdateFrequency` live on every tick
@@ -88,8 +99,8 @@ Always embed `BasePageData` as the first field in page data structs so layout va
 1. **Validate channel** — look up the channel ID in `TokenStore`; reject unknown IDs
 2. **Check expiry** — renew the notification channel if it expires within 7 days
 3. **Filter sync messages** — return 200 immediately for `resource_state: sync`
-4. **Fetch recent events** — list events updated in the last 2 minutes via the Calendar API
-5. **Process in a transaction** — `processEventsWithinTransaction` iterates events:
+4. **Fetch recent events** — list events updated in the last 2 minutes via the Calendar API; OAuth client obtained via `ConfigStore.GetOAuthConfig()`
+5. **Process events** — `processEvents` iterates events:
    - Skip cancelled events, non–Night-Routine events
    - Extract parent name from summary format `[ParentName] 🌃👶Routine`
    - Find the matching `Assignment` by Google Calendar event ID
@@ -98,9 +109,9 @@ Always embed `BasePageData` as the first field in page data structs so layout va
    - Call `Scheduler.UpdateAssignmentParent` and then `recalculateSchedule`
 6. **Recalculate schedule** — `recalculateSchedule` regenerates future assignments from the changed date and syncs them back to Google Calendar; **reads `LookAheadDays` live from `ConfigStore`**
 
-### Why ConfigStore (not RuntimeConfig) for Schedule Settings
+### Why ConfigStore for All Settings
 
-The user can change `PastEventThresholdDays` and `LookAheadDays` via the settings page without restarting the app. Both values are stored in the `config_schedule` database table. Reading from `ConfigStore.GetSchedule()` on every webhook request ensures the latest value is used immediately.
+All settings the user can change via the UI (schedule, parents, availability) are stored in the database. Reading from `ConfigStore` on every request ensures the latest value is used immediately — no app restart required. The OAuth config (static, from environment) is also served through `ConfigStore.GetOAuthConfig()` so handlers have a single dependency.
 
 ## Testing Patterns
 
@@ -111,11 +122,12 @@ Tests follow two styles depending on complexity:
 ```go
 mockConfigStore := new(MockConfigStore)
 mockConfigStore.On("GetSchedule").Return("daily", 7, 5, constants.StatsOrderDesc, nil)
+mockConfigStore.On("GetOAuthConfig").Return((*oauth2.Config)(nil))
 
 handler := &WebhookHandler{
     BaseHandler: &BaseHandler{
-        Tracker:       mockTracker,
-        RuntimeConfig: &config.RuntimeConfig{Config: &config.Config{}},
+        Tracker:     mockTracker,
+        ConfigStore: mockConfigStore,
     },
     ConfigStore: mockConfigStore,
     // ...
@@ -136,9 +148,14 @@ db.MigrateDatabase()
 configStore, _ := database.NewConfigStore(db)
 configStore.SaveSchedule("daily", 7, 5, constants.StatsOrderDesc)
 
+configAdapter := database.NewConfigAdapter(configStore, nil) // nil OAuth in tests
+
 handler := &WebhookHandler{
-    // ...
-    ConfigStore: configStore,
+    BaseHandler: &BaseHandler{
+        Tracker:     tracker,
+        ConfigStore: configAdapter,
+    },
+    ConfigStore: configAdapter,
 }
 ```
 
@@ -155,8 +172,8 @@ All mock types are defined in `webhook_handler_test.go` and are available to all
 
 ## Common Mistakes to Avoid
 
-1. **Reading schedule settings from `RuntimeConfig` in new handlers** — always use `ConfigStore.GetSchedule()` for any setting the user can change via the UI.
-2. **Forgetting to add `ConfigStore` to integration test handler structs** — the handler will panic if `ConfigStore` is nil and `processEventsWithinTransaction` is called.
+1. **Reading any config from `RuntimeConfig` in handlers or services** — always use `ConfigStore.GetSchedule()`, `ConfigStore.GetParents()`, `ConfigStore.GetAvailability()`, or `ConfigStore.GetOAuthConfig()`.
+2. **Forgetting to add `ConfigStore` to integration test handler structs** — the handler will panic if `ConfigStore` is nil.
 3. **Adding a new field to `BaseHandler` instead of a specific handler** — `BaseHandler` is shared; put handler-specific state in the concrete handler struct.
 4. **Not providing both `up` and `down` migration files** when adding a new config column — see `internal/database/migrations/sqlite/`.
 

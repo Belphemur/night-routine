@@ -8,6 +8,7 @@ import (
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 func setupTestConfigAdapter(t *testing.T) (*ConfigAdapter, *ConfigStore, func()) {
@@ -50,7 +51,7 @@ func setupTestConfigAdapter(t *testing.T) (*ConfigAdapter, *ConfigStore, func())
 	err = store.SaveSchedule("monthly", 60, 10, constants.StatsOrderDesc)
 	require.NoError(t, err)
 
-	adapter := NewConfigAdapter(store)
+	adapter := NewConfigAdapter(store, nil)
 
 	cleanup := func() {
 		db.Close()
@@ -66,7 +67,7 @@ func TestNewConfigAdapter(t *testing.T) {
 	_, store, cleanup := setupTestConfigAdapter(t)
 	defer cleanup()
 
-	adapter := NewConfigAdapter(store)
+	adapter := NewConfigAdapter(store, nil)
 	assert.NotNil(t, adapter)
 	assert.NotNil(t, adapter.store)
 }
@@ -118,6 +119,22 @@ func TestConfigAdapter_GetSchedule(t *testing.T) {
 	assert.Equal(t, 60, lookAhead)
 	assert.Equal(t, 10, threshold)
 	assert.Equal(t, constants.StatsOrderDesc, statsOrder)
+}
+
+func TestConfigAdapter_GetOAuthConfig(t *testing.T) {
+	_, store, cleanup := setupTestConfigAdapter(t)
+	defer cleanup()
+
+	// Without OAuth config
+	adapterWithNil := NewConfigAdapter(store, nil)
+	assert.Nil(t, adapterWithNil.GetOAuthConfig())
+
+	// With a real OAuth config passed in
+	oauthCfg := &oauth2.Config{ClientID: "test-client-id"}
+	adapterWithCfg := NewConfigAdapter(store, oauthCfg)
+	got := adapterWithCfg.GetOAuthConfig()
+	require.NotNil(t, got)
+	assert.Equal(t, "test-client-id", got.ClientID)
 }
 
 func TestLoadRuntimeConfig_WithAdapter(t *testing.T) {

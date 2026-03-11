@@ -6,6 +6,7 @@ import (
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 // MockConfigLoader implements ConfigLoader for testing
