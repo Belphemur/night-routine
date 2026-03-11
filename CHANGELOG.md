@@ -1,3 +1,10 @@
+## [0.23.7](https://github.com/Belphemur/night-routine/compare/v0.23.6...v0.23.7) (2026-03-11)
+
+
+### Bug Fixes
+
+* make ConfigStoreInterface the single source of truth for all config ([#260](https://github.com/Belphemur/night-routine/issues/260)) ([32192d2](https://github.com/Belphemur/night-routine/commit/32192d2304089ac2230f7936224bd6749bb22bfe))
+
 ## [0.23.6](https://github.com/Belphemur/night-routine/compare/v0.23.5...v0.23.6) (2026-03-10)
 
 
