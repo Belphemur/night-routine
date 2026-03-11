@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/belphemur/night-routine/internal/calendar"
+	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
 )
@@ -18,15 +19,20 @@ type SyncHandler struct {
 	Scheduler       *scheduler.Scheduler
 	TokenManager    *token.TokenManager
 	CalendarService *calendar.Service
+	// ConfigStore is used to read schedule configuration live from the database,
+	// so that settings changes (e.g. LookAheadDays) take effect immediately
+	// without requiring an application restart.
+	ConfigStore config.ConfigStoreInterface
 }
 
 // NewSyncHandler creates a new sync handler
-func NewSyncHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler, tokenManager *token.TokenManager, calendarService *calendar.Service) *SyncHandler {
+func NewSyncHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler, tokenManager *token.TokenManager, calendarService *calendar.Service, configStore config.ConfigStoreInterface) *SyncHandler {
 	return &SyncHandler{
 		BaseHandler:     baseHandler,
 		Scheduler:       scheduler,
 		TokenManager:    tokenManager,
 		CalendarService: calendarService,
+		ConfigStore:     configStore,
 	}
 }
 
@@ -269,9 +275,18 @@ func (h *SyncHandler) updateScheduleWithDate(ctx context.Context, startDate time
 	updateLogger := h.logger.With().Str("operation", "updateSchedule").Logger()
 	updateLogger.Info().Time("start_date", startDate).Msg("Starting schedule generation and sync")
 
+	// Read LookAheadDays live from the database so that UI setting changes
+	// take effect immediately without requiring an application restart.
+	// (updateFrequency, pastEventThresholdDays and statsOrder are intentionally ignored here)
+	_, lookAheadDays, _, _, err := h.ConfigStore.GetSchedule()
+	if err != nil {
+		updateLogger.Error().Err(err).Msg("Failed to get schedule configuration")
+		return fmt.Errorf("failed to get schedule configuration: %w", err)
+	}
+
 	// Calculate date range
-	end := startDate.AddDate(0, 0, h.RuntimeConfig.Config.Schedule.LookAheadDays)
-	updateLogger.Debug().Time("start_date", startDate).Time("end_date", end).Int("lookahead_days", h.RuntimeConfig.Config.Schedule.LookAheadDays).Msg("Calculated date range")
+	end := startDate.AddDate(0, 0, lookAheadDays)
+	updateLogger.Debug().Time("start_date", startDate).Time("end_date", end).Int("lookahead_days", lookAheadDays).Msg("Calculated date range")
 
 	// Generate schedule.
 	// We intentionally use startDate as both the schedule start and the currentTime:
@@ -298,7 +313,7 @@ func (h *SyncHandler) updateScheduleWithDate(ctx context.Context, startDate time
 	}
 
 	updateLogger.Info().
-		Int("days", h.RuntimeConfig.Config.Schedule.LookAheadDays).
+		Int("days", lookAheadDays).
 		Int("assignments", len(assignments)).
 		Msg("Schedule update and sync completed successfully")
 	return nil

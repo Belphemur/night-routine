@@ -49,7 +49,7 @@ type WebhookHandler struct {
 
 ### Live Configuration Reading (critical)
 
-`RuntimeConfig` is loaded **once** at startup and is **not refreshed** when the user changes settings via the UI. If a handler needs a setting that the user can change (e.g. `PastEventThresholdDays`, `LookAheadDays`), it must read from `ConfigStore` directly:
+`RuntimeConfig` is loaded **once** at startup and is **not refreshed** when the user changes settings via the UI. If a handler (or any function) needs a setting that the user can change (e.g. `PastEventThresholdDays`, `LookAheadDays`, `UpdateFrequency`), it must read from `ConfigStore` directly:
 
 ```go
 // ✅ Correct – reads the value the user just saved to the database
@@ -59,7 +59,12 @@ _, lookAheadDays, thresholdDays, _, err := h.ConfigStore.GetSchedule()
 thresholdDays := h.RuntimeConfig.Config.Schedule.PastEventThresholdDays
 ```
 
-`WebhookHandler` and `SettingsHandler.triggerSync()` already follow the correct pattern. Any new handler that reads schedule settings must do the same.
+All handlers and functions that read any user-configurable schedule setting follow this pattern:
+- `WebhookHandler.processEventsWithinTransaction` — reads `PastEventThresholdDays` live
+- `WebhookHandler.recalculateSchedule` — reads `LookAheadDays` live
+- `SyncHandler.updateScheduleWithDate` — reads `LookAheadDays` live
+- `main.updateSchedule` — reads `LookAheadDays` live
+- `main` service loop ticker — reads `UpdateFrequency` live on every tick
 
 ### Template Rendering
 
