@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/belphemur/night-routine/internal/calendar"
-	"github.com/belphemur/night-routine/internal/config"
 	gcal "google.golang.org/api/calendar/v3"
 )
 
@@ -12,16 +11,14 @@ import (
 type CalendarHandler struct {
 	*BaseHandler
 	CalendarManager *calendar.Manager
-	RuntimeConfig   *config.RuntimeConfig
 }
 
 // NewCalendarHandler creates a new calendar handler
-func NewCalendarHandler(baseHandler *BaseHandler, runtimeCfg *config.RuntimeConfig, calendarManager *calendar.Manager) *CalendarHandler {
+func NewCalendarHandler(baseHandler *BaseHandler, calendarManager *calendar.Manager) *CalendarHandler {
 	// Logger is inherited from BaseHandler
 	return &CalendarHandler{
 		BaseHandler:     baseHandler,
 		CalendarManager: calendarManager,
-		RuntimeConfig:   runtimeCfg,
 	}
 }
 

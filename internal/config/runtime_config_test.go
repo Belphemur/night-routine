@@ -67,6 +67,12 @@ func (m *MockConfigStore) GetSchedule() (string, int, int, constants.StatsOrder,
 	return "daily", 14, 3, constants.StatsOrderDesc, nil
 }
 
+// GetOAuthConfig implements ConfigStoreInterface.
+// Returns nil in tests; OAuth config is not needed by LoadRuntimeConfig.
+func (m *MockConfigStore) GetOAuthConfig() *oauth2.Config {
+	return nil
+}
+
 func TestLoadRuntimeConfig_Success(t *testing.T) {
 	fileConfig := &Config{
 		App: ApplicationConfig{

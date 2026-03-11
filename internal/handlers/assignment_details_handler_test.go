@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/belphemur/night-routine/internal/token"
@@ -54,20 +53,16 @@ func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*Assig
 	require.NoError(t, err)
 
 	// Create config
-	cfg := &config.Config{
-		OAuth: &oauth2.Config{},
-	}
+	oauthCfg := &oauth2.Config{}
 
 	// Create token manager
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
+	tokenManager := token.NewTokenManager(tokenStore, oauthCfg)
 
-	// Create runtime config
-	runtimeCfg := &config.RuntimeConfig{
-		Config: cfg,
-	}
+	// Create config adapter — single source of truth for all config reads
+	configAdapter := database.NewConfigAdapter(nil, oauthCfg)
 
 	// Create base handler
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
+	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	// Create assignment details handler

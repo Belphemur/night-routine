@@ -134,16 +134,26 @@ func run(ctx context.Context) error {
 		return wrappedErr
 	}
 
-	// Load runtime configuration from database (merges file config with DB config)
+	// Build the ConfigAdapter: the single source of truth for all configuration.
+	// DB-backed settings (parents, availability, schedule) are read live from the
+	// database; the static OAuth2 config is provided here so handlers never need
+	// to touch *config.Config directly.
+	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
+
+	// Load runtime configuration from the database for one-time initialisation of
+	// components that require a *config.Config snapshot (e.g. the Scheduler).
+	// Handlers must NOT use runtimeCfg; they read config through configAdapter.
 	runtimeCfg, err := database.LoadRuntimeConfig(cfg, configStore)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to load runtime configuration: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Runtime configuration loading failed")
 		return wrappedErr
 	}
+
+	parentA, parentB, _ := configAdapter.GetParents()
 	logger.Info().
-		Str("parent_a", runtimeCfg.Config.Parents.ParentA).
-		Str("parent_b", runtimeCfg.Config.Parents.ParentB).
+		Str("parent_a", parentA).
+		Str("parent_b", parentB).
 		Msg("Runtime configuration loaded from database")
 
 	// Initialize fairness tracker
@@ -182,8 +192,9 @@ func run(ctx context.Context) error {
 		return wrappedErr
 	}
 
-	// Initialize base handler first, as other handlers depend on it
-	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag())
+	// Initialize base handler first, as other handlers depend on it.
+	// configAdapter is the single source of truth — no RuntimeConfig in handlers.
+	baseHandler, err := handlers.NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag())
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
@@ -197,8 +208,8 @@ func run(ctx context.Context) error {
 		logger.Error().Err(wrappedErr).Msg("OAuth handler initialization failed")
 		return wrappedErr
 	}
-	calendarHandler := handlers.NewCalendarHandler(baseHandler, runtimeCfg, calendarManager)
-	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc, configStore)
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, calendarManager)
+	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc, configAdapter)
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler, configStore)
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
@@ -229,9 +240,9 @@ func run(ctx context.Context) error {
 	}()
 
 	// Set up webhook handler using the calendar service (will be initialized later).
-	// Pass configStore so the handler reads PastEventThresholdDays and LookAheadDays
-	// live from the database, picking up UI setting changes without a restart.
-	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, db, configStore)
+	// configAdapter is passed so the handler reads all schedule settings live from
+	// the database, picking up UI setting changes without a restart.
+	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, configAdapter)
 	webhookHandler.RegisterRoutes()
 
 	// Check for existing token and initialize calendar service if found
@@ -265,7 +276,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Perform manual sync on startup if configured and possible
-	performManualStartupSync(ctx, cfg, configStore, hasToken, calSvc, sched)
+	performManualStartupSync(ctx, cfg, configAdapter, hasToken, calSvc, sched)
 
 	// Register handler for token setup signals
 	appSignals.OnTokenSetup(func(ctx context.Context, data appSignals.TokenSetupData) {
@@ -312,7 +323,7 @@ func run(ctx context.Context) error {
 		}
 
 		// Update schedule immediately after calendar selection
-		if err := updateSchedule(ctx, configStore, sched, calSvc); err != nil {
+		if err := updateSchedule(ctx, configAdapter, sched, calSvc); err != nil {
 			signalLogger.Error().Err(err).Msg("Failed to update schedule after calendar selection")
 		}
 	}, "main-calendar-selected-handler")
@@ -370,7 +381,7 @@ func run(ctx context.Context) error {
 			// Read UpdateFrequency live from the database so that changes made in
 			// the UI take effect without requiring an application restart.
 			// (updateFrequency is the only value we use here; the rest are intentionally ignored)
-			updateFrequency, _, _, _, err := configStore.GetSchedule()
+			updateFrequency, _, _, _, err := configAdapter.GetSchedule()
 			if err != nil {
 				logger.Error().Err(err).Msg("Failed to read schedule config on tick; skipping update")
 				continue
@@ -379,7 +390,7 @@ func run(ctx context.Context) error {
 
 			if lastScheduleRun.IsZero() || time.Since(lastScheduleRun) >= updateInterval {
 				logger.Debug().Str("update_frequency", updateFrequency).Msg("Running scheduled schedule update")
-				if err := updateSchedule(ctx, configStore, sched, calSvc); err != nil {
+				if err := updateSchedule(ctx, configAdapter, sched, calSvc); err != nil {
 					logger.Error().Err(err).Msg("Failed to update schedule on tick")
 				} else {
 					lastScheduleRun = time.Now()

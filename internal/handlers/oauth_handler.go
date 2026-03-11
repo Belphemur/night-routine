@@ -17,8 +17,8 @@ func NewOAuthHandler(baseHandler *BaseHandler) (*OAuthHandler, error) {
 	// Logger is inherited from BaseHandler
 	baseHandler.logger.Debug().Msg("Initializing OAuth handler")
 
-	// OAuthConfig is derived from the Config within BaseHandler
-	oauthConfig := baseHandler.RuntimeConfig.Config.OAuth
+	// OAuthConfig is derived from the ConfigStore within BaseHandler
+	oauthConfig := baseHandler.ConfigStore.GetOAuthConfig()
 
 	return &OAuthHandler{
 		BaseHandler: baseHandler,
