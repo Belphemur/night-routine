@@ -840,12 +840,29 @@
             explanationTitle.className = 'text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-2';
             explanationTitle.textContent = 'How the algorithm works';
 
-            const explanationText = document.createElement('p');
-            explanationText.className = 'text-sm text-gray-700';
-            explanationText.textContent = 'The fairness algorithm evaluates multiple criteria in priority order: (1) Parent availability, (2) Total assignment counts, (3) Recent counts (last 30 days), (4) Consecutive limit (max 2), (5) Alternating pattern.';
+            const explanationIntro = document.createElement('p');
+            explanationIntro.className = 'text-sm text-gray-700 mb-2';
+            explanationIntro.textContent = 'The fairness algorithm evaluates multiple criteria in priority order:';
+
+            const explanationList = document.createElement('ol');
+            explanationList.className = 'text-sm text-gray-700 text-left space-y-1';
+            explanationList.style.cssText = 'list-style-type: decimal; padding-left: 1.5rem;';
+            const steps = [
+                'Parent availability',
+                'Total assignment counts',
+                'Recent counts (last 30 days)',
+                'Consecutive limit (max 2)',
+                'Alternating pattern'
+            ];
+            steps.forEach(step => {
+                const li = document.createElement('li');
+                li.textContent = step;
+                explanationList.appendChild(li);
+            });
 
             explanationSection.appendChild(explanationTitle);
-            explanationSection.appendChild(explanationText);
+            explanationSection.appendChild(explanationIntro);
+            explanationSection.appendChild(explanationList);
             container.appendChild(explanationSection);
 
             return container;
