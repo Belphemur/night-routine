@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,8 +12,8 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/belphemur/night-routine/internal/calendar"
+	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
-	"github.com/belphemur/night-routine/internal/database"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/belphemur/night-routine/internal/token"
@@ -27,18 +26,21 @@ type WebhookHandler struct {
 	CalendarService calendar.CalendarService
 	Scheduler       Scheduler.SchedulerInterface
 	TokenManager    *token.TokenManager
-	DB              *database.DB
-	logger          zerolog.Logger
+	// ConfigStore is used to read schedule configuration live from the database,
+	// so that settings changes (e.g. PastEventThresholdDays, LookAheadDays) take
+	// effect immediately without requiring an application restart.
+	ConfigStore config.ConfigStoreInterface
+	logger      zerolog.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler
-func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, tokenManager *token.TokenManager, db *database.DB) *WebhookHandler {
+func NewWebhookHandler(baseHandler *BaseHandler, calendarService calendar.CalendarService, scheduler Scheduler.SchedulerInterface, tokenManager *token.TokenManager, configStore config.ConfigStoreInterface) *WebhookHandler {
 	return &WebhookHandler{
 		BaseHandler:     baseHandler,
 		CalendarService: calendarService,
 		Scheduler:       scheduler,
 		TokenManager:    tokenManager,
-		DB:              db,
+		ConfigStore:     configStore,
 		logger:          logging.GetLogger("webhook"),
 	}
 }
@@ -132,8 +134,8 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 	}
 	procLogger.Debug().Msg("Valid token obtained")
 
-	// Create a calendar client
-	client := h.RuntimeConfig.Config.OAuth.Client(ctx, token)
+	// Create a calendar client using the OAuth config from the config store
+	client := h.ConfigStore.GetOAuthConfig().Client(ctx, token)
 	calendarSvc, err := gcalendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		procLogger.Error().Err(err).Msg("Failed to create Google Calendar service client")
@@ -161,15 +163,21 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 		return nil
 	}
 
-	// Process events within a transaction to ensure consistency
-	return h.DB.WithTransaction(ctx, func(tx *sql.Tx) error {
-		return h.processEventsWithinTransaction(ctx, events.Items, procLogger)
-	})
+	return h.processEvents(ctx, events.Items, procLogger)
 }
 
-// processEventsWithinTransaction processes events within a database transaction
-func (h *WebhookHandler) processEventsWithinTransaction(ctx context.Context, events []*gcalendar.Event, procLogger zerolog.Logger) error {
+// processEvents processes a batch of calendar events and updates assignments accordingly
+func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.Event, procLogger zerolog.Logger) error {
 	var processingErrors []error
+
+	// Read the past-event threshold live from the database so that UI setting
+	// changes take effect immediately without requiring an application restart.
+	_, _, thresholdDays, _, err := h.ConfigStore.GetSchedule()
+	if err != nil {
+		procLogger.Error().Err(err).Msg("Failed to get schedule configuration for past event threshold")
+		return fmt.Errorf("failed to get schedule configuration: %w", err)
+	}
+	procLogger.Debug().Int("threshold_days", thresholdDays).Msg("Using past event threshold from live config")
 
 	for _, event := range events {
 		eventLogger := procLogger.With().Str("event_id", event.Id).Logger()
@@ -234,7 +242,6 @@ func (h *WebhookHandler) processEventsWithinTransaction(ctx context.Context, eve
 		}
 
 		// Check if the assignment is within the configurable past event threshold
-		thresholdDays := h.RuntimeConfig.Config.Schedule.PastEventThresholdDays
 		now := time.Now()
 		thresholdDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -thresholdDays)
 
@@ -303,8 +310,14 @@ func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.
 	// If there are no assignments in the database, use the default look-ahead period
 	endDate := lastAssignmentDate
 	if endDate.IsZero() || endDate.Before(fromDate) {
+		// Read look-ahead days live from the database so that UI setting changes
+		// take effect immediately without requiring an application restart.
+		_, lookAheadDays, _, _, err := h.ConfigStore.GetSchedule()
+		if err != nil {
+			recalcLogger.Error().Err(err).Msg("Failed to get schedule configuration for look-ahead days")
+			return fmt.Errorf("failed to get schedule configuration: %w", err)
+		}
 		// Use the same look-ahead period as defined in the config, starting from 'fromDate'
-		lookAheadDays := h.RuntimeConfig.Config.Schedule.LookAheadDays
 		endDate = fromDate.AddDate(0, 0, lookAheadDays)
 		recalcLogger.Debug().Int("look_ahead_days", lookAheadDays).Time("end_date", endDate).Msg("Calculated end date based on look-ahead days")
 	} else {

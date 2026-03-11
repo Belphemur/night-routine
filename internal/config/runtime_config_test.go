@@ -6,6 +6,7 @@ import (
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 )
 
 // MockConfigLoader implements ConfigLoader for testing
@@ -65,6 +66,12 @@ func (m *MockConfigStore) GetSchedule() (string, int, int, constants.StatsOrder,
 		return m.schedule()
 	}
 	return "daily", 14, 3, constants.StatsOrderDesc, nil
+}
+
+// GetOAuthConfig implements ConfigStoreInterface.
+// Returns nil in tests; OAuth config is not needed by LoadRuntimeConfig.
+func (m *MockConfigStore) GetOAuthConfig() *oauth2.Config {
+	return nil
 }
 
 func TestLoadRuntimeConfig_Success(t *testing.T) {

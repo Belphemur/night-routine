@@ -24,18 +24,21 @@ var templateFS embed.FS
 
 // BaseHandler contains common handler functionality
 type BaseHandler struct {
-	tmpl          *template.Template
-	TokenStore    *database.TokenStore
-	TokenManager  *token.TokenManager
-	RuntimeConfig *config.RuntimeConfig
-	Tracker       fairness.TrackerInterface
-	cssVersion    string
-	logoVersion   string
-	logger        zerolog.Logger
+	tmpl         *template.Template
+	TokenStore   *database.TokenStore
+	TokenManager *token.TokenManager
+	// ConfigStore is the single source of truth for all application configuration.
+	// It reads schedule/parent/availability settings live from the database and
+	// returns static values (OAuth) from the file/env config — no RuntimeConfig needed.
+	ConfigStore config.ConfigStoreInterface
+	Tracker     fairness.TrackerInterface
+	cssVersion  string
+	logoVersion string
+	logger      zerolog.Logger
 }
 
 // NewBaseHandler creates a common base handler with shared components
-func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface, cssVersion, logoVersion string) (*BaseHandler, error) {
+func NewBaseHandler(configStore config.ConfigStoreInterface, tokenStore *database.TokenStore, tokenManager *token.TokenManager, tracker fairness.TrackerInterface, cssVersion, logoVersion string) (*BaseHandler, error) {
 	logger := logging.GetLogger("base-handler")
 	logger.Debug().Msg("Parsing templates")
 
@@ -59,14 +62,14 @@ func NewBaseHandler(runtimeCfg *config.RuntimeConfig, tokenStore *database.Token
 	logger.Debug().Msg("Templates parsed successfully")
 
 	return &BaseHandler{
-		tmpl:          tmpl, // Updated field name
-		TokenStore:    tokenStore,
-		TokenManager:  tokenManager,
-		RuntimeConfig: runtimeCfg,
-		Tracker:       tracker,
-		cssVersion:    cssVersion,
-		logoVersion:   logoVersion,
-		logger:        logger,
+		tmpl:         tmpl, // Updated field name
+		TokenStore:   tokenStore,
+		TokenManager: tokenManager,
+		ConfigStore:  configStore,
+		Tracker:      tracker,
+		cssVersion:   cssVersion,
+		logoVersion:  logoVersion,
+		logger:       logger,
 	}, nil
 }
 

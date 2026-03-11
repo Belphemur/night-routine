@@ -134,16 +134,26 @@ func run(ctx context.Context) error {
 		return wrappedErr
 	}
 
-	// Load runtime configuration from database (merges file config with DB config)
+	// Build the ConfigAdapter: the single source of truth for all configuration.
+	// DB-backed settings (parents, availability, schedule) are read live from the
+	// database; the static OAuth2 config is provided here so handlers never need
+	// to touch *config.Config directly.
+	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
+
+	// Load runtime configuration from the database for one-time initialisation of
+	// components that require a *config.Config snapshot (e.g. the Scheduler).
+	// Handlers must NOT use runtimeCfg; they read config through configAdapter.
 	runtimeCfg, err := database.LoadRuntimeConfig(cfg, configStore)
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to load runtime configuration: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Runtime configuration loading failed")
 		return wrappedErr
 	}
+
+	parentA, parentB, _ := configAdapter.GetParents()
 	logger.Info().
-		Str("parent_a", runtimeCfg.Config.Parents.ParentA).
-		Str("parent_b", runtimeCfg.Config.Parents.ParentB).
+		Str("parent_a", parentA).
+		Str("parent_b", parentB).
 		Msg("Runtime configuration loaded from database")
 
 	// Initialize fairness tracker
@@ -182,8 +192,9 @@ func run(ctx context.Context) error {
 		return wrappedErr
 	}
 
-	// Initialize base handler first, as other handlers depend on it
-	baseHandler, err := handlers.NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag())
+	// Initialize base handler first, as other handlers depend on it.
+	// configAdapter is the single source of truth — no RuntimeConfig in handlers.
+	baseHandler, err := handlers.NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag())
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
 		logger.Error().Err(wrappedErr).Msg("Base handler initialization failed")
@@ -197,8 +208,8 @@ func run(ctx context.Context) error {
 		logger.Error().Err(wrappedErr).Msg("OAuth handler initialization failed")
 		return wrappedErr
 	}
-	calendarHandler := handlers.NewCalendarHandler(baseHandler, runtimeCfg, calendarManager)
-	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc)
+	calendarHandler := handlers.NewCalendarHandler(baseHandler, calendarManager)
+	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc, configAdapter)
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler, configStore)
 	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
@@ -228,8 +239,10 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	// Set up webhook handler using the calendar service (will be initialized later)
-	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, db)
+	// Set up webhook handler using the calendar service (will be initialized later).
+	// configAdapter is passed so the handler reads all schedule settings live from
+	// the database, picking up UI setting changes without a restart.
+	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, configAdapter)
 	webhookHandler.RegisterRoutes()
 
 	// Check for existing token and initialize calendar service if found
@@ -263,7 +276,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Perform manual sync on startup if configured and possible
-	performManualStartupSync(ctx, cfg, hasToken, calSvc, sched)
+	performManualStartupSync(ctx, cfg, configAdapter, hasToken, calSvc, sched)
 
 	// Register handler for token setup signals
 	appSignals.OnTokenSetup(func(ctx context.Context, data appSignals.TokenSetupData) {
@@ -310,16 +323,21 @@ func run(ctx context.Context) error {
 		}
 
 		// Update schedule immediately after calendar selection
-		if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
+		if err := updateSchedule(ctx, configAdapter, sched, calSvc); err != nil {
 			signalLogger.Error().Err(err).Msg("Failed to update schedule after calendar selection")
 		}
 	}, "main-calendar-selected-handler")
 
-	// Main service loop
-	ticker := time.NewTicker(getUpdateInterval(cfg.Schedule.UpdateFrequency))
+	// Main service loop.
+	// The ticker fires every minute so that any UpdateFrequency setting change
+	// is picked up quickly. The actual schedule update is only executed when
+	// enough time has elapsed since the last run according to the live
+	// UpdateFrequency value read from the database on every tick.
+	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
+	var lastScheduleRun time.Time
 
-	logger.Info().Str("update_frequency", cfg.Schedule.UpdateFrequency).Msg("Starting main service loop")
+	logger.Info().Msg("Starting main service loop")
 	for {
 		select {
 		case <-ctx.Done():
@@ -348,11 +366,7 @@ func run(ctx context.Context) error {
 
 		case <-ticker.C:
 			logger.Debug().Msg("Update schedule tick received")
-			if calSvc.IsInitialized() {
-				if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
-					logger.Error().Err(err).Msg("Failed to update schedule on tick")
-				}
-			} else {
+			if !calSvc.IsInitialized() {
 				logger.Debug().Msg("Calendar service not initialized, attempting initialization on tick")
 				// Try to initialize calendar service if it wasn't available before
 				if err := calSvc.Initialize(ctx); err != nil {
@@ -361,6 +375,31 @@ func run(ctx context.Context) error {
 					logger.Info().Msg("Calendar service initialized successfully on scheduled check")
 					// Notification channel setup will happen on calendar selection
 				}
+				continue
+			}
+
+			// Read UpdateFrequency live from the database so that changes made in
+			// the UI take effect without requiring an application restart.
+			// (updateFrequency is the only value we use here; the rest are intentionally ignored)
+			updateFrequency, _, _, _, err := configAdapter.GetSchedule()
+			if err != nil {
+				logger.Error().Err(err).Msg("Failed to read schedule config on tick; skipping update")
+				continue
+			}
+			updateInterval := getUpdateInterval(updateFrequency)
+
+			if lastScheduleRun.IsZero() || time.Since(lastScheduleRun) >= updateInterval {
+				logger.Debug().Str("update_frequency", updateFrequency).Msg("Running scheduled schedule update")
+				if err := updateSchedule(ctx, configAdapter, sched, calSvc); err != nil {
+					logger.Error().Err(err).Msg("Failed to update schedule on tick")
+				} else {
+					lastScheduleRun = time.Now()
+				}
+			} else {
+				logger.Debug().
+					Str("update_frequency", updateFrequency).
+					Dur("time_until_next_run", updateInterval-time.Since(lastScheduleRun)).
+					Msg("Skipping schedule update; next run not due yet")
 			}
 		}
 	}
@@ -368,7 +407,7 @@ func run(ctx context.Context) error {
 
 // performManualStartupSync checks the config and performs a schedule sync if enabled and possible.
 // It assumes calSvc initialization was already attempted if hasToken is true.
-func performManualStartupSync(ctx context.Context, cfg *config.Config, hasToken bool, calSvc *calendar.Service, sched *scheduler.Scheduler) {
+func performManualStartupSync(ctx context.Context, cfg *config.Config, configStore config.ConfigStoreInterface, hasToken bool, calSvc *calendar.Service, sched *scheduler.Scheduler) {
 	logger := logging.GetLogger("manual-startup-sync") // Get logger specific to this function
 
 	if !cfg.Service.ManualSyncOnStartup {
@@ -389,20 +428,30 @@ func performManualStartupSync(ctx context.Context, cfg *config.Config, hasToken 
 
 	// Perform the sync
 	logger.Info().Msg("Performing manual schedule sync on startup...")
-	if err := updateSchedule(ctx, cfg, sched, calSvc); err != nil {
+	if err := updateSchedule(ctx, configStore, sched, calSvc); err != nil {
 		logger.Error().Err(err).Msg("Manual schedule sync on startup failed")
 	} else {
 		logger.Info().Msg("Manual schedule sync on startup completed successfully")
 	}
 }
 
-func updateSchedule(ctx context.Context, cfg *config.Config, sched *scheduler.Scheduler, calSvc *calendar.Service) error {
+func updateSchedule(ctx context.Context, configStore config.ConfigStoreInterface, sched *scheduler.Scheduler, calSvc *calendar.Service) error {
 	scheduleLogger := logging.GetLogger("schedule-update")
 	scheduleLogger.Info().Msg("Starting schedule update")
+
+	// Read LookAheadDays live from the database so that UI setting changes
+	// take effect immediately without requiring an application restart.
+	// (updateFrequency, pastEventThresholdDays and statsOrder are intentionally ignored here)
+	_, lookAheadDays, _, _, err := configStore.GetSchedule()
+	if err != nil {
+		scheduleLogger.Error().Err(err).Msg("Failed to get schedule configuration")
+		return fmt.Errorf("failed to get schedule configuration: %w", err)
+	}
+
 	// Calculate date range
 	now := time.Now()
-	end := now.AddDate(0, 0, cfg.Schedule.LookAheadDays)
-	scheduleLogger.Debug().Time("start_date", now).Time("end_date", end).Int("lookahead_days", cfg.Schedule.LookAheadDays).Msg("Calculated date range")
+	end := now.AddDate(0, 0, lookAheadDays)
+	scheduleLogger.Debug().Time("start_date", now).Time("end_date", end).Int("lookahead_days", lookAheadDays).Msg("Calculated date range")
 
 	// Generate schedule
 	assignments, err := sched.GenerateSchedule(now, end, time.Now())
@@ -418,7 +467,7 @@ func updateSchedule(ctx context.Context, cfg *config.Config, sched *scheduler.Sc
 		return err
 	}
 
-	scheduleLogger.Info().Int("days", cfg.Schedule.LookAheadDays).Int("assignments", len(assignments)).Msg("Updated schedule successfully")
+	scheduleLogger.Info().Int("days", lookAheadDays).Int("assignments", len(assignments)).Msg("Updated schedule successfully")
 	return nil
 }
 

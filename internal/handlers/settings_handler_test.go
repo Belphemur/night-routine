@@ -66,20 +66,16 @@ func setupTestSettingsHandler(t *testing.T) (*SettingsHandler, *database.ConfigS
 	require.NoError(t, err)
 
 	// Create config
-	cfg := &config.Config{
-		OAuth: &oauth2.Config{},
-	}
+	oauthCfg := &oauth2.Config{}
 
 	// Create token manager
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
+	tokenManager := token.NewTokenManager(tokenStore, oauthCfg)
 
-	// Create runtime config
-	runtimeCfg := &config.RuntimeConfig{
-		Config: cfg,
-	}
+	// Create config adapter — single source of truth for all config reads
+	configAdapter := database.NewConfigAdapter(configStore, oauthCfg)
 
 	// Create base handler
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
+	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	// Create settings handler (pass nil for optional sync dependencies in tests)
@@ -322,12 +318,10 @@ func TestSettingsHandler_CheckAuthentication_NoToken(t *testing.T) {
 	cfg := &config.Config{OAuth: &oauth2.Config{}}
 	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
 
-	// Create runtime config
-	runtimeCfg := &config.RuntimeConfig{
-		Config: cfg,
-	}
+	// Create config adapter — single source of truth for all config reads
+	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
 
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
+	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	handler := NewSettingsHandler(baseHandler, configStore, nil, tokenManager, nil)
@@ -381,12 +375,10 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 	}
 	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
 
-	// Create runtime config
-	runtimeCfg := &config.RuntimeConfig{
-		Config: cfg,
-	}
+	// Create config adapter — single source of truth for all config reads
+	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
 
-	baseHandler, err := NewBaseHandler(runtimeCfg, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
+	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	handler := NewSettingsHandler(baseHandler, configStore, nil, tokenManager, nil)
