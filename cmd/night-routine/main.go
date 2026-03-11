@@ -228,8 +228,10 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	// Set up webhook handler using the calendar service (will be initialized later)
-	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, db)
+	// Set up webhook handler using the calendar service (will be initialized later).
+	// Pass configStore so the handler reads PastEventThresholdDays and LookAheadDays
+	// live from the database, picking up UI setting changes without a restart.
+	webhookHandler := handlers.NewWebhookHandler(baseHandler, calSvc, sched, tokenManager, db, configStore)
 	webhookHandler.RegisterRoutes()
 
 	// Check for existing token and initialize calendar service if found

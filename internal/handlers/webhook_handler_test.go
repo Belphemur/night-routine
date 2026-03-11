@@ -175,11 +175,43 @@ func (m *MockScheduler) UpdateGoogleCalendarEventID(assignment *Scheduler.Assign
 	return args.Error(0)
 }
 
+// MockConfigStore is a mock implementation of config.ConfigStoreInterface
+type MockConfigStore struct {
+	mock.Mock
+}
+
+func (m *MockConfigStore) GetParents() (string, string, error) {
+	args := m.Called()
+	return args.String(0), args.String(1), args.Error(2)
+}
+
+func (m *MockConfigStore) GetAvailability(parent string) ([]string, error) {
+	args := m.Called(parent)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockConfigStore) GetSchedule() (string, int, int, constants.StatsOrder, error) {
+	args := m.Called()
+	return args.String(0), args.Int(1), args.Int(2), args.Get(3).(constants.StatsOrder), args.Error(4)
+}
+
+// defaultTestThresholdDays is the PastEventThresholdDays value used in tests that exercise
+// recalculateSchedule.  The threshold is not the subject of those tests so a named constant
+// avoids a confusing bare magic number.
+const defaultTestThresholdDays = 5
+
 func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 	now := time.Now()
 	fromDate := now.Truncate(24 * time.Hour)
 	ctx := context.Background()
 
+	// setupMocks configures tracker/scheduler/calendar mocks for each test case.
+	// ConfigStore is set up separately (below) because its setup is uniform across
+	// all sub-tests (it always returns configLookAheadDays).  Keeping them apart
+	// avoids changing the four-argument closure signature just for one extra mock.
 	tests := []struct {
 		name                string
 		setupMocks          func(*MockTracker, *MockScheduler, *MockCalendarService)
@@ -307,24 +339,26 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 			mockTracker := new(MockTracker)
 			mockScheduler := new(MockScheduler)
 			mockCalService := new(MockCalendarService)
+			mockConfigStore := new(MockConfigStore)
 
 			tt.setupMocks(mockTracker, mockScheduler, mockCalService)
+
+			// Set up config store mock to return look-ahead days live from "database".
+			// Use Maybe() because GetSchedule is only called when the last-assignment
+			// date is zero or before fromDate (test cases that return a real last date
+			// take a different branch and never call GetSchedule).
+			mockConfigStore.On("GetSchedule").Maybe().Return("daily", tt.configLookAheadDays, defaultTestThresholdDays, constants.StatsOrderDesc, nil)
 
 			// Create handler with mocked dependencies
 			handler := &WebhookHandler{
 				BaseHandler: &BaseHandler{
-					TokenStore: nil,
-					Tracker:    mockTracker,
-					RuntimeConfig: &config.RuntimeConfig{
-						Config: &config.Config{
-							Schedule: config.ScheduleConfig{
-								LookAheadDays: tt.configLookAheadDays,
-							},
-						},
-					},
+					TokenStore:    nil,
+					Tracker:       mockTracker,
+					RuntimeConfig: &config.RuntimeConfig{Config: &config.Config{}},
 				},
 				CalendarService: mockCalService,
 				Scheduler:       mockScheduler,
+				ConfigStore:     mockConfigStore,
 			}
 
 			// Execute test
@@ -341,6 +375,7 @@ func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 			mockTracker.AssertExpectations(t)
 			mockScheduler.AssertExpectations(t)
 			mockCalService.AssertExpectations(t)
+			mockConfigStore.AssertExpectations(t)
 		})
 	}
 }
@@ -359,6 +394,12 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 	err = db.MigrateDatabase()
 	require.NoError(t, err)
 
+	// Create config store with default schedule settings
+	configStore, err := database.NewConfigStore(db)
+	require.NoError(t, err)
+	err = configStore.SaveSchedule("daily", 7, 5, constants.StatsOrderDesc)
+	require.NoError(t, err)
+
 	// Create real tracker and scheduler
 	tracker, err := fairness.New(db)
 	require.NoError(t, err)
@@ -374,17 +415,16 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 	mockCalService := &MockCalendarService{}
 	mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
 
-	// Create webhook handler with real database
+	// Create webhook handler with real database and live config store
 	handler := &WebhookHandler{
 		BaseHandler: &BaseHandler{
-			Tracker: tracker,
-			RuntimeConfig: &config.RuntimeConfig{
-				Config: cfg,
-			},
+			Tracker:       tracker,
+			RuntimeConfig: &config.RuntimeConfig{Config: cfg},
 		},
 		Scheduler:       scheduler,
 		DB:              db,
 		CalendarService: mockCalService,
+		ConfigStore:     configStore,
 		logger:          logging.GetLogger("webhook-test"),
 	}
 
@@ -443,13 +483,12 @@ func TestProcessEventsWithinTransactionIntegration(t *testing.T) {
 		// Create handler with mock scheduler that will fail
 		handlerWithFailingScheduler := &WebhookHandler{
 			BaseHandler: &BaseHandler{
-				Tracker: tracker,
-				RuntimeConfig: &config.RuntimeConfig{
-					Config: cfg,
-				},
+				Tracker:       tracker,
+				RuntimeConfig: &config.RuntimeConfig{Config: cfg},
 			},
-			Scheduler: mockScheduler,
-			DB:        db,
+			Scheduler:   mockScheduler,
+			DB:          db,
+			ConfigStore: configStore,
 		}
 
 		// Create test event that will cause scheduler to fail
@@ -706,15 +745,8 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 			err = tracker.UpdateAssignmentGoogleCalendarEventID(assignment.ID, eventID)
 			require.NoError(t, err)
 
-			// Create config with the test threshold
-			cfg := &config.Config{
-				Schedule: config.ScheduleConfig{
-					LookAheadDays:          7,
-					PastEventThresholdDays: tt.thresholdDays,
-				},
-			}
-
-			// Create real scheduler
+			// Create real scheduler (config here is only used by scheduler internals)
+			cfg := &config.Config{Schedule: config.ScheduleConfig{LookAheadDays: 7}}
 			scheduler := Scheduler.New(cfg, tracker)
 
 			// Create mock calendar service
@@ -724,16 +756,19 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 				mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
 			}
 
-			// Create webhook handler with configurable threshold
+			// Mock config store returns the test-specific threshold live from "database"
+			mockConfigStore := new(MockConfigStore)
+			mockConfigStore.On("GetSchedule").Return("daily", 7, tt.thresholdDays, constants.StatsOrderDesc, nil)
+
+			// Create webhook handler; threshold is now read from ConfigStore, not RuntimeConfig
 			handler := &WebhookHandler{
 				BaseHandler: &BaseHandler{
-					Tracker: tracker,
-					RuntimeConfig: &config.RuntimeConfig{
-						Config: cfg,
-					},
+					Tracker:       tracker,
+					RuntimeConfig: &config.RuntimeConfig{Config: cfg},
 				},
 				Scheduler:       scheduler,
 				CalendarService: mockCalService,
+				ConfigStore:     mockConfigStore,
 				DB:              db,
 				logger:          logging.GetLogger("webhook-test"),
 			}
@@ -774,10 +809,105 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 				assert.False(t, updatedAssignment.Override, "Override flag should remain false")
 			}
 
-			// Verify mock expectations
-			if tt.expectedProcessed {
-				mockCalService.AssertExpectations(t)
-			}
+			mockCalService.AssertExpectations(t)
+			mockConfigStore.AssertExpectations(t)
 		})
 	}
+}
+
+// TestWebhookHandler_DynamicConfigReading verifies that updating settings (via ConfigStore)
+// takes effect in the webhook handler immediately, without an application restart.
+// This is the core regression test for the issue: "updating the settings doesn't impact
+// the webhook worker".
+func TestWebhookHandler_DynamicConfigReading(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test_webhook_dynamic.db")
+
+	db, err := database.New(database.NewDefaultOptions(dbPath))
+	require.NoError(t, err)
+	defer db.Close()
+
+	err = db.MigrateDatabase()
+	require.NoError(t, err)
+
+	// Set up the live config store with an initial threshold of 3 days
+	configStore, err := database.NewConfigStore(db)
+	require.NoError(t, err)
+	err = configStore.SaveSchedule("daily", 7, 3, constants.StatsOrderDesc)
+	require.NoError(t, err)
+
+	tracker, err := fairness.New(db)
+	require.NoError(t, err)
+
+	cfg := &config.Config{Schedule: config.ScheduleConfig{LookAheadDays: 7}}
+	sched := Scheduler.New(cfg, tracker)
+
+	mockCalService := &MockCalendarService{}
+	mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
+
+	// Build the webhook handler once; it reads config dynamically from configStore
+	handler := &WebhookHandler{
+		BaseHandler: &BaseHandler{
+			Tracker:       tracker,
+			RuntimeConfig: &config.RuntimeConfig{Config: cfg},
+		},
+		Scheduler:       sched,
+		CalendarService: mockCalService,
+		ConfigStore:     configStore,
+		DB:              db,
+		logger:          logging.GetLogger("webhook-test"),
+	}
+
+	ctx := context.Background()
+	now := time.Now()
+
+	// Create an assignment 5 days ago — outside the initial 3-day threshold
+	assignmentDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -5)
+	assignment, err := tracker.RecordAssignment("OriginalParent", assignmentDate, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	eventID := "dynamic_test_event"
+	err = tracker.UpdateAssignmentGoogleCalendarEventID(assignment.ID, eventID)
+	require.NoError(t, err)
+
+	events := []*gcalendar.Event{
+		{
+			Id:      eventID,
+			Status:  "confirmed",
+			Summary: "[NewParent] 🌃👶Routine",
+			ExtendedProperties: &gcalendar.EventExtendedProperties{
+				Private: map[string]string{
+					"app": constants.NightRoutineIdentifier,
+				},
+			},
+		},
+	}
+
+	t.Run("Rejects event with initial 3-day threshold (assignment is 5 days old)", func(t *testing.T) {
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			return handler.processEventsWithinTransaction(ctx, events, handler.logger)
+		})
+		require.NoError(t, err)
+
+		updatedAssignment, err := tracker.GetAssignmentByID(assignment.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "OriginalParent", updatedAssignment.Parent, "should not update: assignment is outside the 3-day threshold")
+		assert.False(t, updatedAssignment.Override)
+	})
+
+	// Simulate the user updating "Past Event Threshold (Days)" to 7 via the settings UI.
+	// The handler is NOT restarted — it must pick up the new value dynamically.
+	err = configStore.SaveSchedule("daily", 7, 7, constants.StatsOrderDesc)
+	require.NoError(t, err)
+
+	t.Run("Accepts same event after threshold is updated to 7 days (no restart needed)", func(t *testing.T) {
+		err = db.WithTransaction(ctx, func(tx *sql.Tx) error {
+			return handler.processEventsWithinTransaction(ctx, events, handler.logger)
+		})
+		require.NoError(t, err)
+
+		updatedAssignment, err := tracker.GetAssignmentByID(assignment.ID)
+		require.NoError(t, err)
+		assert.Equal(t, "NewParent", updatedAssignment.Parent, "should update: assignment is now within the 7-day threshold")
+		assert.True(t, updatedAssignment.Override, "override flag should be set after parent change")
+	})
 }
