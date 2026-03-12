@@ -258,23 +258,19 @@
     <div id="details-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
     <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
       <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-        <div id="details-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-lg">
-            <div class="sm:flex sm:items-start">
-                <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
+        <div id="details-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+            <div class="text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
                     <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                     </svg>
                 </div>
-                <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left flex-1">
-                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="details-modal-title">Assignment Details</h3>
-                    <div class="mt-4" id="details-modal-content">
-                        <p class="text-sm text-gray-500">Loading...</p>
-                    </div>
-                </div>
+                <h3 class="mt-3 text-base font-semibold leading-6 text-gray-900" id="details-modal-title">Assignment Details</h3>
+                <div class="mt-4 text-left" id="details-modal-content"></div>
             </div>
-            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+            <div class="mt-5">
                 <button type="button" id="details-modal-close"
-                    class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto">
+                    class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                     Close
                 </button>
             </div>
@@ -380,7 +376,7 @@
                 } else {
                     // Show details modal for non-overridden assignments
                     if (assignmentId) {
-                        showDetailsModal(assignmentId);
+                        showDetailsModal(assignmentId, cell);
                     }
                 }
             });
@@ -480,7 +476,7 @@
                 function createDayCell(day) {
                     const td = document.createElement('td');
                     // Combine classes reliably with array filtering
-                    td.className = [day.classes, 'h-24', 'p-2', 'text-xs'].filter(Boolean).join(' ');
+                    td.className = [day.classes, 'relative', 'h-24', 'p-2', 'text-xs'].filter(Boolean).join(' ');
                     td.setAttribute('data-date', day.dateStr);
                     if (day.assignmentId) {
                         td.setAttribute('data-assignment-id', day.assignmentId);
@@ -555,7 +551,7 @@
                                 if (this.classList.contains('overridden')) {
                                     showUnlockModal(assignmentId);
                                 } else {
-                                    showDetailsModal(assignmentId);
+                                    showDetailsModal(assignmentId, this);
                                 }
                             }
                         });
@@ -697,12 +693,10 @@
         const detailsModalPanel = document.getElementById('details-modal-panel');
         const detailsModalClose = document.getElementById('details-modal-close');
         const detailsModalContent = document.getElementById('details-modal-content');
+        let isLoadingDetails = false;
 
-        function showDetailsModal(assignmentId) {
+        function openDetailsModal() {
             detailsModal.classList.remove('hidden');
-            detailsModalContent.innerHTML = '<p class="text-sm text-gray-500">Loading...</p>';
-            
-            // Use requestAnimationFrame for smooth transitions
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     detailsModalBackdrop.classList.remove('opacity-0');
@@ -711,8 +705,187 @@
                     detailsModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
                 });
             });
+            setTimeout(() => detailsModalClose.focus(), 100);
+        }
 
-            // Fetch assignment details via AJAX
+        function buildDetailsContent(data) {
+            const container = document.createElement('div');
+            container.className = 'space-y-3';
+
+            // Calculation date section
+            const dateSection = document.createElement('div');
+            dateSection.className = 'bg-gray-50 rounded-lg p-3 text-center';
+
+            const dateLabel = document.createElement('p');
+            dateLabel.className = 'text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2';
+            dateLabel.textContent = 'Calculation Date';
+
+            const dateValue = document.createElement('p');
+            dateValue.className = 'text-base font-bold text-gray-900';
+            dateValue.textContent = data.calculation_date;
+
+            dateSection.appendChild(dateLabel);
+            dateSection.appendChild(dateValue);
+            container.appendChild(dateSection);
+
+            // Parents grid
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-2 gap-3';
+
+            // Parent A section
+            const parentASection = document.createElement('div');
+            parentASection.className = 'bg-blue-50 rounded-lg p-3';
+
+            const parentAName = document.createElement('p');
+            parentAName.className = 'text-xs text-blue-700 uppercase tracking-wide font-bold mb-2 text-center';
+            parentAName.textContent = data.parent_a_name;
+
+            const parentAStats = document.createElement('div');
+            parentAStats.className = 'space-y-1';
+
+            const parentATotal = document.createElement('p');
+            parentATotal.className = 'text-sm text-gray-700';
+            const parentATotalLabel = document.createElement('span');
+            parentATotalLabel.className = 'font-bold';
+            parentATotalLabel.textContent = 'Total:';
+            parentATotal.appendChild(parentATotalLabel);
+            parentATotal.appendChild(document.createTextNode(' ' + data.parent_a_total_count));
+
+            const parentALast30 = document.createElement('p');
+            parentALast30.className = 'text-sm text-gray-700';
+            const parentALast30Label = document.createElement('span');
+            parentALast30Label.className = 'font-bold';
+            parentALast30Label.textContent = 'Last 30 days:';
+            parentALast30.appendChild(parentALast30Label);
+            parentALast30.appendChild(document.createTextNode(' ' + data.parent_a_last_30_days));
+
+            parentAStats.appendChild(parentATotal);
+            parentAStats.appendChild(parentALast30);
+            parentASection.appendChild(parentAName);
+            parentASection.appendChild(parentAStats);
+            grid.appendChild(parentASection);
+
+            // Parent B section
+            const parentBSection = document.createElement('div');
+            parentBSection.className = 'bg-orange-50 rounded-lg p-3';
+
+            const parentBName = document.createElement('p');
+            parentBName.className = 'text-xs text-orange-700 uppercase tracking-wide font-bold mb-2 text-center';
+            parentBName.textContent = data.parent_b_name;
+
+            const parentBStats = document.createElement('div');
+            parentBStats.className = 'space-y-1';
+
+            const parentBTotal = document.createElement('p');
+            parentBTotal.className = 'text-sm text-gray-700';
+            const parentBTotalLabel = document.createElement('span');
+            parentBTotalLabel.className = 'font-bold';
+            parentBTotalLabel.textContent = 'Total:';
+            parentBTotal.appendChild(parentBTotalLabel);
+            parentBTotal.appendChild(document.createTextNode(' ' + data.parent_b_total_count));
+
+            const parentBLast30 = document.createElement('p');
+            parentBLast30.className = 'text-sm text-gray-700';
+            const parentBLast30Label = document.createElement('span');
+            parentBLast30Label.className = 'font-bold';
+            parentBLast30Label.textContent = 'Last 30 days:';
+            parentBLast30.appendChild(parentBLast30Label);
+            parentBLast30.appendChild(document.createTextNode(' ' + data.parent_b_last_30_days));
+
+            parentBStats.appendChild(parentBTotal);
+            parentBStats.appendChild(parentBLast30);
+            parentBSection.appendChild(parentBName);
+            parentBSection.appendChild(parentBStats);
+            grid.appendChild(parentBSection);
+
+            container.appendChild(grid);
+
+            // Decision Reason section
+            const reasonSection = document.createElement('div');
+            reasonSection.className = 'bg-purple-50 rounded-lg p-3 text-center';
+
+            const reasonTitle = document.createElement('p');
+            reasonTitle.className = 'text-xs text-purple-700 uppercase tracking-wide font-semibold mb-2';
+            reasonTitle.textContent = 'Decision Reason';
+
+            const reasonBadge = document.createElement('p');
+            reasonBadge.className = 'text-base font-bold text-purple-900 mb-2';
+            reasonBadge.textContent = data.decision_reason;
+
+            reasonSection.appendChild(reasonTitle);
+            reasonSection.appendChild(reasonBadge);
+
+            // Add explanation based on decision reason
+            const explanations = {
+                'Unavailability': 'One parent was unavailable on this day based on configured schedule constraints.',
+                'Total Count': 'This parent had fewer total assignments overall, helping maintain long-term balance.',
+                'Recent Count': 'This parent had fewer assignments in the last 30 days, ensuring fair recent distribution.',
+                'Consecutive Limit': 'Prevents one parent from having too many consecutive night assignments (limit: 2).',
+                'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
+                'Override': 'This assignment was manually changed in Google Calendar by a user.'
+            };
+
+            const reasonExplanation = document.createElement('p');
+            reasonExplanation.className = 'text-sm text-gray-600 italic';
+            reasonExplanation.textContent = explanations[data.decision_reason] || 'Assignment made by the fairness algorithm.';
+
+            reasonSection.appendChild(reasonExplanation);
+            container.appendChild(reasonSection);
+
+            // Algorithm explanation section
+            const explanationSection = document.createElement('div');
+            explanationSection.className = 'bg-indigo-50 rounded-lg p-3 text-center';
+
+            const explanationTitle = document.createElement('p');
+            explanationTitle.className = 'text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-2';
+            explanationTitle.textContent = 'How the algorithm works';
+
+            const explanationIntro = document.createElement('p');
+            explanationIntro.className = 'text-sm text-gray-700 mb-2';
+            explanationIntro.textContent = 'The fairness algorithm evaluates multiple criteria in priority order:';
+
+            const explanationList = document.createElement('ol');
+            explanationList.className = 'text-sm text-gray-700 text-left space-y-1';
+            explanationList.style.cssText = 'list-style-type: decimal; padding-left: 1.5rem;';
+            const steps = [
+                'Parent availability',
+                'Total assignment counts',
+                'Recent counts (last 30 days)',
+                'Consecutive limit (max 2)',
+                'Alternating pattern'
+            ];
+            steps.forEach(step => {
+                const li = document.createElement('li');
+                li.textContent = step;
+                explanationList.appendChild(li);
+            });
+
+            explanationSection.appendChild(explanationTitle);
+            explanationSection.appendChild(explanationIntro);
+            explanationSection.appendChild(explanationList);
+            container.appendChild(explanationSection);
+
+            return container;
+        }
+
+        function showDetailsModal(assignmentId, sourceElement) {
+            if (isLoadingDetails) return;
+            isLoadingDetails = true;
+
+            // Show loading spinner on the source calendar cell
+            let loadingOverlay = null;
+            if (sourceElement) {
+                // Ensure the cell is a positioned ancestor so the absolute overlay stays within it
+                if (!sourceElement.style.position) {
+                    sourceElement.classList.add('relative');
+                }
+                loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'absolute inset-0 flex items-center justify-center bg-white/70 z-20 pointer-events-none';
+                loadingOverlay.innerHTML = '<svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                sourceElement.appendChild(loadingOverlay);
+            }
+
+            // Fetch data first, then open the modal with content ready
             fetch(`/api/assignment-details?assignment_id=${assignmentId}`)
                 .then(response => {
                     if (!response.ok) {
@@ -721,150 +894,14 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Build the details HTML using DOM manipulation to prevent XSS
-                    const container = document.createElement('div');
-                    container.className = 'space-y-3';
-
-                    // Calculation date section
-                    const dateSection = document.createElement('div');
-                    dateSection.className = 'bg-gray-50 rounded-lg p-3';
-                    
-                    const dateLabel = document.createElement('p');
-                    dateLabel.className = 'text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2';
-                    dateLabel.textContent = 'Calculation Date';
-                    
-                    const dateValue = document.createElement('p');
-                    dateValue.className = 'text-sm font-medium text-gray-900';
-                    dateValue.textContent = data.calculation_date;
-                    
-                    dateSection.appendChild(dateLabel);
-                    dateSection.appendChild(dateValue);
-                    container.appendChild(dateSection);
-
-                    // Parents grid
-                    const grid = document.createElement('div');
-                    grid.className = 'grid grid-cols-2 gap-3';
-
-                    // Parent A section
-                    const parentASection = document.createElement('div');
-                    parentASection.className = 'bg-blue-50 rounded-lg p-3';
-                    
-                    const parentAName = document.createElement('p');
-                    parentAName.className = 'text-xs text-blue-700 uppercase tracking-wide font-semibold mb-2';
-                    parentAName.textContent = data.parent_a_name;
-                    
-                    const parentAStats = document.createElement('div');
-                    parentAStats.className = 'space-y-1';
-                    
-                    const parentATotal = document.createElement('p');
-                    parentATotal.className = 'text-sm text-gray-700';
-                    const parentATotalLabel = document.createElement('span');
-                    parentATotalLabel.className = 'font-medium';
-                    parentATotalLabel.textContent = 'Total:';
-                    parentATotal.appendChild(parentATotalLabel);
-                    parentATotal.appendChild(document.createTextNode(' ' + data.parent_a_total_count));
-                    
-                    const parentALast30 = document.createElement('p');
-                    parentALast30.className = 'text-sm text-gray-700';
-                    const parentALast30Label = document.createElement('span');
-                    parentALast30Label.className = 'font-medium';
-                    parentALast30Label.textContent = 'Last 30 days:';
-                    parentALast30.appendChild(parentALast30Label);
-                    parentALast30.appendChild(document.createTextNode(' ' + data.parent_a_last_30_days));
-                    
-                    parentAStats.appendChild(parentATotal);
-                    parentAStats.appendChild(parentALast30);
-                    parentASection.appendChild(parentAName);
-                    parentASection.appendChild(parentAStats);
-                    grid.appendChild(parentASection);
-
-                    // Parent B section
-                    const parentBSection = document.createElement('div');
-                    parentBSection.className = 'bg-orange-50 rounded-lg p-3';
-                    
-                    const parentBName = document.createElement('p');
-                    parentBName.className = 'text-xs text-orange-700 uppercase tracking-wide font-semibold mb-2';
-                    parentBName.textContent = data.parent_b_name;
-                    
-                    const parentBStats = document.createElement('div');
-                    parentBStats.className = 'space-y-1';
-                    
-                    const parentBTotal = document.createElement('p');
-                    parentBTotal.className = 'text-sm text-gray-700';
-                    const parentBTotalLabel = document.createElement('span');
-                    parentBTotalLabel.className = 'font-medium';
-                    parentBTotalLabel.textContent = 'Total:';
-                    parentBTotal.appendChild(parentBTotalLabel);
-                    parentBTotal.appendChild(document.createTextNode(' ' + data.parent_b_total_count));
-                    
-                    const parentBLast30 = document.createElement('p');
-                    parentBLast30.className = 'text-sm text-gray-700';
-                    const parentBLast30Label = document.createElement('span');
-                    parentBLast30Label.className = 'font-medium';
-                    parentBLast30Label.textContent = 'Last 30 days:';
-                    parentBLast30.appendChild(parentBLast30Label);
-                    parentBLast30.appendChild(document.createTextNode(' ' + data.parent_b_last_30_days));
-                    
-                    parentBStats.appendChild(parentBTotal);
-                    parentBStats.appendChild(parentBLast30);
-                    parentBSection.appendChild(parentBName);
-                    parentBSection.appendChild(parentBStats);
-                    grid.appendChild(parentBSection);
-
-                    container.appendChild(grid);
-
-                    // Decision Reason section
-                    const reasonSection = document.createElement('div');
-                    reasonSection.className = 'bg-purple-50 rounded-lg p-3';
-                    
-                    const reasonTitle = document.createElement('p');
-                    reasonTitle.className = 'text-xs text-purple-700 uppercase tracking-wide font-semibold mb-2';
-                    reasonTitle.textContent = 'Decision Reason';
-                    
-                    const reasonBadge = document.createElement('p');
-                    reasonBadge.className = 'text-sm font-bold text-purple-900 mb-2';
-                    reasonBadge.textContent = data.decision_reason;
-                    
-                    reasonSection.appendChild(reasonTitle);
-                    reasonSection.appendChild(reasonBadge);
-
-                    // Add explanation based on decision reason
-                    const explanations = {
-                        'Unavailability': 'One parent was unavailable on this day based on configured schedule constraints.',
-                        'Total Count': 'This parent had fewer total assignments overall, helping maintain long-term balance.',
-                        'Recent Count': 'This parent had fewer assignments in the last 30 days, ensuring fair recent distribution.',
-                        'Consecutive Limit': 'Prevents one parent from having too many consecutive night assignments (limit: 2).',
-                        'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
-                        'Override': 'This assignment was manually changed in Google Calendar by a user.'
-                    };
-                    
-                    const reasonExplanation = document.createElement('p');
-                    reasonExplanation.className = 'text-xs text-gray-600 italic';
-                    reasonExplanation.textContent = explanations[data.decision_reason] || 'Assignment made by the fairness algorithm.';
-                    
-                    reasonSection.appendChild(reasonExplanation);
-                    container.appendChild(reasonSection);
-
-                    // Explanation section
-                    const explanationSection = document.createElement('div');
-                    explanationSection.className = 'bg-indigo-50 rounded-lg p-3';
-                    
-                    const explanationTitle = document.createElement('p');
-                    explanationTitle.className = 'text-xs text-indigo-700 uppercase tracking-wide font-semibold mb-1';
-                    explanationTitle.textContent = 'How the algorithm works';
-                    
-                    const explanationText = document.createElement('p');
-                    explanationText.className = 'text-sm text-gray-700';
-                    explanationText.textContent = 'The fairness algorithm evaluates multiple criteria in priority order: (1) Parent availability, (2) Total assignment counts, (3) Recent counts (last 30 days), (4) Consecutive limit (max 2), (5) Alternating pattern.';
-                    
-                    explanationSection.appendChild(explanationTitle);
-                    explanationSection.appendChild(explanationText);
-                    container.appendChild(explanationSection);
-
-                    // Replace modal content
-                    detailsModalContent.replaceChildren(container);
+                    if (loadingOverlay) loadingOverlay.remove();
+                    isLoadingDetails = false;
+                    detailsModalContent.replaceChildren(buildDetailsContent(data));
+                    openDetailsModal();
                 })
                 .catch(error => {
+                    if (loadingOverlay) loadingOverlay.remove();
+                    isLoadingDetails = false;
                     console.error('Error fetching assignment details:', error);
                     const errorContainer = document.createElement('div');
                     errorContainer.className = 'bg-red-50 rounded-lg p-3';
@@ -873,9 +910,8 @@
                     errorText.textContent = 'Failed to load assignment details. This assignment may not have detailed information available.';
                     errorContainer.appendChild(errorText);
                     detailsModalContent.replaceChildren(errorContainer);
+                    openDetailsModal();
                 });
-
-            setTimeout(() => detailsModalClose.focus(), 100);
         }
 
         function hideDetailsModal() {
