@@ -1,3 +1,10 @@
+# [0.24.0](https://github.com/Belphemur/night-routine/compare/v0.23.7...v0.24.0) (2026-03-12)
+
+
+### Features
+
+* **ui:** improve assignment details modal UX with cell loading state ([#262](https://github.com/Belphemur/night-routine/issues/262)) ([1ab90b9](https://github.com/Belphemur/night-routine/commit/1ab90b9bbbf11f20a444c83eb20fc6daacb1d426))
+
 ## [0.23.7](https://github.com/Belphemur/night-routine/compare/v0.23.6...v0.23.7) (2026-03-11)
 
 
