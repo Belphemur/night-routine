@@ -10,9 +10,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	dt "github.com/golang-migrate/migrate/v4/database/testing"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
-	_ "github.com/ncruces/go-sqlite3/vfs"
+	_ "modernc.org/sqlite" // Register modernc sqlite driver
 )
 
 func Test(t *testing.T) {
@@ -31,7 +29,7 @@ func TestMigrate(t *testing.T) {
 	addr := "file::memory:?mode=memory"
 	t.Logf("Using in-memory database: %s", addr)
 
-	db, err := sql.Open("sqlite3", addr)
+	db, err := sql.Open("sqlite", addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +54,7 @@ func TestMigrationTable(t *testing.T) {
 	addr := "file::memory:?mode=memory"
 	t.Logf("Using in-memory database: %s", addr)
 
-	db, err := sql.Open("sqlite3", addr)
+	db, err := sql.Open("sqlite", addr)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	_ "github.com/ncruces/go-sqlite3/driver" // Register ncruces sqlite3 driver
+	_ "modernc.org/sqlite" // Register modernc sqlite driver
 
 	"github.com/belphemur/night-routine/internal/database/sqlite3"
 	"github.com/belphemur/night-routine/internal/logging"
@@ -37,7 +37,7 @@ func New(opts SQLiteOptions) (*DB, error) {
 	connStr := opts.buildConnectionString()
 	logger := logging.GetLogger("database").With().Str("db_path", opts.Path).Logger() // Use opts.Path for logging
 	logger.Info().Str("connection_string", connStr).Msg("Opening database connection")
-	conn, err := sql.Open("sqlite3", connStr)
+	conn, err := sql.Open("sqlite", connStr)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to open database")
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -310,7 +310,7 @@ func (db *DB) MigrateDatabase() error {
 
 	// Create a new instance of the migrator
 	db.logger.Debug().Msg("Creating migrator instance")
-	m, err := migrate.NewWithInstance("iofs", sourceInstance, "sqlite3", driver)
+	m, err := migrate.NewWithInstance("iofs", sourceInstance, "sqlite", driver)
 	if err != nil {
 		db.logger.Error().Err(err).Msg("Failed to create migrator instance")
 		return fmt.Errorf("failed to create migrator: %w", err)
