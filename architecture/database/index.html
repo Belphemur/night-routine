@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -1794,6 +1794,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../development/cgo-free-builds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CGO-Free Builds
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../development/testing/" class="md-nav__link">
         
   
@@ -2498,12 +2526,16 @@
 </span></code></pre></div>
 <h2 id="database-features">Database Features<a class="headerlink" href="#database-features" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>SQLite 3</strong> - Lightweight, serverless database</li>
+<li><strong>SQLite 3</strong> - Lightweight, serverless database via <a href="https://pkg.go.dev/modernc.org/sqlite">modernc.org/sqlite</a> (pure Go, no CGO)</li>
 <li><strong>WAL Mode</strong> - Write-Ahead Logging for better concurrency</li>
 <li><strong>Foreign Key Constraints</strong> - Data integrity enforcement</li>
 <li><strong>Automatic Migrations</strong> - Schema updates on application startup</li>
 <li><strong>Incremental Auto-Vacuum</strong> - Automatic database maintenance</li>
 </ul>
+<div class="admonition info">
+<p class="admonition-title">Pure Go SQLite Driver</p>
+<p>Night Routine uses <code>modernc.org/sqlite</code>, a pure Go translation of SQLite that requires no C compiler or CGO. This enables simple cross-compilation and minimal Docker images. See <a href="../../development/cgo-free-builds/">CGO-Free Builds</a> for details.</p>
+</div>
 <h2 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">&para;</a></h2>
 <h3 id="tables">Tables<a class="headerlink" href="#tables" title="Permanent link">&para;</a></h3>
 <h4 id="config_parents"><code>config_parents</code><a class="headerlink" href="#config_parents" title="Permanent link">&para;</a></h4>
@@ -2904,16 +2936,16 @@
 <h3 id="manual-migration-advanced">Manual Migration (Advanced)<a class="headerlink" href="#manual-migration-advanced" title="Permanent link">&para;</a></h3>
 <p>You can manually check or migrate using the Go migrate CLI:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Install migrate</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>go<span class="w"> </span>install<span class="w"> </span>-tags<span class="w"> </span><span class="s1">&#39;sqlite3&#39;</span><span class="w"> </span>github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>go<span class="w"> </span>install<span class="w"> </span>-tags<span class="w"> </span><span class="s1">&#39;sqlite&#39;</span><span class="w"> </span>github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Check current version</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>migrate<span class="w"> </span>-path<span class="w"> </span>internal/database/migrations<span class="w"> </span>-database<span class="w"> </span><span class="s2">&quot;sqlite3://data/state.db&quot;</span><span class="w"> </span>version
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>migrate<span class="w"> </span>-path<span class="w"> </span>internal/database/migrations<span class="w"> </span>-database<span class="w"> </span><span class="s2">&quot;sqlite://data/state.db&quot;</span><span class="w"> </span>version
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Apply all pending migrations</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>migrate<span class="w"> </span>-path<span class="w"> </span>internal/database/migrations<span class="w"> </span>-database<span class="w"> </span><span class="s2">&quot;sqlite3://data/state.db&quot;</span><span class="w"> </span>up
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>migrate<span class="w"> </span>-path<span class="w"> </span>internal/database/migrations<span class="w"> </span>-database<span class="w"> </span><span class="s2">&quot;sqlite://data/state.db&quot;</span><span class="w"> </span>up
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># Rollback last migration</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>migrate<span class="w"> </span>-path<span class="w"> </span>internal/database/migrations<span class="w"> </span>-database<span class="w"> </span><span class="s2">&quot;sqlite3://data/state.db&quot;</span><span class="w"> </span>down<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>migrate<span class="w"> </span>-path<span class="w"> </span>internal/database/migrations<span class="w"> </span>-database<span class="w"> </span><span class="s2">&quot;sqlite://data/state.db&quot;</span><span class="w"> </span>down<span class="w"> </span><span class="m">1</span>
 </span></code></pre></div>
 <h2 id="wal-mode">WAL Mode<a class="headerlink" href="#wal-mode" title="Permanent link">&para;</a></h2>
 <p>The database uses Write-Ahead Logging (WAL) mode for improved concurrency.</p>
