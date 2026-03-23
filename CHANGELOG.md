@@ -1,3 +1,10 @@
+# [0.25.0](https://github.com/Belphemur/night-routine/compare/v0.24.2...v0.25.0) (2026-03-23)
+
+
+### Features
+
+* **database:** migrate from ncruces/go-sqlite3 to modernc.org/sqlite ([#273](https://github.com/Belphemur/night-routine/issues/273)) ([767d078](https://github.com/Belphemur/night-routine/commit/767d078d154c701c5492e851351a4642fb6b38c4))
+
 ## [0.24.2](https://github.com/Belphemur/night-routine/compare/v0.24.1...v0.24.2) (2026-03-16)
 
 
