@@ -153,7 +153,7 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 ### Database Layer
 - All database operations go through `internal/database/`
 - Use transactions for multi-step operations
-- SQLite3 with CGO-free ncruces/go-sqlite3 driver
+- SQLite3 with CGO-free modernc.org/sqlite driver
 - Migrations handled via golang-migrate/migrate
 - Configuration stored in database, not files
 - **Migrations**:

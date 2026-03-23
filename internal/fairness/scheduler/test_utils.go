@@ -4,10 +4,8 @@ import (
 	"testing"
 
 	"github.com/belphemur/night-routine/internal/database"
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
-	_ "github.com/ncruces/go-sqlite3/vfs"
 	"github.com/stretchr/testify/assert"
+	_ "modernc.org/sqlite" // Register modernc sqlite driver
 )
 
 // setupTestDB creates a new in-memory database for testing

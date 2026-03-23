@@ -6,7 +6,7 @@ import (
 )
 
 // buildConnectionString generates a SQLite connection string from options.
-// It only includes parameters that are directly supported by the ncruces/go-sqlite3
+// It only includes parameters that are directly supported by the modernc.org/sqlite
 // driver via the DSN URI. Other options must be set via PRAGMA commands after connection.
 func (opts *SQLiteOptions) buildConnectionString() string {
 	params := url.Values{}

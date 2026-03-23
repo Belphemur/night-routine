@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/belphemur/night-routine/internal/database"
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
-	_ "github.com/ncruces/go-sqlite3/vfs"
 	"github.com/stretchr/testify/assert"
+	_ "modernc.org/sqlite" // Register modernc sqlite driver
 )
 
 func setupTestDB(t *testing.T) (*database.DB, func()) {

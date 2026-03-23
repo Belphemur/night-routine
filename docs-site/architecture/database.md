@@ -13,11 +13,14 @@ state_file = "data/state.db"
 
 ## Database Features
 
-- **SQLite 3** - Lightweight, serverless database
+- **SQLite 3** - Lightweight, serverless database via [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) (pure Go, no CGO)
 - **WAL Mode** - Write-Ahead Logging for better concurrency
 - **Foreign Key Constraints** - Data integrity enforcement
 - **Automatic Migrations** - Schema updates on application startup
 - **Incremental Auto-Vacuum** - Automatic database maintenance
+
+!!! info "Pure Go SQLite Driver"
+    Night Routine uses `modernc.org/sqlite`, a pure Go translation of SQLite that requires no C compiler or CGO. This enables simple cross-compilation and minimal Docker images. See [CGO-Free Builds](../development/cgo-free-builds.md) for details.
 
 ## Schema
 
@@ -251,16 +254,16 @@ You can manually check or migrate using the Go migrate CLI:
 
 ```bash
 # Install migrate
-go install -tags 'sqlite3' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install -tags 'sqlite' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Check current version
-migrate -path internal/database/migrations -database "sqlite3://data/state.db" version
+migrate -path internal/database/migrations -database "sqlite://data/state.db" version
 
 # Apply all pending migrations
-migrate -path internal/database/migrations -database "sqlite3://data/state.db" up
+migrate -path internal/database/migrations -database "sqlite://data/state.db" up
 
 # Rollback last migration
-migrate -path internal/database/migrations -database "sqlite3://data/state.db" down 1
+migrate -path internal/database/migrations -database "sqlite://data/state.db" down 1
 ```
 
 ## WAL Mode
