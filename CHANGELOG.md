@@ -1,3 +1,10 @@
+## [0.25.3](https://github.com/Belphemur/night-routine/compare/v0.25.2...v0.25.3) (2026-03-28)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/rs/zerolog to v1.35.0 ([#279](https://github.com/Belphemur/night-routine/issues/279)) ([3e8737a](https://github.com/Belphemur/night-routine/commit/3e8737aa9467225472787233b2a9665479cdcf92))
+
 ## [0.25.2](https://github.com/Belphemur/night-routine/compare/v0.25.1...v0.25.2) (2026-03-27)
 
 
