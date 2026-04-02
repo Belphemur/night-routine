@@ -350,6 +350,21 @@ look_ahead_days = 1
 state_file = "s.db"`,
 			expectedErr: "invalid public_url 'http://app url with spaces.com'", // Update expected error
 		},
+		{
+			name: "Missing State File",
+			tomlContent: `
+[app]
+app_url = "http://a.com"
+public_url = "http://p.com"
+[parents]
+parent_a = "A"
+parent_b = "B"
+[schedule]
+update_frequency = "daily"
+look_ahead_days = 1
+[service]`,
+			expectedErr: "service.state_file is required",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -382,25 +397,206 @@ state_file = "s.db"
 		setEnvVars(t, map[string]string{
 			"GOOGLE_OAUTH_CLIENT_SECRET": "test-secret",
 		})
-		// Ensure Client ID is unset if it exists
 		os.Unsetenv("GOOGLE_OAUTH_CLIENT_ID")
+		os.Unsetenv("NR_OAUTH__CLIENT_ID")
 
 		_, err := Load(configFile)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "GOOGLE_OAUTH_CLIENT_ID environment variable is required")
+		assert.Contains(t, err.Error(), "NR_OAUTH__CLIENT_ID")
+		assert.Contains(t, err.Error(), "GOOGLE_OAUTH_CLIENT_ID")
 	})
 
 	t.Run("Missing Client Secret", func(t *testing.T) {
 		setEnvVars(t, map[string]string{
 			"GOOGLE_OAUTH_CLIENT_ID": "test-id",
 		})
-		// Ensure Client Secret is unset if it exists
 		os.Unsetenv("GOOGLE_OAUTH_CLIENT_SECRET")
+		os.Unsetenv("NR_OAUTH__CLIENT_SECRET")
 
 		_, err := Load(configFile)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "GOOGLE_OAUTH_CLIENT_SECRET environment variable is required")
+		assert.Contains(t, err.Error(), "NR_OAUTH__CLIENT_SECRET")
+		assert.Contains(t, err.Error(), "GOOGLE_OAUTH_CLIENT_SECRET")
 	})
+}
+
+func TestLoadConfig_NREnvVarOverrides(t *testing.T) {
+	tomlContent := `
+[app]
+port = 9000
+app_url = "http://config-app.com"
+public_url = "http://config-public.com"
+
+[parents]
+parent_a = "TomlA"
+parent_b = "TomlB"
+
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+
+[service]
+state_file = "state.db"
+log_level = "warn"
+`
+	configFile := createTempConfigFile(t, tomlContent)
+	setEnvVars(t, map[string]string{
+		"NR_APP__PORT":            "7777",
+		"NR_SERVICE__LOG_LEVEL":   "trace",
+		"NR_PARENTS__PARENT_A":    "NRAlice",
+		"NR_PARENTS__PARENT_B":    "NRBob",
+		"NR_OAUTH__CLIENT_ID":     "nr-client-id",
+		"NR_OAUTH__CLIENT_SECRET": "nr-client-secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+
+	assert.Equal(t, 7777, cfg.App.Port, "NR_APP__PORT should override TOML port")
+	assert.Equal(t, "trace", cfg.Service.LogLevel, "NR_SERVICE__LOG_LEVEL should override TOML log_level")
+	assert.Equal(t, "NRAlice", cfg.Parents.ParentA, "NR_PARENTS__PARENT_A should override TOML parent_a")
+	assert.Equal(t, "NRBob", cfg.Parents.ParentB, "NR_PARENTS__PARENT_B should override TOML parent_b")
+	assert.Equal(t, "nr-client-id", cfg.OAuth.ClientID)
+	assert.Equal(t, "nr-client-secret", cfg.OAuth.ClientSecret)
+	// Non-overridden fields come from TOML
+	assert.Equal(t, "http://config-app.com", cfg.App.AppUrl)
+}
+
+func TestLoadConfig_NREnvVarPrecedenceOverLegacy(t *testing.T) {
+	tomlContent := `
+[app]
+app_url = "http://a.com"
+public_url = "http://p.com"
+
+[parents]
+parent_a = "A"
+parent_b = "B"
+
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+
+[service]
+state_file = "state.db"
+`
+	configFile := createTempConfigFile(t, tomlContent)
+	// Set both legacy and NR_* — NR_* must win
+	setEnvVars(t, map[string]string{
+		"PORT":                       "6000",
+		"NR_APP__PORT":               "6666",
+		"GOOGLE_OAUTH_CLIENT_ID":     "legacy-id",
+		"GOOGLE_OAUTH_CLIENT_SECRET": "legacy-secret",
+		"NR_OAUTH__CLIENT_ID":        "nr-id",
+		"NR_OAUTH__CLIENT_SECRET":    "nr-secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+
+	assert.Equal(t, 6666, cfg.App.Port, "NR_APP__PORT must take precedence over PORT")
+	assert.Equal(t, "nr-id", cfg.OAuth.ClientID, "NR_OAUTH__CLIENT_ID must take precedence over GOOGLE_OAUTH_CLIENT_ID")
+	assert.Equal(t, "nr-secret", cfg.OAuth.ClientSecret, "NR_OAUTH__CLIENT_SECRET must take precedence over GOOGLE_OAUTH_CLIENT_SECRET")
+}
+
+func TestLoadConfig_NREnvVarAvailability(t *testing.T) {
+	tomlContent := `
+[app]
+app_url = "http://a.com"
+public_url = "http://p.com"
+
+[parents]
+parent_a = "A"
+parent_b = "B"
+
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+
+[service]
+state_file = "state.db"
+`
+	configFile := createTempConfigFile(t, tomlContent)
+	setEnvVars(t, map[string]string{
+		"NR_AVAILABILITY__PARENT_A_UNAVAILABLE": "Monday, Wednesday",
+		"NR_AVAILABILITY__PARENT_B_UNAVAILABLE": "Friday",
+		"NR_OAUTH__CLIENT_ID":                   "id",
+		"NR_OAUTH__CLIENT_SECRET":               "secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"Monday", "Wednesday"}, cfg.Availability.ParentAUnavailable,
+		"NR_AVAILABILITY__ should set comma-separated unavailable days")
+	assert.Equal(t, []string{"Friday"}, cfg.Availability.ParentBUnavailable)
+}
+
+func TestLoadConfig_NREnvVarEmptyAvailability(t *testing.T) {
+	tomlContent := `
+[app]
+app_url = "http://a.com"
+public_url = "http://p.com"
+
+[parents]
+parent_a = "A"
+parent_b = "B"
+
+[availability]
+parent_a_unavailable = ["Monday"]
+
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+
+[service]
+state_file = "state.db"
+`
+	configFile := createTempConfigFile(t, tomlContent)
+	setEnvVars(t, map[string]string{
+		// Override TOML's ["Monday"] with empty string → should result in []
+		"NR_AVAILABILITY__PARENT_A_UNAVAILABLE": "",
+		"NR_OAUTH__CLIENT_ID":                   "id",
+		"NR_OAUTH__CLIENT_SECRET":               "secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+
+	assert.Empty(t, cfg.Availability.ParentAUnavailable,
+		"empty NR_ availability env var should result in an empty slice")
+}
+
+func TestLoadConfig_NROAuthOnly(t *testing.T) {
+	tomlContent := `
+[app]
+app_url = "http://a.com"
+public_url = "http://p.com"
+
+[parents]
+parent_a = "A"
+parent_b = "B"
+
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+
+[service]
+state_file = "state.db"
+`
+	configFile := createTempConfigFile(t, tomlContent)
+	// Provide credentials only via NR_*, no legacy vars
+	os.Unsetenv("GOOGLE_OAUTH_CLIENT_ID")
+	os.Unsetenv("GOOGLE_OAUTH_CLIENT_SECRET")
+	setEnvVars(t, map[string]string{
+		"NR_OAUTH__CLIENT_ID":     "only-nr-id",
+		"NR_OAUTH__CLIENT_SECRET": "only-nr-secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+
+	assert.Equal(t, "only-nr-id", cfg.OAuth.ClientID)
+	assert.Equal(t, "only-nr-secret", cfg.OAuth.ClientSecret)
 }
 
 func TestLoadConfig_InvalidPortEnvVar(t *testing.T) {
@@ -485,4 +681,32 @@ state_file = %q
 	require.NoError(t, errAbs)
 	assert.Equal(t, absPath, cfgAbs.Service.StateFile)
 	assert.True(t, filepath.IsAbs(cfgAbs.Service.StateFile))
+}
+
+func TestLoadConfig_TrailingSlashAppUrl(t *testing.T) {
+	// app_url with a trailing slash must not produce a double-slash redirect URL
+	tomlContent := `
+[app]
+app_url = "http://localhost:8888/"
+public_url = "http://localhost:8888/"
+[parents]
+parent_a = "A"
+parent_b = "B"
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+[service]
+state_file = "state.db"
+`
+	configFile := createTempConfigFile(t, tomlContent)
+	setEnvVars(t, map[string]string{
+		"NR_OAUTH__CLIENT_ID":     "id",
+		"NR_OAUTH__CLIENT_SECRET": "secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+
+	assert.Equal(t, "http://localhost:8888/oauth/callback", cfg.OAuth.RedirectURL,
+		"trailing slash in app_url must not produce a double-slash redirect URL")
 }

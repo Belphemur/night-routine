@@ -98,9 +98,9 @@ docker pull ghcr.io/belphemur/night-routine:latest
 
 # Run the container
 docker run \
-  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
-  -e PORT=8080 \
+  -e NR_OAUTH__CLIENT_ID=your-client-id \
+  -e NR_OAUTH__CLIENT_SECRET=your-client-secret \
+  
   -e CONFIG_FILE=/app/config/routine.toml \
   -v /path/to/config:/app/config \
   -v /path/to/data:/app/data \

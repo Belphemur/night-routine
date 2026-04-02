@@ -10,6 +10,10 @@ The main application configuration is stored in a TOML file. This file contains 
     - **File vs Database**: App-level settings (port, URLs, log level, state file) remain TOML-only and require restart. Parent, availability, and schedule settings are stored in the database and take effect immediately.
     - **Automatic Migration**: When upgrading from an older version, your existing TOML configuration is automatically migrated to the database
 
+!!! tip "Environment Variable Overrides"
+    Every TOML setting can be overridden by a `NR_*` environment variable without touching the file.
+    See the [Environment Variables reference](environment.md) for the full list and naming convention.
+
 ## Configuration File Location
 
 The configuration file path is specified via the `CONFIG_FILE` environment variable:
@@ -64,7 +68,7 @@ port = 8080
 ```
 
 !!! note "Port Override"
-    Can be overridden by the `PORT` environment variable.
+    Can be overridden by `NR_APP__PORT` (recommended) or the legacy `PORT` environment variable.
 
 #### `app_url`
 

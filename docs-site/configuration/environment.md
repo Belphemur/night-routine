@@ -1,113 +1,163 @@
 # Environment Variables
 
-Night Routine Scheduler uses environment variables for sensitive data and deployment-specific configuration.
+Night Routine Scheduler supports two styles of environment variable configuration:
 
-## Required Variables
+1. **`NR_*` variables** (recommended) — full coverage of every setting, using a consistent naming convention
+2. **Legacy variables** — `PORT`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` — kept for backwards compatibility
 
-These environment variables **must** be set for the application to run:
+When both styles are set for the same value, `NR_*` always takes precedence.
 
-### `GOOGLE_OAUTH_CLIENT_ID`
+## Naming Convention for NR_* Variables
 
-**Type:** String  
-**Required:** Yes
+```
+NR_<SECTION>__<FIELD>
+```
 
-Your Google OAuth 2.0 Client ID obtained from the Google Cloud Console.
+- **Prefix:** `NR_`
+- **Section/field separator:** `__` (double underscore — avoids ambiguity with underscores inside field names)
+- **Both section and field are UPPERCASE** in the env var name
+
+Example: the TOML path `app.port` maps to `NR_APP__PORT`.
+
+## Complete Reference
+
+### `[oauth]` — Google OAuth2 Credentials (no TOML equivalent)
+
+| Env Var | Legacy Equivalent | Required | Description |
+|---------|-------------------|----------|-------------|
+| `NR_OAUTH__CLIENT_ID` | `GOOGLE_OAUTH_CLIENT_ID` | **Yes** | Google OAuth2 Client ID |
+| `NR_OAUTH__CLIENT_SECRET` | `GOOGLE_OAUTH_CLIENT_SECRET` | **Yes** | Google OAuth2 Client Secret |
 
 ```bash
-export GOOGLE_OAUTH_CLIENT_ID="123456789-abcdefghijklmnop.apps.googleusercontent.com"
+export NR_OAUTH__CLIENT_ID="123456789-abc.apps.googleusercontent.com"
+export NR_OAUTH__CLIENT_SECRET="your-secret-here"
 ```
+
+!!! danger "Security Warning"
+    Never commit OAuth credentials to version control. Keep them in `.env` files or a secret manager.
 
 !!! info "Getting Credentials"
     See the [Google Calendar Setup Guide](google-calendar.md) for instructions on obtaining these credentials.
 
-### `GOOGLE_OAUTH_CLIENT_SECRET`
+### `[app]` — Application Server
 
-**Type:** String  
-**Required:** Yes
-
-Your Google OAuth 2.0 Client Secret obtained from the Google Cloud Console.
-
-```bash
-export GOOGLE_OAUTH_CLIENT_SECRET="your-secret-here"
-```
-
-!!! danger "Security Warning"
-    Never commit this value to version control. Keep it secure and rotate it if compromised.
-
-### `CONFIG_FILE`
-
-**Type:** String (file path)  
-**Required:** Yes
-
-Path to your TOML configuration file.
+| Env Var | TOML Key | Default | Description |
+|---------|----------|---------|-------------|
+| `NR_APP__PORT` | `app.port` | `8888` | HTTP server port |
+| `NR_APP__APP_URL` | `app.app_url` | *(required)* | Internal application URL used for OAuth callbacks |
+| `NR_APP__PUBLIC_URL` | `app.public_url` | *(required)* | Public-facing URL for webhooks and external integrations |
 
 ```bash
-export CONFIG_FILE="configs/routine.toml"
+export NR_APP__PORT=8080
+export NR_APP__APP_URL="https://night-routine.internal"
+export NR_APP__PUBLIC_URL="https://night-routine.example.com"
 ```
 
-In Docker:
+### `[parents]` — Parent Names
+
+| Env Var | TOML Key | Default | Description |
+|---------|----------|---------|-------------|
+| `NR_PARENTS__PARENT_A` | `parents.parent_a` | *(required)* | First parent name |
+| `NR_PARENTS__PARENT_B` | `parents.parent_b` | *(required)* | Second parent name |
+
+```bash
+export NR_PARENTS__PARENT_A="Alice"
+export NR_PARENTS__PARENT_B="Bob"
+```
+
+### `[availability]` — Unavailability Constraints
+
+| Env Var | TOML Key | Default | Description |
+|---------|----------|---------|-------------|
+| `NR_AVAILABILITY__PARENT_A_UNAVAILABLE` | `availability.parent_a_unavailable` | `""` (always available) | Comma-separated days when parent A is unavailable |
+| `NR_AVAILABILITY__PARENT_B_UNAVAILABLE` | `availability.parent_b_unavailable` | `""` (always available) | Comma-separated days when parent B is unavailable |
+
+```bash
+# Comma-separated day names; whitespace around commas is trimmed
+export NR_AVAILABILITY__PARENT_A_UNAVAILABLE="Monday, Wednesday"
+export NR_AVAILABILITY__PARENT_B_UNAVAILABLE="Friday"
+
+# Empty string means always available
+export NR_AVAILABILITY__PARENT_A_UNAVAILABLE=""
+```
+
+!!! info "Valid Day Names"
+    `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`
+
+### `[schedule]` — Scheduling Parameters
+
+| Env Var | TOML Key | Default | Description |
+|---------|----------|---------|-------------|
+| `NR_SCHEDULE__UPDATE_FREQUENCY` | `schedule.update_frequency` | *(required)* | `daily`, `weekly`, or `monthly` |
+| `NR_SCHEDULE__LOOK_AHEAD_DAYS` | `schedule.look_ahead_days` | *(required)* | Days to schedule in advance |
+| `NR_SCHEDULE__PAST_EVENT_THRESHOLD_DAYS` | `schedule.past_event_threshold_days` | `5` | Days in the past to accept manual event changes |
+| `NR_SCHEDULE__STATS_ORDER` | `schedule.stats_order` | `desc` | Statistics page sort order: `desc` or `asc` |
+| `NR_SCHEDULE__CALENDAR_ID` | `schedule.calendar_id` | *(optional)* | Google Calendar ID |
+
+```bash
+export NR_SCHEDULE__UPDATE_FREQUENCY="weekly"
+export NR_SCHEDULE__LOOK_AHEAD_DAYS=30
+export NR_SCHEDULE__PAST_EVENT_THRESHOLD_DAYS=7
+```
+
+### `[service]` — Service Settings
+
+| Env Var | TOML Key | Default | Description |
+|---------|----------|---------|-------------|
+| `NR_SERVICE__STATE_FILE` | `service.state_file` | *(required)* | Path to SQLite database file |
+| `NR_SERVICE__LOG_LEVEL` | `service.log_level` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic` |
+| `NR_SERVICE__MANUAL_SYNC_ON_STARTUP` | `service.manual_sync_on_startup` | `true` | Sync schedule on startup if a token exists |
+
+```bash
+export NR_SERVICE__STATE_FILE="/var/lib/night-routine/state.db"
+export NR_SERVICE__LOG_LEVEL="warn"
+export NR_SERVICE__MANUAL_SYNC_ON_STARTUP="false"
+```
+
+## Meta Variables (no NR_* equivalent)
+
+| Env Var | Required | Description |
+|---------|----------|-------------|
+| `CONFIG_FILE` | Yes | Path to TOML configuration file |
+| `ENV` | No | `production` (JSON logs) or anything else (pretty console logs). Default: dev mode |
+
 ```bash
 export CONFIG_FILE="/app/config/routine.toml"
-```
-
-## Optional Variables
-
-### `PORT`
-
-**Type:** Integer  
-**Required:** No  
-**Default:** Value from TOML configuration
-
-Override the port specified in your TOML configuration.
-
-```bash
-export PORT=8080
-```
-
-!!! tip "Use Case"
-    Useful in containerized environments where you want to specify the port at runtime without modifying the configuration file.
-
-### `ENV`
-
-**Type:** String  
-**Required:** No  
-**Default:** `development`  
-**Values:** `development` | `production`
-
-Controls logging format:
-
-- **`development`** - Pretty, human-readable console logs with colors
-- **`production`** - Structured JSON logs for log aggregation systems
-
-```bash
-# Development (pretty logs)
-export ENV=development
-
-# Production (JSON logs)
 export ENV=production
 ```
 
-**Example development output:**
-```
-2024-01-15T10:30:45Z INF Starting Night Routine Scheduler
-2024-01-15T10:30:45Z INF Connecting to database file=data/state.db
-```
+## Legacy Variables
 
-**Example production output:**
-```json
-{"level":"info","time":"2024-01-15T10:30:45Z","message":"Starting Night Routine Scheduler"}
-{"level":"info","time":"2024-01-15T10:30:45Z","file":"data/state.db","message":"Connecting to database"}
+The following variables are kept for backwards compatibility. They are equivalent
+to their `NR_*` counterparts but have **lower precedence** — if both are set, `NR_*` wins.
+
+| Legacy Var | NR_* Equivalent |
+|------------|-----------------|
+| `PORT` | `NR_APP__PORT` |
+| `GOOGLE_OAUTH_CLIENT_ID` | `NR_OAUTH__CLIENT_ID` |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | `NR_OAUTH__CLIENT_SECRET` |
+
+## Configuration Precedence (highest to lowest)
+
+```
+NR_* env vars
+  ↑ higher priority
+Legacy env vars (PORT, GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET)
+  ↑
+TOML file values
+  ↑
+Built-in defaults
 ```
 
 ## Setting Environment Variables
 
 ### Linux/macOS
 
-=== "Command Line"
+=== "Shell export"
 
     ```bash
-    export GOOGLE_OAUTH_CLIENT_ID="your-client-id"
-    export GOOGLE_OAUTH_CLIENT_SECRET="your-client-secret"
+    export NR_OAUTH__CLIENT_ID="your-client-id"
+    export NR_OAUTH__CLIENT_SECRET="your-client-secret"
     export CONFIG_FILE="configs/routine.toml"
     export ENV=production
     ```
@@ -116,8 +166,8 @@ export ENV=production
 
     Create a `.env` file:
     ```bash
-    GOOGLE_OAUTH_CLIENT_ID=your-client-id
-    GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+    NR_OAUTH__CLIENT_ID=your-client-id
+    NR_OAUTH__CLIENT_SECRET=your-client-secret
     CONFIG_FILE=configs/routine.toml
     ENV=production
     ```
@@ -139,8 +189,8 @@ export ENV=production
     Type=simple
     User=night-routine
     WorkingDirectory=/opt/night-routine
-    Environment="GOOGLE_OAUTH_CLIENT_ID=your-client-id"
-    Environment="GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret"
+    Environment="NR_OAUTH__CLIENT_ID=your-client-id"
+    Environment="NR_OAUTH__CLIENT_SECRET=your-client-secret"
     Environment="CONFIG_FILE=/opt/night-routine/configs/routine.toml"
     Environment="ENV=production"
     ExecStart=/opt/night-routine/night-routine
@@ -155,8 +205,8 @@ export ENV=production
 === "Command Prompt"
 
     ```cmd
-    set GOOGLE_OAUTH_CLIENT_ID=your-client-id
-    set GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+    set NR_OAUTH__CLIENT_ID=your-client-id
+    set NR_OAUTH__CLIENT_SECRET=your-client-secret
     set CONFIG_FILE=configs\routine.toml
     set ENV=production
     ```
@@ -164,17 +214,11 @@ export ENV=production
 === "PowerShell"
 
     ```powershell
-    $env:GOOGLE_OAUTH_CLIENT_ID="your-client-id"
-    $env:GOOGLE_OAUTH_CLIENT_SECRET="your-client-secret"
+    $env:NR_OAUTH__CLIENT_ID="your-client-id"
+    $env:NR_OAUTH__CLIENT_SECRET="your-client-secret"
     $env:CONFIG_FILE="configs\routine.toml"
     $env:ENV="production"
     ```
-
-=== "System Environment Variables"
-
-    1. Open System Properties → Advanced → Environment Variables
-    2. Add new user or system variables
-    3. Restart your terminal/application
 
 ### Docker
 
@@ -182,8 +226,8 @@ export ENV=production
 
     ```bash
     docker run \
-      -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-      -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
+      -e NR_OAUTH__CLIENT_ID=your-client-id \
+      -e NR_OAUTH__CLIENT_SECRET=your-client-secret \
       -e CONFIG_FILE=/app/config/routine.toml \
       -e ENV=production \
       ghcr.io/belphemur/night-routine:latest
@@ -192,13 +236,12 @@ export ENV=production
 === "docker-compose.yml"
 
     ```yaml
-    version: '3.8'
     services:
       night-routine:
         image: ghcr.io/belphemur/night-routine:latest
         environment:
-          - GOOGLE_OAUTH_CLIENT_ID=your-client-id
-          - GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+          - NR_OAUTH__CLIENT_ID=your-client-id
+          - NR_OAUTH__CLIENT_SECRET=your-client-secret
           - CONFIG_FILE=/app/config/routine.toml
           - ENV=production
     ```
@@ -207,15 +250,14 @@ export ENV=production
 
     Create `.env`:
     ```
-    GOOGLE_OAUTH_CLIENT_ID=your-client-id
-    GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
+    NR_OAUTH__CLIENT_ID=your-client-id
+    NR_OAUTH__CLIENT_SECRET=your-client-secret
     CONFIG_FILE=/app/config/routine.toml
     ENV=production
     ```
 
     Reference in `docker-compose.yml`:
     ```yaml
-    version: '3.8'
     services:
       night-routine:
         image: ghcr.io/belphemur/night-routine:latest
@@ -240,7 +282,7 @@ For production deployments, consider using:
 
 - **Docker Secrets** - For Docker Swarm
 - **Kubernetes Secrets** - For Kubernetes deployments
-- **HashiCorp Vault** - For centralized secret management
+- **HashiCorp Vault** - For centralised secret management
 - **AWS Secrets Manager** - For AWS deployments
 - **Azure Key Vault** - For Azure deployments
 
@@ -248,7 +290,7 @@ For production deployments, consider using:
 
 - Rotate OAuth secrets every 90 days
 - Use different credentials for different environments
-- Monitor for unauthorized access
+- Monitor for unauthorised access
 
 ### Restrict Permissions
 
@@ -257,7 +299,7 @@ For production deployments, consider using:
     chmod 600 .env
     ```
 - Run the application with a non-root user
-- Use principle of least privilege for OAuth scopes
+- Use the principle of least privilege for OAuth scopes
 
 ## Troubleshooting
 
@@ -267,10 +309,10 @@ If you see errors about missing environment variables:
 
 1. Verify the variable is exported:
     ```bash
-    echo $GOOGLE_OAUTH_CLIENT_ID
+    echo $NR_OAUTH__CLIENT_ID
     ```
 
-2. Check for typos in variable names
+2. Check for typos in variable names — the double underscore `__` separator is easy to miss
 
 3. Ensure variables are exported before running the application
 
@@ -278,7 +320,7 @@ If you see errors about missing environment variables:
 
 1. Verify credentials are correct in Google Cloud Console
 2. Check for extra whitespace in environment variables
-3. Ensure redirect URIs match your configuration
+3. Ensure redirect URIs match your `app_url` configuration
 
 ### Configuration File Not Found
 
