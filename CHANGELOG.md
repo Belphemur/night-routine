@@ -1,3 +1,10 @@
+## [0.26.1](https://github.com/Belphemur/night-routine/compare/v0.26.0...v0.26.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-viper/mapstructure/v2 to v2.5.0 ([#283](https://github.com/Belphemur/night-routine/issues/283)) ([721e704](https://github.com/Belphemur/night-routine/commit/721e7047de54aed1e9d1ecc7110ce8f80e341414))
+
 # [0.26.0](https://github.com/Belphemur/night-routine/compare/v0.25.4...v0.26.0) (2026-04-02)
 
 
