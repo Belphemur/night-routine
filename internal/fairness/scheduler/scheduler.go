@@ -6,8 +6,8 @@ import (
 
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness"
-	"github.com/belphemur/night-routine/internal/logging" // Import logging
-	"github.com/rs/zerolog"                               // Import zerolog
+	"github.com/belphemur/night-routine/internal/logging"
+	"github.com/rs/zerolog"
 )
 
 // ParentType represents which parent is assigned
@@ -48,18 +48,23 @@ type Assignment struct {
 
 // Scheduler handles the night routine scheduling logic
 type Scheduler struct {
-	config  *config.Config
-	tracker fairness.TrackerInterface
-	logger  zerolog.Logger // Add logger field
+	configStore config.ConfigStoreInterface
+	tracker     fairness.TrackerInterface
+	logger      zerolog.Logger
 }
 
 // New creates a new Scheduler instance
-func New(cfg *config.Config, tracker fairness.TrackerInterface) *Scheduler {
+func New(configStore config.ConfigStoreInterface, tracker fairness.TrackerInterface) *Scheduler {
 	return &Scheduler{
-		config:  cfg,
-		tracker: tracker,
-		logger:  logging.GetLogger("scheduler"), // Initialize logger
+		configStore: configStore,
+		tracker:     tracker,
+		logger:      logging.GetLogger("scheduler"),
 	}
+}
+
+// getParents reads parent names from the config store.
+func (s *Scheduler) getParents() (parentA, parentB string, err error) {
+	return s.configStore.GetParents()
 }
 
 // GenerateSchedule creates a schedule for the specified date range, considering a current time.
@@ -72,6 +77,12 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		Time("current_time", currentTime).
 		Logger()
 	genLogger.Info().Msg("Generating schedule")
+
+	parentA, _, err := s.getParents()
+	if err != nil {
+		genLogger.Error().Err(err).Msg("Failed to get parent names")
+		return nil, fmt.Errorf("failed to get parent names: %w", err)
+	}
 
 	var schedule []*Assignment
 	current := start
@@ -167,7 +178,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		if fixedAssignment, ok := assignmentFixedInTime[dateStr]; ok {
 			dayLogger.Info().Int64("assignment_id", fixedAssignment.ID).Str("parent", fixedAssignment.Parent).Str("reason", string(fixedAssignment.DecisionReason)).Bool("override", fixedAssignment.Override).Msg("Using fixed assignment")
 			// Convert to scheduler assignment
-			parentType := resolveParentType(fixedAssignment, s.config.Parents.ParentA)
+			parentType := resolveParentType(fixedAssignment, parentA)
 			assignment := &Assignment{
 				ID:                    fixedAssignment.ID,
 				Date:                  fixedAssignment.Date,
@@ -204,6 +215,12 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	assignLogger := s.logger.With().Str("date", date.Format("2006-01-02")).Logger()
 	assignLogger.Debug().Msg("Assigning parent for date")
+
+	parentAName, parentBName, err := s.getParents()
+	if err != nil {
+		assignLogger.Error().Err(err).Msg("Failed to get parent names")
+		return nil, fmt.Errorf("failed to get parent names: %w", err)
+	}
 
 	// Get last assignments up to the given date to ensure fairness, including overridden ones
 	assignLogger.Debug().Msg("Fetching last assignments")
@@ -244,8 +261,6 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	// Save assignment details for non-override decisions
 	if trackerAssignment.CaregiverType != fairness.CaregiverTypeBabysitter && decisionReason != fairness.DecisionReasonOverride {
 		assignLogger.Debug().Msg("Saving assignment details")
-		parentAName := s.config.Parents.ParentA
-		parentBName := s.config.Parents.ParentB
 		statsA := stats[parentAName]
 		statsB := stats[parentBName]
 
@@ -259,7 +274,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	}
 
 	// Convert to scheduler assignment
-	parentType := resolveParentType(trackerAssignment, s.config.Parents.ParentA)
+	parentType := resolveParentType(trackerAssignment, parentAName)
 	return &Assignment{
 		ID:                    trackerAssignment.ID,
 		Date:                  trackerAssignment.Date,
@@ -312,7 +327,12 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 	}
 
 	getLogger.Info().Int64("assignment_id", assignment.ID).Msg("Found assignment by event ID")
-	parentType := resolveParentType(assignment, s.config.Parents.ParentA)
+	parentA, _, err := s.getParents()
+	if err != nil {
+		getLogger.Error().Err(err).Msg("Failed to get parent names")
+		return nil, fmt.Errorf("failed to get parent names: %w", err)
+	}
+	parentType := resolveParentType(assignment, parentA)
 	return &Assignment{
 		ID:                    assignment.ID,
 		Date:                  assignment.Date,
@@ -381,9 +401,23 @@ func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fa
 	determineLogger.Debug().Msg("Determining parent for date considering unavailability")
 	dayOfWeek := date.Format("Monday")
 
-	// Check unavailability
-	parentAUnavailable := contains(s.config.Availability.ParentAUnavailable, dayOfWeek)
-	parentBUnavailable := contains(s.config.Availability.ParentBUnavailable, dayOfWeek)
+	parentA, parentB, err := s.getParents()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get parent names: %w", err)
+	}
+
+	// Check unavailability from config store
+	parentADays, err := s.configStore.GetAvailability("parent_a")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get parent_a availability: %w", err)
+	}
+	parentBDays, err := s.configStore.GetAvailability("parent_b")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get parent_b availability: %w", err)
+	}
+
+	parentAUnavailable := contains(parentADays, dayOfWeek)
+	parentBUnavailable := contains(parentBDays, dayOfWeek)
 	determineLogger.Debug().
 		Str("day_of_week", dayOfWeek).
 		Bool("parent_a_unavailable", parentAUnavailable).
@@ -398,17 +432,17 @@ func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fa
 
 	// If one parent is unavailable, assign to the other
 	if parentAUnavailable {
-		determineLogger.Info().Str("assigned_parent", s.config.Parents.ParentB).Msg("Parent A unavailable, assigning Parent B")
-		return s.config.Parents.ParentB, fairness.DecisionReasonUnavailability, nil
+		determineLogger.Info().Str("assigned_parent", parentB).Msg("Parent A unavailable, assigning Parent B")
+		return parentB, fairness.DecisionReasonUnavailability, nil
 	}
 	if parentBUnavailable {
-		determineLogger.Info().Str("assigned_parent", s.config.Parents.ParentA).Msg("Parent B unavailable, assigning Parent A")
-		return s.config.Parents.ParentA, fairness.DecisionReasonUnavailability, nil
+		determineLogger.Info().Str("assigned_parent", parentA).Msg("Parent B unavailable, assigning Parent A")
+		return parentA, fairness.DecisionReasonUnavailability, nil
 	}
 
 	// Determine next parent based on fairness rules
 	determineLogger.Debug().Msg("Both parents available, determining next parent based on fairness")
-	parent, reason := s.determineNextParent(lastAssignments, stats)
+	parent, reason := s.determineNextParent(parentA, parentB, lastAssignments, stats)
 	determineLogger.Info().Str("assigned_parent", parent).Str("reason", string(reason)).Msg("Determined next parent based on fairness rules")
 	return parent, reason, nil
 }
@@ -424,12 +458,9 @@ func contains(slice []string, value string) bool {
 }
 
 // determineNextParent applies fairness rules to select the next parent
-func (s *Scheduler) determineNextParent(lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason) {
+func (s *Scheduler) determineNextParent(parentA, parentB string, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason) {
 	fairnessLogger := s.logger.With().Interface("stats", stats).Logger() // Add stats context
 	fairnessLogger.Debug().Msg("Applying fairness rules to determine next parent")
-
-	parentA := s.config.Parents.ParentA
-	parentB := s.config.Parents.ParentB
 
 	if len(lastAssignments) == 0 {
 		fairnessLogger.Info().Msg("No previous assignments, assigning based on total counts")

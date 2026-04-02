@@ -1,7 +1,6 @@
 package database
 
 import (
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"golang.org/x/oauth2"
 )
@@ -41,13 +40,4 @@ func (a *ConfigAdapter) GetSchedule() (updateFrequency string, lookAheadDays, pa
 // that was set at application startup from environment variables and the config file.
 func (a *ConfigAdapter) GetOAuthConfig() *oauth2.Config {
 	return a.oauthConfig
-}
-
-// LoadRuntimeConfig is a convenience function that loads runtime config using a ConfigStore.
-// The resulting RuntimeConfig is only used for one-time initialisation (e.g. the Scheduler);
-// live reads should go through ConfigStoreInterface directly.
-func LoadRuntimeConfig(fileConfig *config.Config, store *ConfigStore) (*config.RuntimeConfig, error) {
-	adapter := NewConfigAdapter(store, fileConfig.OAuth)
-	loader := config.NewDatabaseConfigLoader(adapter)
-	return config.LoadRuntimeConfig(fileConfig, loader)
 }

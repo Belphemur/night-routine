@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/stretchr/testify/assert"
 )
@@ -100,16 +99,7 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create config with specified availability
-			cfg := &config.Config{
-				Parents: config.ParentsConfig{
-					ParentA: "Alice",
-					ParentB: "Bob",
-				},
-				Availability: config.AvailabilityConfig{
-					ParentAUnavailable: tc.parentAUnavailable,
-					ParentBUnavailable: tc.parentBUnavailable,
-				},
-			}
+			store := newTestConfigStore("Alice", "Bob", tc.parentAUnavailable, tc.parentBUnavailable)
 
 			// Create real tracker with in-memory database
 			db, cleanup := setupTestDB(t)
@@ -117,7 +107,7 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 
 			tracker, err := fairness.New(db)
 			assert.NoError(t, err)
-			scheduler := New(cfg, tracker)
+			scheduler := New(store, tracker)
 
 			// Start from a Sunday to ensure we cover a full week
 			startDate := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday
@@ -209,16 +199,7 @@ func TestAssignForDateWithSpecificDays(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create config with specified availability
-			cfg := &config.Config{
-				Parents: config.ParentsConfig{
-					ParentA: "Alice",
-					ParentB: "Bob",
-				},
-				Availability: config.AvailabilityConfig{
-					ParentAUnavailable: tc.parentAUnavailable,
-					ParentBUnavailable: tc.parentBUnavailable,
-				},
-			}
+			store := newTestConfigStore("Alice", "Bob", tc.parentAUnavailable, tc.parentBUnavailable)
 
 			// Create real tracker with in-memory database
 			db, cleanup := setupTestDB(t)
@@ -226,7 +207,7 @@ func TestAssignForDateWithSpecificDays(t *testing.T) {
 
 			tracker, err := fairness.New(db)
 			assert.NoError(t, err)
-			scheduler := New(cfg, tracker)
+			scheduler := New(store, tracker)
 
 			// Assign for the specific date
 			assignment, err := scheduler.assignForDate(tc.date)

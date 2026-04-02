@@ -10,7 +10,6 @@ import (
 
 	gcalendar "google.golang.org/api/calendar/v3"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
@@ -442,24 +441,24 @@ func TestProcessEventsIntegration(t *testing.T) {
 	require.NoError(t, err)
 	err = configStore.SaveSchedule("daily", 7, 5, constants.StatsOrderDesc)
 	require.NoError(t, err)
+	err = configStore.SaveParents("ParentA", "ParentB")
+	require.NoError(t, err)
+	err = configStore.SaveAvailability("parent_a", []string{})
+	require.NoError(t, err)
+	err = configStore.SaveAvailability("parent_b", []string{})
+	require.NoError(t, err)
 
 	// Create real tracker and scheduler
 	tracker, err := fairness.New(db)
 	require.NoError(t, err)
 
-	cfg := &config.Config{
-		Schedule: config.ScheduleConfig{
-			LookAheadDays: 7,
-		},
-	}
-	scheduler := Scheduler.New(cfg, tracker)
+	// Create config adapter (single source of truth; holds OAuth + DB settings)
+	configAdapter := database.NewConfigAdapter(configStore, nil)
+	scheduler := Scheduler.New(configAdapter, tracker)
 
 	// Create mock calendar service
 	mockCalService := &MockCalendarService{}
 	mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
-
-	// Create config adapter (single source of truth; holds OAuth + DB settings)
-	configAdapter := database.NewConfigAdapter(configStore, nil)
 
 	// Create webhook handler with real database and live config adapter
 	handler := &WebhookHandler{
@@ -781,9 +780,11 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 			err = tracker.UpdateAssignmentGoogleCalendarEventID(assignment.ID, eventID)
 			require.NoError(t, err)
 
-			// Create real scheduler (config here is only used by scheduler internals)
-			cfg := &config.Config{Schedule: config.ScheduleConfig{LookAheadDays: 7}}
-			scheduler := Scheduler.New(cfg, tracker)
+			// Create real scheduler — uses mockConfigStore for parent/availability lookups
+			mockConfigStore := new(MockConfigStore)
+			mockConfigStore.On("GetSchedule").Return("daily", 7, tt.thresholdDays, constants.StatsOrderDesc, nil)
+			mockConfigStore.On("GetAvailability", mock.Anything).Maybe().Return([]string{}, nil)
+			scheduler := Scheduler.New(mockConfigStore, tracker)
 
 			// Create mock calendar service
 			mockCalService := &MockCalendarService{}
@@ -791,10 +792,6 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 				// Only expect SyncSchedule to be called when processing is expected
 				mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
 			}
-
-			// Mock config store returns the test-specific threshold live from "database"
-			mockConfigStore := new(MockConfigStore)
-			mockConfigStore.On("GetSchedule").Return("daily", 7, tt.thresholdDays, constants.StatsOrderDesc, nil)
 
 			// Create webhook handler; threshold is now read from ConfigStore, not RuntimeConfig
 			handler := &WebhookHandler{
@@ -868,18 +865,22 @@ func TestWebhookHandler_DynamicConfigReading(t *testing.T) {
 	require.NoError(t, err)
 	err = configStore.SaveSchedule("daily", 7, 3, constants.StatsOrderDesc)
 	require.NoError(t, err)
+	err = configStore.SaveParents("ParentA", "ParentB")
+	require.NoError(t, err)
+	err = configStore.SaveAvailability("parent_a", []string{})
+	require.NoError(t, err)
+	err = configStore.SaveAvailability("parent_b", []string{})
+	require.NoError(t, err)
 
 	tracker, err := fairness.New(db)
 	require.NoError(t, err)
 
-	cfg := &config.Config{Schedule: config.ScheduleConfig{LookAheadDays: 7}}
-	sched := Scheduler.New(cfg, tracker)
+	// Build the config adapter — single source of truth; configStore holds the live DB values
+	configAdapter := database.NewConfigAdapter(configStore, nil)
+	sched := Scheduler.New(configAdapter, tracker)
 
 	mockCalService := &MockCalendarService{}
 	mockCalService.On("SyncSchedule", mock.Anything, mock.Anything).Return(nil)
-
-	// Build the config adapter — single source of truth; configStore holds the live DB values
-	configAdapter := database.NewConfigAdapter(configStore, nil)
 
 	// Build the webhook handler once; it reads config dynamically from configAdapter
 	handler := &WebhookHandler{
