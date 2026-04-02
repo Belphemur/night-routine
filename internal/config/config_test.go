@@ -684,8 +684,8 @@ state_file = %q
 }
 
 func TestLoadConfig_TrailingSlashAppUrl(t *testing.T) {
-// app_url with a trailing slash must not produce a double-slash redirect URL
-tomlContent := `
+	// app_url with a trailing slash must not produce a double-slash redirect URL
+	tomlContent := `
 [app]
 app_url = "http://localhost:8888/"
 public_url = "http://localhost:8888/"
@@ -698,15 +698,15 @@ look_ahead_days = 7
 [service]
 state_file = "state.db"
 `
-configFile := createTempConfigFile(t, tomlContent)
-setEnvVars(t, map[string]string{
-"NR_OAUTH__CLIENT_ID":     "id",
-"NR_OAUTH__CLIENT_SECRET": "secret",
-})
+	configFile := createTempConfigFile(t, tomlContent)
+	setEnvVars(t, map[string]string{
+		"NR_OAUTH__CLIENT_ID":     "id",
+		"NR_OAUTH__CLIENT_SECRET": "secret",
+	})
 
-cfg, err := Load(configFile)
-require.NoError(t, err)
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
 
-assert.Equal(t, "http://localhost:8888/oauth/callback", cfg.OAuth.RedirectURL,
-"trailing slash in app_url must not produce a double-slash redirect URL")
+	assert.Equal(t, "http://localhost:8888/oauth/callback", cfg.OAuth.RedirectURL,
+		"trailing slash in app_url must not produce a double-slash redirect URL")
 }
