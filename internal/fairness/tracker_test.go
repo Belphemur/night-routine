@@ -59,8 +59,8 @@ func TestRecordAssignment(t *testing.T) {
 	assert.Equal(t, assignment.ID, assignment2.ID) // Should be the same assignment (updated)
 }
 
-// TestGetLastAssignmentsUntil tests the GetLastAssignmentsUntil method
-func TestGetLastAssignmentsUntil(t *testing.T) {
+// TestGetLastParentAssignmentsUntil tests the GetLastParentAssignmentsUntil method
+func TestGetLastParentAssignmentsUntil(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
@@ -83,7 +83,7 @@ func TestGetLastAssignmentsUntil(t *testing.T) {
 
 	// Test getting last 2 assignments until January 4th
 	until := time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC)
-	assignments, err := tracker.GetLastAssignmentsUntil(2, until)
+	assignments, err := tracker.GetLastParentAssignmentsUntil(2, until)
 	assert.NoError(t, err)
 	assert.Len(t, assignments, 2)
 	assert.Equal(t, "Alice", assignments[0].Parent) // Most recent first

@@ -100,8 +100,8 @@ type TrackerInterface interface {
     // RecordAssignment records a new assignment with all details
     RecordAssignment(parent string, date time.Time, override bool, googleCalendarEventID string, decisionReason string) (*Assignment, error)
 
-    // GetLastAssignmentsUntil returns the last n assignments up to a specific date
-    GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
+    // GetLastParentAssignmentsUntil returns the last n parent-only assignments up to a specific date
+    GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
 
     // GetParentStatsUntil returns statistics for each parent up to a specific date
     GetParentStatsUntil(until time.Time) (map[string]Stats, error)
@@ -411,7 +411,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 
     // Get last assignments up to the given date to ensure fairness, including overridden ones
     assignLogger.Debug().Msg("Fetching last assignments")
-    lastAssignments, err := s.tracker.GetLastAssignmentsUntil(5, date)
+    lastAssignments, err := s.tracker.GetLastParentAssignmentsUntil(5, date)
     if err != nil {
         assignLogger.Error().Err(err).Msg("Failed to get last assignments")
         return nil, fmt.Errorf("failed to get last assignments: %w", err)
