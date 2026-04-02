@@ -14,6 +14,7 @@ import (
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
+	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/belphemur/night-routine/internal/token"
@@ -248,10 +249,15 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 			endDateStr := a.Date.AddDate(0, 0, 1).Format("2006-01-02")
 
 			privateData := map[string]string{
-				"updatedAt":    a.UpdatedAt.Format(time.RFC3339),
-				"assignmentId": fmt.Sprintf("%d", a.ID),
-				"parent":       a.Parent,
-				"app":          constants.NightRoutineIdentifier,
+				"updatedAt":      a.UpdatedAt.Format(time.RFC3339),
+				"assignmentId":   fmt.Sprintf("%d", a.ID),
+				"parent":         a.Parent,
+				"caregiverType":  a.CaregiverType.String(),
+				"assignmentKind": a.CaregiverType.String(),
+				"app":            constants.NightRoutineIdentifier,
+			}
+			if a.CaregiverType == fairness.CaregiverTypeBabysitter && a.BabysitterName != "" {
+				privateData["babysitterName"] = a.BabysitterName
 			}
 
 			// Check if we already have a Google Calendar event ID for this assignment
@@ -262,7 +268,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				if err == nil {
 					// Event exists, update it
 					goroutineLogger.Debug().Str("event_id", event.Id).Msg("Existing event found, updating")
-					event.Summary = fmt.Sprintf("[%s] 🌃👶Routine", a.Parent)
+					event.Summary = formatEventSummary(a)
 					event.Description = formatEventDescription(a)
 					event.Start.Date = startDateStr
 					event.End.Date = endDateStr
@@ -316,7 +322,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 			// Create new event with our identifier
 			goroutineLogger.Debug().Msg("Creating new calendar event")
 			event := &calendar.Event{
-				Summary: fmt.Sprintf("[%s] 🌃👶Routine", a.Parent),
+				Summary: formatEventSummary(a),
 				Start: &calendar.EventDateTime{
 					Date: startDateStr,
 				},
@@ -381,8 +387,29 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	return nil
 }
 
+func formatEventSummary(assignment *scheduler.Assignment) string {
+	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter {
+		name := assignment.BabysitterName
+		if name == "" {
+			name = assignment.Parent
+		}
+		return fmt.Sprintf("%s - Babysitter", name)
+	}
+
+	return fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent)
+}
+
 // formatEventDescription formats the event description string.
 func formatEventDescription(assignment *scheduler.Assignment) string {
+	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter {
+		name := assignment.BabysitterName
+		if name == "" {
+			name = assignment.Parent
+		}
+		return fmt.Sprintf("Night routine duty assigned to babysitter %s. Reason: %s [%s]",
+			name, assignment.DecisionReason.String(), constants.NightRoutineIdentifier)
+	}
+
 	return fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
 		assignment.Parent, assignment.DecisionReason.String(), constants.NightRoutineIdentifier)
 }
