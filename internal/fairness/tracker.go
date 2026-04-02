@@ -380,9 +380,10 @@ func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment
 SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, babysitter_name, created_at, updated_at
 FROM assignments
 WHERE assignment_date < ?
+AND caregiver_type = ?
 ORDER BY assignment_date DESC
 LIMIT ?
-`, untilStr, n)
+`, untilStr, CaregiverTypeParent.String(), n)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			queryLogger.Error().Err(err).Msg("Database query for last assignments timed out")
