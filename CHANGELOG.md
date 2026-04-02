@@ -1,3 +1,10 @@
+## [0.27.2](https://github.com/Belphemur/night-routine/compare/v0.27.1...v0.27.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* **fairness:** recalculate past days after babysitter override and prioritize streak prevention ([bba2291](https://github.com/Belphemur/night-routine/commit/bba2291e8b1b5ded966ec3e2ad37cd0770b1ea2a))
+
 ## [0.27.1](https://github.com/Belphemur/night-routine/compare/v0.27.0...v0.27.1) (2026-04-02)
 
 
