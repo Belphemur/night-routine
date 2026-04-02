@@ -207,7 +207,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 
 	// Get last assignments up to the given date to ensure fairness, including overridden ones
 	assignLogger.Debug().Msg("Fetching last assignments")
-	lastAssignments, err := s.tracker.GetLastAssignmentsUntil(5, date) // Use a constant for lookback?
+	lastAssignments, err := s.tracker.GetLastParentAssignmentsUntil(5, date) // Use a constant for lookback?
 	if err != nil {
 		assignLogger.Error().Err(err).Msg("Failed to get last assignments")
 		return nil, fmt.Errorf("failed to get last assignments: %w", err)

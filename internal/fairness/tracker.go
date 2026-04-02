@@ -364,8 +364,9 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 	})
 }
 
-// GetLastAssignmentsUntil returns the last n assignments up to a specific date
-func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
+// GetLastParentAssignmentsUntil returns the last n parent-only assignments up to a specific date.
+// Babysitter assignments are excluded so they don't affect consecutive/alternating scheduling logic.
+func (t *Tracker) GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
 	queryLogger := t.logger.With().
 		Int("limit", n).
 		Str("until_date", until.Format(dateFormat)).
