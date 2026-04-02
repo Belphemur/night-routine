@@ -2163,6 +2163,11 @@
 <li><strong>Automatic Migration</strong>: When upgrading from an older version, your existing TOML configuration is automatically migrated to the database</li>
 </ul>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Environment Variable Overrides</p>
+<p>Every TOML setting can be overridden by a <code>NR_*</code> environment variable without touching the file.
+See the <a href="../environment/">Environment Variables reference</a> for the full list and naming convention.</p>
+</div>
 <h2 id="configuration-file-location">Configuration File Location<a class="headerlink" href="#configuration-file-location" title="Permanent link">&para;</a></h2>
 <p>The configuration file path is specified via the <code>CONFIG_FILE</code> environment variable:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CONFIG_FILE</span><span class="o">=</span><span class="s2">&quot;configs/routine.toml&quot;</span>
@@ -2204,7 +2209,7 @@
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Port Override</p>
-<p>Can be overridden by the <code>PORT</code> environment variable.</p>
+<p>Can be overridden by <code>NR_APP__PORT</code> (recommended) or the legacy <code>PORT</code> environment variable.</p>
 </div>
 <h4 id="app_url"><code>app_url</code><a class="headerlink" href="#app_url" title="Permanent link">&para;</a></h4>
 <p><strong>Type:</strong> String (URL)<br />

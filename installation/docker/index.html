@@ -1623,14 +1623,13 @@
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Run the container</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>docker<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_ID</span><span class="o">=</span>your-client-id<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_SECRET</span><span class="o">=</span>your-client-secret<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">PORT</span><span class="o">=</span><span class="m">8080</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">CONFIG_FILE</span><span class="o">=</span>/app/config/routine.toml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>-v<span class="w"> </span>/path/to/config:/app/config<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span>-v<span class="w"> </span>/path/to/data:/app/data<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span>ghcr.io/belphemur/night-routine:latest
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NR_OAUTH__CLIENT_ID</span><span class="o">=</span>your-client-id<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NR_OAUTH__CLIENT_SECRET</span><span class="o">=</span>your-client-secret<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">CONFIG_FILE</span><span class="o">=</span>/app/config/routine.toml<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span>-v<span class="w"> </span>/path/to/config:/app/config<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>-v<span class="w"> </span>/path/to/data:/app/data<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span>-p<span class="w"> </span><span class="m">8080</span>:8080<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span>ghcr.io/belphemur/night-routine:latest
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Security Notice</p>
@@ -1654,12 +1653,12 @@
 </thead>
 <tbody>
 <tr>
-<td><code>GOOGLE_OAUTH_CLIENT_ID</code></td>
+<td><code>NR_OAUTH__CLIENT_ID</code></td>
 <td>Yes</td>
 <td>OAuth2 Client ID from Google Cloud Console</td>
 </tr>
 <tr>
-<td><code>GOOGLE_OAUTH_CLIENT_SECRET</code></td>
+<td><code>NR_OAUTH__CLIENT_SECRET</code></td>
 <td>Yes</td>
 <td>OAuth2 Client Secret from Google Cloud Console</td>
 </tr>
@@ -1669,9 +1668,9 @@
 <td>Path to TOML configuration file (e.g., <code>/app/config/routine.toml</code>)</td>
 </tr>
 <tr>
-<td><code>PORT</code></td>
+<td><code>NR_APP__PORT</code></td>
 <td>No</td>
-<td>Override port from TOML configuration (default: 8080)</td>
+<td>Override port from TOML configuration (default: <code>8888</code>)</td>
 </tr>
 <tr>
 <td><code>ENV</code></td>
@@ -1680,6 +1679,11 @@
 </tr>
 </tbody>
 </table>
+<div class="admonition info">
+<p class="admonition-title">Legacy variables</p>
+<p>The legacy <code>GOOGLE_OAUTH_CLIENT_ID</code>, <code>GOOGLE_OAUTH_CLIENT_SECRET</code>, and <code>PORT</code> variables are still supported for backwards compatibility, but <code>NR_*</code> variables are recommended and take precedence.
+See the <a href="../../configuration/environment/">Environment Variables reference</a> for all available <code>NR_*</code> overrides.</p>
+</div>
 <h2 id="volume-mounts">Volume Mounts<a class="headerlink" href="#volume-mounts" title="Permanent link">&para;</a></h2>
 <p>Mount the following volumes for persistent data:</p>
 <table>
@@ -1736,8 +1740,8 @@
 </span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="c1"># Run the container</span>
 </span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">  </span>--name<span class="w"> </span>night-routine<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_ID</span><span class="o">=</span>your-client-id<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_SECRET</span><span class="o">=</span>your-client-secret<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NR_OAUTH__CLIENT_ID</span><span class="o">=</span>your-client-id<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NR_OAUTH__CLIENT_SECRET</span><span class="o">=</span>your-client-secret<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">CONFIG_FILE</span><span class="o">=</span>/app/config/routine.toml<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">  </span>-v<span class="w"> </span>~/night-routine/config:/app/config<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">  </span>-v<span class="w"> </span>~/night-routine/data:/app/data<span class="w"> </span><span class="se">\</span>
@@ -1785,8 +1789,8 @@
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># Start a new container with the same configuration</span>
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>--name<span class="w"> </span>night-routine<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_ID</span><span class="o">=</span>your-client-id<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">GOOGLE_OAUTH_CLIENT_SECRET</span><span class="o">=</span>your-client-secret<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NR_OAUTH__CLIENT_ID</span><span class="o">=</span>your-client-id<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NR_OAUTH__CLIENT_SECRET</span><span class="o">=</span>your-client-secret<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">CONFIG_FILE</span><span class="o">=</span>/app/config/routine.toml<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span>-v<span class="w"> </span>~/night-routine/config:/app/config<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span>-v<span class="w"> </span>~/night-routine/data:/app/data<span class="w"> </span><span class="se">\</span>
