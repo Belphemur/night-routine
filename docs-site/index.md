@@ -1,10 +1,10 @@
 # Night Routine Scheduler
 
-A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation.
+A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation and optional babysitter assignment support.
 
 ## Overview
 
-Night Routine Scheduler is designed to help parents fairly distribute night routine duties. It features an advanced fairness algorithm, Google Calendar integration, and a responsive web interface for easy management.
+Night Routine Scheduler is designed to help parents fairly distribute night routine duties. It features an advanced fairness algorithm, Google Calendar integration, optional babysitter assignment support, and a responsive web interface for easy management.
 
 ## Quick Start
 
@@ -56,6 +56,7 @@ Get started quickly using our pre-built Docker images:
 - **:material-scale-balance: Advanced Fairness Algorithm** - Multiple decision criteria ensure fair distribution
 - **:material-google: Google Calendar Integration** - Automatic event creation with OAuth2 authentication
 - **:material-monitor-dashboard: Responsive Web Interface** - Clean UI optimized for desktop and mobile
+- **:material-account-child: Babysitter Support** - Assign named babysitters to specific dates, tracked separately
 - **:material-database: SQLite Storage** - Persistent data with WAL mode for better concurrency
 - **:material-docker: Docker Support** - Multi-architecture images (amd64, arm64)
 - **:material-webhook: Real-time Webhooks** - Instant calendar change notifications

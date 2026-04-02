@@ -134,6 +134,8 @@ sequenceDiagram
     parent_name TEXT NOT NULL,
     assignment_date TEXT NOT NULL,
     override BOOLEAN DEFAULT FALSE,
+    caregiver_type TEXT NOT NULL DEFAULT 'parent',
+    babysitter_name TEXT,
     google_calendar_event_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -170,7 +172,9 @@ sequenceDiagram
   - Historical assignments
   - Consecutive assignments
   - Total count per parent
+  - Babysitter assignment history (tracked separately)
 - Uses assignment data for scheduling decisions
+- Babysitter assignments are excluded from parent fairness calculations
 
 ### 2.7 Webhook Handler (Google Calendar Integration)
 
@@ -188,7 +192,7 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
 5.  **Event Processing Loop:**
     - For each updated event retrieved:
       - **Ownership Check:** It verifies the event belongs to this application by checking for a specific private extended property (e.g., `private["app"] == "night-routine"`). Events without this property are ignored.
-      - **Extract Parent:** It parses the event summary (expected format: `"[ParentName] 🌃👶Routine"`) to extract the assigned parent's name.
+      - **Extract Parent:** It parses the event summary (expected format: `"[Name] 🌃👶Routine"` for both parent and babysitter events) to extract the assigned caregiver's name.
       - **Find Local Assignment:** It queries the `assignments` table using the `google_calendar_event_id` to find the corresponding local record.
       - **Change Detection:** It compares the extracted parent name with the parent name stored in the local assignment record.
       - **Date Check:** It ensures the assignment date is within the configurable past event threshold (default: 5 days). The threshold is configured via `past_event_threshold_days` in the `[schedule]` section of `routine.toml`. Overrides for assignments older than this threshold are rejected with a warning logged.
@@ -265,7 +269,7 @@ The application implements a webhook handler at `/api/webhook/calendar` specific
   - `github.com/BurntSushi/toml` for TOML parsing
   - `google.golang.org/api/calendar/v3` for Google Calendar
   - `golang.org/x/oauth2` for OAuth2 handling
-  - Built-in `database/sql` with `github.com/mattn/go-sqlite3` for state management
+  - Built-in `database/sql` with `modernc.org/sqlite` for state management (pure Go, no CGO)
   - `github.com/golang-migrate/migrate/v4` for database migrations
   - `html/template` for web UI
   - `github.com/rs/zerolog` for logging

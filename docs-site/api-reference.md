@@ -241,6 +241,7 @@ Content-Type: text/html
 
 **Data Shown:**
 - Monthly assignment counts per parent
+- Monthly babysitter assignment counts (separate section)
 - Last 12 months
 - Total assignments per month
 
@@ -293,6 +294,75 @@ HTTP/1.1 200 OK
 - Calendar events are created
 - Events are modified
 - Events are deleted
+
+---
+
+### Assignment Management
+
+#### `GET /api/assignment-details`
+
+Retrieves detailed assignment information for a specific date.
+
+**Request:**
+```http
+GET /api/assignment-details?date=2024-01-15 HTTP/1.1
+Host: localhost:8080
+Cookie: session=...
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `date` | string | Yes | ISO date (YYYY-MM-DD) |
+
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: text/html
+```
+
+**Authentication:** Required
+
+---
+
+#### `POST /api/assignment-babysitter`
+
+Assigns a babysitter to a specific date. The assignment is locked as an override and excluded from parent fairness calculations.
+
+**Request:**
+```http
+POST /api/assignment-babysitter HTTP/1.1
+Host: localhost:8080
+Cookie: session=...
+Content-Type: application/json
+
+{"assignment_id": 123, "babysitter_name": "Dawn"}
+```
+
+**JSON Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `assignment_id` | integer | Yes | Assignment database ID |
+| `babysitter_name` | string | Yes | Name of the babysitter |
+
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"success": true}
+```
+
+**Authentication:** Required
+
+**Actions:**
+1. Updates the assignment's caregiver type to `babysitter`
+2. Stores the babysitter name
+3. Locks the assignment as an override
+4. Recalculates future parent assignments to maintain fairness
+5. Syncs updated events to Google Calendar
 
 ---
 
@@ -434,14 +504,21 @@ Represents a night routine assignment.
 
 ```go
 type Assignment struct {
-    ID        int64     // Database ID
-    Date      time.Time // Assignment date
-    Parent    string    // Parent name (ParentA or ParentB)
-    Reason    string    // Decision reason
-    CreatedAt time.Time // Creation timestamp
-    UpdatedAt time.Time // Last update timestamp
+    ID             int64         // Database ID
+    Date           time.Time     // Assignment date
+    Parent         string        // Display name (parent or babysitter)
+    Reason         string        // Decision reason
+    CaregiverType  CaregiverType // "parent" or "babysitter"
+    BabysitterName string        // Babysitter name (empty for parent assignments)
+    Override       bool          // Whether this is a manual override
+    CreatedAt      time.Time     // Creation timestamp
+    UpdatedAt      time.Time     // Last update timestamp
 }
 ```
+
+**Caregiver Types:**
+- `parent` - Standard parent assignment (participates in fairness)
+- `babysitter` - Babysitter override (excluded from fairness)
 
 **Decision Reasons:**
 - `Unavailability`

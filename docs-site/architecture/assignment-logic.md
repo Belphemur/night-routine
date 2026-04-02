@@ -127,6 +127,24 @@ When you manually change an event title in Google Calendar, the system records t
 
 **Decision Reason:** `Override`
 
+### 7. Babysitter Assignment
+
+Babysitter assignments are a special type of override where a named babysitter is assigned to a specific date via the web interface.
+
+**Key characteristics:**
+
+- **Excluded from fairness** - Babysitter dates are not counted toward either parent's statistics
+- **Locked as override** - The assignment is locked and won't be reassigned by the algorithm
+- **Separate tracking** - Babysitter stats are tracked independently on the statistics page
+- **Triggers recalculation** - Setting a babysitter recalculates surrounding parent assignments
+
+**Calendar format:** `[BabysitterName] 🌃👶Routine` (same title format as parent events, with a different description indicating babysitter duty)
+
+**Decision Reason:** `Override`
+
+!!! info "Fairness Impact"
+    When a babysitter is assigned, the day is effectively removed from the fairness pool. The algorithm recalculates the remaining non-override days to maintain balance between the two parents.
+
 ## Fairness Algorithm Details
 
 ### Balancing Total Counts
@@ -342,12 +360,14 @@ This transparency helps you understand why each assignment was made.
 The fairness logic is in `internal/fairness/` and can be customized if needed:
 
 **Key files:**
-- `fairness.go` - Main decision logic
-- `calculator.go` - Count calculations
-- `types.go` - Decision reason types
+- `scheduler/` - Core scheduling algorithm (schedule generation, fairness criteria)
+- `tracker.go` - Assignment CRUD and statistics queries
+- `decision_reason.go` - Decision reason types and constants
+- `caregiver_type.go` - Caregiver type enum (parent, babysitter)
+- `interface.go` - Interfaces for tracker and scheduler
 
 **To customize:**
-1. Modify the decision criteria in `fairness.go`
+1. Modify the decision criteria in `scheduler/`
 2. Adjust thresholds and weights
 3. Rebuild the application
 4. Test thoroughly with various scenarios

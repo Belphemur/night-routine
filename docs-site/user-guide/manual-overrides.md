@@ -1,6 +1,11 @@
 # Manual Overrides
 
-You can manually override night routine assignments by editing calendar event titles directly in Google Calendar. This allows you to make quick changes without using the web interface.
+You can manually override night routine assignments in two ways:
+
+1. **Edit calendar event titles** directly in Google Calendar to swap between parents
+2. **Assign a babysitter** via the web interface to delegate the night to a named babysitter
+
+Both methods lock the assignment as an override and trigger recalculation of future assignments to maintain fairness.
 
 ## How Manual Overrides Work
 
@@ -12,10 +17,11 @@ The system detects overrides through:
 
 1. **Webhook Notifications** - Google Calendar sends real-time notifications when events change
 2. **Event Title Parsing** - The application parses the parent name from the title
-3. **Database Update** - The internal assignment is updated to match
-4. **Fairness Recalculation** - Future assignments are recalculated to maintain balance
+3. **Web Interface** - Babysitter assignments made through the assignment details modal
+4. **Database Update** - The internal assignment is updated to match
+5. **Fairness Recalculation** - Future assignments are recalculated to maintain balance
 
-## Making a Manual Override
+## Making a Manual Override via Google Calendar
 
 ### Step 1: Find the Event
 
@@ -53,6 +59,60 @@ You can verify the change by:
 - Checking the application logs for override detection messages
 - Viewing the web interface (the assignment should update after refresh)
 - Looking for the "Override" decision reason in future assignments
+
+## Assigning a Babysitter via the Web Interface
+
+You can also override an assignment by assigning a babysitter directly through the web interface.
+
+### Step 1: Open the Assignment Details
+
+1. Open the Night Routine web interface
+2. Click on any assignment in the calendar grid
+3. The assignment details modal will open
+
+### Step 2: Set the Babysitter
+
+1. In the assignment details modal, find the babysitter input field
+2. Enter the babysitter's name (e.g., "Dawn")
+3. Click the "Set Babysitter" button
+
+### Step 3: What Happens
+
+The application will:
+
+1. Update the assignment's caregiver type to `babysitter`
+2. Store the babysitter name
+3. Lock the assignment as an override (🔒)
+4. Update the Google Calendar event with `[BabysitterName] 🌃👶Routine` title and babysitter description
+5. Recalculate future parent assignments to maintain fairness
+
+### Removing a Babysitter Assignment
+
+To revert a babysitter assignment back to normal parent scheduling:
+
+1. Click on the babysitter assignment (shown with 🔒 icon)
+2. Click "Unlock Event" in the modal that appears
+3. The assignment will be recalculated using the fairness algorithm
+
+!!! info "Babysitter vs Parent Fairness"
+    Babysitter assignments are completely excluded from parent fairness calculations. When a babysitter is assigned, the fairness algorithm treats that date as fixed and only recalculates non-override dates.
+
+### Calendar Event Format
+
+Both parent and babysitter events use the same title format in Google Calendar:
+
+- **Parent event**: `[ParentName] 🌃👶Routine`
+- **Babysitter event**: `[BabysitterName] 🌃👶Routine`
+
+The difference is in the event description. Babysitter events will show:
+```
+Night routine handled by babysitter Dawn. Reason: Override [NightRoutine]
+```
+
+While parent events show:
+```
+Night routine duty assigned to ParentName. Reason: Alternating [NightRoutine]
+```
 
 ## Time Window for Overrides
 
@@ -192,15 +252,27 @@ Result: The nights are swapped, and future assignments remain balanced.
 
 Overridden assignments show a special decision reason:
 
-- **Reason:** "Override"
+- **Parent overrides:** Reason shows "Override", with 🔒 icon
+- **Babysitter assignments:** Displayed with slate/gray background, babysitter name visible, with 🔒 icon
 - **Indicator:** Visible in hover tooltips (desktop) or tap-to-view (mobile)
 
 ### In Google Calendar
 
-Overridden events still appear as normal night routine events, but the description will show:
+Overridden parent events still appear as normal night routine events, but the description will show:
 
 ```
 Decision: Override
+```
+
+Babysitter events use the same title format:
+
+```
+[Dawn] 🌃👶Routine
+```
+
+With description:
+```
+Night routine handled by babysitter Dawn. Reason: Override [NightRoutine]
 ```
 
 ### In Application Logs
