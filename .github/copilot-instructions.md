@@ -52,6 +52,7 @@ night-routine/
 - Tests are located alongside source files with `_test.go` suffix
 - Use table-driven tests for multiple test cases
 - Follow existing test patterns in the codebase
+- **Always add a regression unit test** for every bug discovered and fixed to prevent reintroducing the same issue
 - Key test areas:
   - `internal/fairness/scheduler/` - Scheduling algorithm tests
   - `internal/handlers/` - HTTP handler tests
@@ -116,13 +117,14 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 ### Development Workflow
 1. **Understand the change**: Use gopls to explore related code
 2. **Write or modify Go code**: Follow Go best practices and idioms
-3. **Format the code**: Run `go fmt ./...`
-4. **Check for issues**: Run `golangci-lint run`
-5. **Fix any linting issues**: Address all reported problems
-6. **Run tests**: Execute `go test ./...` to ensure nothing breaks
-7. **Generate assets**: If templates/CSS changed, run `go generate ./...`
-8. **Verify the build**: Build the application to ensure it compiles
-9. **Commit changes**: Use semantic/conventional commit format
+3. **Add/Update regression tests for bugs**: When fixing a bug, add or update a unit test that fails before the fix and passes after it
+4. **Format the code**: Run `go fmt ./...`
+5. **Check for issues**: Run `golangci-lint run`
+6. **Fix any linting issues**: Address all reported problems
+7. **Run tests**: Execute `go test ./...` to ensure nothing breaks
+8. **Generate assets**: If templates/CSS changed, run `go generate ./...`
+9. **Verify the build**: Build the application to ensure it compiles
+10. **Commit changes**: Use semantic/conventional commit format
 
 ### Commit Messages
 - **Always use semantic/conventional commits** format for all commits
@@ -142,6 +144,7 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 
 ### Testing and Screenshots
 - Use the `fake-database-setup` skill when you need to create test data or take screenshots
+- For Playwright MCP workflow and debugging patterns, follow `.github/playwright-mcp-testing.md`
 - **CRITICAL: Any UI changes MUST include screenshots**
   - Take screenshots showing before/after for UI modifications
   - Include screenshots in PR descriptions to demonstrate visual impact
