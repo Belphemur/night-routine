@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
@@ -43,7 +42,7 @@ type noopConfigStore struct{}
 
 func (n *noopConfigStore) GetParents() (string, string, error) { return "ParentA", "ParentB", nil }
 func (n *noopConfigStore) GetAvailability(_ string) ([]string, error) {
-	return []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, nil
+	return []string{}, nil
 }
 func (n *noopConfigStore) GetSchedule() (string, int, int, constants.StatsOrder, error) {
 	return "daily", 30, 7, constants.StatsOrderDesc, nil
@@ -101,13 +100,11 @@ func setupTestUnlockHandler(t *testing.T, authenticated bool) (*UnlockHandler, *
 	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
-	// Create unlock handler with a real lightweight scheduler backed by a minimal config.
+	// Create unlock handler with a real lightweight scheduler backed by noopConfigStore.
 	// ParentA/ParentB must match names used in test assignments.
-	fileConfig := &config.Config{
-		Parents: config.ParentsConfig{ParentA: "ParentA", ParentB: "ParentB"},
-	}
-	sched := Scheduler.New(fileConfig, tracker)
-	handler := NewUnlockHandler(baseHandler, tracker, sched, &noopCalendarService{}, &noopConfigStore{})
+	noopCfgStore := &noopConfigStore{}
+	sched := Scheduler.New(noopCfgStore, tracker)
+	handler := NewUnlockHandler(baseHandler, tracker, sched, &noopCalendarService{}, noopCfgStore)
 
 	cleanup := func() {
 		db.Close()

@@ -50,8 +50,8 @@ Decision cascade (first match wins):
 
 1. **Unavailability** — One parent unavailable → assign other
 2. **TotalCount** — Parent with fewer total assignments
-3. **RecentCount** — If tied, parent with fewer last-30-day assignments
-4. **ConsecutiveLimit** — If tied, force switch after 2+ consecutive same-parent days
+3. **ConsecutiveLimit** — If tied, force switch after 2+ consecutive same-parent days
+4. **RecentCount** — If tied and no streak, parent with fewer last-30-day assignments
 5. **Alternating** — Default: alternate from last parent
 
 Babysitter assignments are **always excluded** from parent fairness calculations.

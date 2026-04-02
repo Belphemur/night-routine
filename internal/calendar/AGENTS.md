@@ -13,14 +13,14 @@ Handles all interaction with Google Calendar: creating/updating night routine ev
 
 ## Key Operations
 
-| Method | Purpose |
-|--------|---------|
-| `Initialize(ctx)` | Authenticate with stored OAuth token |
-| `SyncSchedule(ctx, assignments)` | Create/update/delete calendar events for assignments |
-| `SetupNotificationChannel(ctx)` | Register push notification channel with Google |
-| `StopNotificationChannel(ctx, id, resourceID)` | Unregister notification channel |
-| `VerifyNotificationChannel(ctx, id, resourceID)` | Check channel validity |
-| `ListCalendars(ctx)` | List user's calendars for selection |
+| Method                                           | Purpose                                              |
+| ------------------------------------------------ | ---------------------------------------------------- |
+| `Initialize(ctx)`                                | Authenticate with stored OAuth token                 |
+| `SyncSchedule(ctx, assignments)`                 | Create/update/delete calendar events for assignments |
+| `SetupNotificationChannel(ctx)`                  | Register push notification channel with Google       |
+| `StopNotificationChannel(ctx, id, resourceID)`   | Unregister notification channel                      |
+| `VerifyNotificationChannel(ctx, id, resourceID)` | Check channel validity                               |
+| `ListCalendars(ctx)`                             | List user's calendars for selection                  |
 
 ## Calendar Events
 

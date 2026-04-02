@@ -4,38 +4,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/stretchr/testify/assert"
 )
 
-// createTestConfig creates a config for testing
-func createTestConfig() *config.Config {
-	return &config.Config{
-		Parents: config.ParentsConfig{
-			ParentA: "Alice",
-			ParentB: "Bob",
-		},
-		Availability: config.AvailabilityConfig{
-			ParentAUnavailable: []string{"Monday"},
-			ParentBUnavailable: []string{"Thursday"},
-		},
-		Schedule: config.ScheduleConfig{
-			UpdateFrequency: "weekly",
-			LookAheadDays:   7,
-		},
-	}
+// createTestConfigStore creates a testConfigStore for testing
+func createTestConfigStore() *testConfigStore {
+	return newTestConfigStore("Alice", "Bob", []string{"Monday"}, []string{"Thursday"})
 }
 
 // TestGenerateSchedule tests the GenerateSchedule function
 func TestGenerateSchedule(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Test period: 7 days starting from a Sunday
 	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC) // Sunday
@@ -55,13 +41,13 @@ func TestGenerateSchedule(t *testing.T) {
 
 // TestGenerateScheduleWithPriorAssignments tests the scheduler with prior assignments
 func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Use fixed dates instead of time.Now() to make the test deterministic
 	// Let's use a known sequence starting on a Tuesday (neither parent is unavailable)
@@ -95,13 +81,13 @@ func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 
 // TestDetermineAssignmentForDate tests the determineParentForDate function
 func TestDetermineAssignmentForDate(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Test unavailability
 	monday := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC)   // Monday
@@ -114,14 +100,16 @@ func TestDetermineAssignmentForDate(t *testing.T) {
 
 	var lastAssignments []*fairness.Assignment
 
+	cfg := testScheduleConfig(store)
+
 	// Monday: Alice is unavailable
-	parent, reason, err := scheduler.determineParentForDate(monday, lastAssignments, stats)
+	parent, reason, err := scheduler.determineParentForDate(monday, lastAssignments, stats, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonUnavailability, reason)
 
 	// Thursday: Bob is unavailable
-	parent, reason, err = scheduler.determineParentForDate(thursday, lastAssignments, stats)
+	parent, reason, err = scheduler.determineParentForDate(thursday, lastAssignments, stats, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonUnavailability, reason)
@@ -129,20 +117,22 @@ func TestDetermineAssignmentForDate(t *testing.T) {
 
 // TestAssignForDate tests the assignForDate function including recording the assignment
 func TestAssignForDate(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Test unavailability
 	monday := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC)   // Monday
 	thursday := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC) // Thursday
 
+	cfg := testScheduleConfig(store)
+
 	// Monday: Alice is unavailable, so Bob should be assigned
-	assignment, err := scheduler.assignForDate(monday)
+	assignment, err := scheduler.assignForDate(monday, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", assignment.Parent)
 
@@ -154,7 +144,7 @@ func TestAssignForDate(t *testing.T) {
 	assert.Equal(t, monday.Format("2006-01-02"), recordedAssignments[0].Date.Format("2006-01-02"))
 
 	// Thursday: Bob is unavailable, so Alice should be assigned
-	assignment, err = scheduler.assignForDate(thursday)
+	assignment, err = scheduler.assignForDate(thursday, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", assignment.Parent)
 
@@ -169,13 +159,13 @@ func TestAssignForDate(t *testing.T) {
 
 // TestDetermineNextParent tests the determineNextParent function
 func TestDetermineNextParent(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Test with no prior assignments
 	stats := make(map[string]fairness.Stats)
@@ -183,7 +173,7 @@ func TestDetermineNextParent(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 12, Last30Days: 5}
 
 	// Alice should be chosen because she has fewer total assignments
-	parent, reason := scheduler.determineNextParent([]*fairness.Assignment{}, stats)
+	parent, reason := scheduler.determineNextParent("Alice", "Bob", []*fairness.Assignment{}, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonTotalCount, reason)
 
@@ -199,7 +189,7 @@ func TestDetermineNextParent(t *testing.T) {
 	}
 
 	// Alice should be chosen because Bob has more total assignments
-	parent, reason = scheduler.determineNextParent(lastAssignments, stats)
+	parent, reason = scheduler.determineNextParent("Alice", "Bob", lastAssignments, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonTotalCount, reason)
 
@@ -212,7 +202,7 @@ func TestDetermineNextParent(t *testing.T) {
 	}
 
 	// Bob should be chosen because we alternate from Alice, and the imbalance is significant
-	parent, reason = scheduler.determineNextParent(singleAssignment, stats)
+	parent, reason = scheduler.determineNextParent("Alice", "Bob", singleAssignment, stats)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonRecentCount, reason)
 
@@ -221,24 +211,21 @@ func TestDetermineNextParent(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
 	// Bob should be chosen despite alternation because Alice has 3+ more assignments
-	parent, reason = scheduler.determineNextParent(singleAssignment, stats)
+	parent, reason = scheduler.determineNextParent("Alice", "Bob", singleAssignment, stats)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonRecentCount, reason)
 }
 
 // TestBothParentsUnavailable tests the case when both parents are unavailable
 func TestBothParentsUnavailable(t *testing.T) {
-	cfg := createTestConfig()
-	// Make both parents unavailable on Wednesday
-	cfg.Availability.ParentAUnavailable = append(cfg.Availability.ParentAUnavailable, "Wednesday")
-	cfg.Availability.ParentBUnavailable = append(cfg.Availability.ParentBUnavailable, "Wednesday")
+	store := newTestConfigStore("Alice", "Bob", []string{"Monday", "Wednesday"}, []string{"Thursday", "Wednesday"})
 
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	wednesday := time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC) // Wednesday
 
@@ -246,20 +233,22 @@ func TestBothParentsUnavailable(t *testing.T) {
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
+	cfg := testScheduleConfig(store)
+
 	// Should return an error when both parents are unavailable
-	_, _, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats)
+	_, _, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats, cfg)
 	assert.Error(t, err)
 }
 
 // TestAlternatingAssignments tests that assignments alternate when everything is balanced
 func TestAlternatingAssignments(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Create balanced stats
 	stats := make(map[string]fairness.Stats)
@@ -274,7 +263,7 @@ func TestAlternatingAssignments(t *testing.T) {
 	}
 
 	// Next should be Bob
-	parent, reason := scheduler.determineNextParent(lastAssignments, stats)
+	parent, reason := scheduler.determineNextParent("Alice", "Bob", lastAssignments, stats)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonAlternating, reason)
 
@@ -284,7 +273,7 @@ func TestAlternatingAssignments(t *testing.T) {
 	}
 
 	// Next should be Alice
-	parent, reason = scheduler.determineNextParent(lastAssignments, stats)
+	parent, reason = scheduler.determineNextParent("Alice", "Bob", lastAssignments, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonAlternating, reason)
 }
@@ -292,13 +281,13 @@ func TestAlternatingAssignments(t *testing.T) {
 // TestGenerateScheduleWithCurrentTimeFiltering tests that assignments before or on
 // currentTime, or overridden assignments, are treated as fixed.
 func TestGenerateScheduleWithCurrentTimeFiltering(t *testing.T) {
-	cfg := createTestConfig()
+	store := createTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Define dates
 	day1 := time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC) // Wednesday
@@ -353,23 +342,14 @@ func TestGenerateScheduleWithCurrentTimeFiltering(t *testing.T) {
 // This is the bug fix for: "Bug with override not recalculating the following days"
 func TestOverrideRecalculatesFollowingDays(t *testing.T) {
 	// Create config with no unavailability to make fairness rules predictable
-	cfg := &config.Config{
-		Parents: config.ParentsConfig{
-			ParentA: "Alice",
-			ParentB: "Bob",
-		},
-		Availability: config.AvailabilityConfig{
-			ParentAUnavailable: []string{},
-			ParentBUnavailable: []string{},
-		},
-	}
+	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
 
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Scenario from the issue:
 	// - Days alternate between Alice and Bob
@@ -430,23 +410,14 @@ func TestOverrideRecalculatesFollowingDays(t *testing.T) {
 // TestOverrideOnPastDayRecalculatesFollowingDays tests that when an override is on a past day (yesterday),
 // subsequent days are still recalculated.
 func TestOverrideOnPastDayRecalculatesFollowingDays(t *testing.T) {
-	cfg := &config.Config{
-		Parents: config.ParentsConfig{
-			ParentA: "Alice",
-			ParentB: "Bob",
-		},
-		Availability: config.AvailabilityConfig{
-			ParentAUnavailable: []string{},
-			ParentBUnavailable: []string{},
-		},
-	}
+	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
 
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	scheduler := New(cfg, tracker)
+	scheduler := New(store, tracker)
 
 	// Scenario matching the issue:
 	// - Today is Jan 4th (currentDay)

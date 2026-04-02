@@ -11,7 +11,6 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
@@ -19,13 +18,16 @@ import (
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/belphemur/night-routine/internal/token"
 	"github.com/rs/zerolog"
+	"golang.org/x/oauth2"
 )
 
 // Service handles Google Calendar operations
 type Service struct {
 	calendarID   string
 	srv          *calendar.Service
-	config       *config.Config
+	oauthConfig  *oauth2.Config
+	appUrl       string
+	publicUrl    string
 	tokenStore   *database.TokenStore
 	tokenManager *token.TokenManager
 	scheduler    *scheduler.Scheduler
@@ -35,15 +37,17 @@ type Service struct {
 
 // New creates a new calendar service. It doesn't require a valid token to initialize.
 // The service will return errors for operations that require authentication until Initialize is called.
-func New(cfg *config.Config, tokenStore *database.TokenStore, scheduler *scheduler.Scheduler, tokenManager *token.TokenManager) *Service {
+// oauthConfig, appUrl, and publicUrl are static values from file/env configuration.
+func New(oauthConfig *oauth2.Config, appUrl string, publicUrl string, tokenStore *database.TokenStore, scheduler *scheduler.Scheduler, tokenManager *token.TokenManager) *Service {
 	return &Service{
-		calendarID:   cfg.Schedule.CalendarID, // Default calendar ID from config
-		config:       cfg,
+		oauthConfig:  oauthConfig,
+		appUrl:       appUrl,
+		publicUrl:    publicUrl,
 		tokenStore:   tokenStore,
 		tokenManager: tokenManager,
 		scheduler:    scheduler,
 		initialized:  false,
-		logger:       logging.GetLogger("calendar"), // Initialize logger
+		logger:       logging.GetLogger("calendar"),
 	}
 }
 
@@ -72,7 +76,7 @@ func (s *Service) Initialize(ctx context.Context) error {
 	s.logger.Debug().Msg("Valid token obtained")
 
 	// Create authenticated client
-	client := s.config.OAuth.Client(ctx, token)
+	client := s.oauthConfig.Client(ctx, token)
 	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to create Google Calendar service client")
@@ -333,7 +337,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
 					Title: constants.NightRoutineIdentifier,
-					Url:   s.config.App.AppUrl,
+					Url:   s.appUrl,
 				},
 				ExtendedProperties: &calendar.EventExtendedProperties{
 					Private: privateData,

@@ -4,8 +4,15 @@
       "path": "."
     }
   ],
-  "settings": {},
+  "settings": {
+    "chat.tools.terminal.autoApprove": {
+      "sqlite3": true
+    }
+  },
   "extensions": {
-    "recommendations": ["golang.go", "yy0931.vscode-sqlite3-editor"]
+    "recommendations": [
+      "golang.go",
+      "yy0931.vscode-sqlite3-editor"
+    ]
   }
 }

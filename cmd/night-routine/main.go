@@ -140,21 +140,11 @@ func run(ctx context.Context) error {
 	// to touch *config.Config directly.
 	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
 
-	// Load runtime configuration from the database for one-time initialisation of
-	// components that require a *config.Config snapshot (e.g. the Scheduler).
-	// Handlers must NOT use runtimeCfg; they read config through configAdapter.
-	runtimeCfg, err := database.LoadRuntimeConfig(cfg, configStore)
-	if err != nil {
-		wrappedErr := fmt.Errorf("failed to load runtime configuration: %w", err)
-		logger.Error().Err(wrappedErr).Msg("Runtime configuration loading failed")
-		return wrappedErr
-	}
-
 	parentA, parentB, _ := configAdapter.GetParents()
 	logger.Info().
 		Str("parent_a", parentA).
 		Str("parent_b", parentB).
-		Msg("Runtime configuration loaded from database")
+		Msg("Configuration loaded from database")
 
 	// Initialize fairness tracker
 	tracker, err := fairness.New(db)
@@ -174,14 +164,14 @@ func run(ctx context.Context) error {
 	// Initialize token manager
 	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
 
-	// Create scheduler with runtime config (uses DB-backed values for parents/availability/schedule)
-	sched := scheduler.New(runtimeCfg.Config, tracker)
+	// Create scheduler — reads parents/availability/schedule live from the database
+	sched := scheduler.New(configAdapter, tracker)
 
 	// Initialize calendar manager
 	calendarManager := calendar.NewManager(tokenStore, tokenManager, cfg.OAuth)
 
 	// Initialize calendar service without requiring a token
-	calSvc := calendar.New(cfg, tokenStore, sched, tokenManager)
+	calSvc := calendar.New(cfg.OAuth, cfg.App.AppUrl, cfg.App.PublicUrl, tokenStore, sched, tokenManager)
 	logger.Info().Msg("Calendar service created. Waiting for authentication/initialization...")
 
 	// Initialize static file handler
@@ -193,7 +183,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Initialize base handler first, as other handlers depend on it.
-	// configAdapter is the single source of truth — no RuntimeConfig in handlers.
+	// configAdapter is the single source of truth for all configuration.
 	baseHandler, err := handlers.NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, staticHandler.GetCSSETag(), staticHandler.GetLogoETag())
 	if err != nil {
 		wrappedErr := fmt.Errorf("failed to initialize base handler: %w", err)
@@ -276,7 +266,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Perform manual sync on startup if configured and possible
-	performManualStartupSync(ctx, cfg, configAdapter, hasToken, calSvc, sched)
+	performManualStartupSync(ctx, cfg.Service.ManualSyncOnStartup, configAdapter, hasToken, calSvc, sched)
 
 	// Register handler for token setup signals
 	appSignals.OnTokenSetup(func(ctx context.Context, data appSignals.TokenSetupData) {
@@ -407,10 +397,10 @@ func run(ctx context.Context) error {
 
 // performManualStartupSync checks the config and performs a schedule sync if enabled and possible.
 // It assumes calSvc initialization was already attempted if hasToken is true.
-func performManualStartupSync(ctx context.Context, cfg *config.Config, configStore config.ConfigStoreInterface, hasToken bool, calSvc *calendar.Service, sched *scheduler.Scheduler) {
+func performManualStartupSync(ctx context.Context, manualSyncOnStartup bool, configStore config.ConfigStoreInterface, hasToken bool, calSvc *calendar.Service, sched *scheduler.Scheduler) {
 	logger := logging.GetLogger("manual-startup-sync") // Get logger specific to this function
 
-	if !cfg.Service.ManualSyncOnStartup {
+	if !manualSyncOnStartup {
 		return // Feature not enabled
 	}
 

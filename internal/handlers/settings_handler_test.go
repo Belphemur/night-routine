@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
@@ -315,11 +314,11 @@ func TestSettingsHandler_CheckAuthentication_NoToken(t *testing.T) {
 	tracker, err := fairness.New(db)
 	require.NoError(t, err)
 
-	cfg := &config.Config{OAuth: &oauth2.Config{}}
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
+	oauthCfg := &oauth2.Config{}
+	tokenManager := token.NewTokenManager(tokenStore, oauthCfg)
 
 	// Create config adapter — single source of truth for all config reads
-	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
+	configAdapter := database.NewConfigAdapter(configStore, oauthCfg)
 
 	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
@@ -370,13 +369,11 @@ func TestSettingsHandler_HandleUpdateSettings_Unauthenticated(t *testing.T) {
 	tracker, err := fairness.New(db)
 	require.NoError(t, err)
 
-	cfg := &config.Config{
-		OAuth: &oauth2.Config{},
-	}
-	tokenManager := token.NewTokenManager(tokenStore, cfg.OAuth)
+	oauthCfg := &oauth2.Config{}
+	tokenManager := token.NewTokenManager(tokenStore, oauthCfg)
 
 	// Create config adapter — single source of truth for all config reads
-	configAdapter := database.NewConfigAdapter(configStore, cfg.OAuth)
+	configAdapter := database.NewConfigAdapter(configStore, oauthCfg)
 
 	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)

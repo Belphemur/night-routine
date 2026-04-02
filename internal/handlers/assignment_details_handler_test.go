@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/config"
+	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
@@ -74,18 +74,25 @@ func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*Assig
 	tokenManager := token.NewTokenManager(tokenStore, oauthCfg)
 
 	// Create config adapter — single source of truth for all config reads
-	configAdapter := database.NewConfigAdapter(nil, oauthCfg)
+	cfgStore, err := database.NewConfigStore(db)
+	require.NoError(t, err)
+	err = cfgStore.SaveParents("Alice", "Bob")
+	require.NoError(t, err)
+	err = cfgStore.SaveAvailability("parent_a", []string{})
+	require.NoError(t, err)
+	err = cfgStore.SaveAvailability("parent_b", []string{})
+	require.NoError(t, err)
+	err = cfgStore.SaveSchedule("daily", 7, 5, constants.StatsOrderDesc)
+	require.NoError(t, err)
+	configAdapter := database.NewConfigAdapter(cfgStore, oauthCfg)
 
 	// Create base handler
 	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
 	// Create assignment details handler with scheduler and no-op external integrations.
-	fileConfig := &config.Config{
-		Parents: config.ParentsConfig{ParentA: "Alice", ParentB: "Bob"},
-	}
-	sched := Scheduler.New(fileConfig, tracker)
-	handler := NewAssignmentDetailsHandler(baseHandler, tracker, sched, &noopCalendarService{}, &noopConfigStore{})
+	sched := Scheduler.New(configAdapter, tracker)
+	handler := NewAssignmentDetailsHandler(baseHandler, tracker, sched, &noopCalendarService{}, configAdapter)
 
 	cleanup := func() {
 		db.Close()

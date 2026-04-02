@@ -4,23 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness"
 	"github.com/stretchr/testify/assert"
 )
 
-// newBabysitterTestConfig creates a config with no unavailability for predictable tests.
-func newBabysitterTestConfig() *config.Config {
-	return &config.Config{
-		Parents: config.ParentsConfig{
-			ParentA: "Alice",
-			ParentB: "Bob",
-		},
-		Availability: config.AvailabilityConfig{
-			ParentAUnavailable: []string{},
-			ParentBUnavailable: []string{},
-		},
-	}
+// newBabysitterTestConfigStore creates a testConfigStore with no unavailability for predictable tests.
+func newBabysitterTestConfigStore() *testConfigStore {
+	return newTestConfigStore("Alice", "Bob", []string{}, []string{})
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -31,13 +21,13 @@ func newBabysitterTestConfig() *config.Config {
 // has override=true) is never recalculated by GenerateSchedule, even when it
 // falls on a future day that would normally be recalculated.
 func TestBabysitterOverrideIsFixed(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC) // Monday
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)
@@ -71,13 +61,13 @@ func TestBabysitterOverrideIsFixed(t *testing.T) {
 // assignment to babysitter removes it from parent stats, causing the TotalCount
 // fairness path to pick the parent who now has fewer assignments.
 func TestBabysitterExcludedFromTotalCount(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	// day1=Alice, day2=Bob, day3=Alice, day4=Bob
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
@@ -117,13 +107,13 @@ func TestBabysitterExcludedFromTotalCount(t *testing.T) {
 // but differing last-30-day counts (due to babysitter conversion), the
 // RecentCount path selects the correct parent.
 func TestBabysitterExcludedFromRecentCount(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	// Ancient history (>30 days before rDay3): Alice=2, Bob=1
 	ancient1 := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
@@ -171,13 +161,13 @@ func TestBabysitterExcludedFromRecentCount(t *testing.T) {
 // path fires correctly when two same-parent assignments are separated by a
 // babysitter day — from the parent-only view they are consecutive.
 func TestConsecutiveLimitWithBabysitterGap(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	// We need: stats tied (total + last30), last 2 parent assignments = same parent.
 	// All within last 30 days so last30 = total for both.
@@ -224,13 +214,13 @@ func TestConsecutiveLimitWithBabysitterGap(t *testing.T) {
 // uses the most recent *parent* assignment instead of the babysitter name.
 // Without filtering: "Dawn" != parentB → always picks parentB (Bob) — WRONG.
 func TestBabysitterPoisonsAlternatingLogic(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
 	day3 := time.Date(2026, 3, 12, 0, 0, 0, 0, time.UTC)
@@ -264,13 +254,13 @@ func TestBabysitterPoisonsAlternatingLogic(t *testing.T) {
 // parentB when the last parent assignment is parentA and a babysitter sits
 // in between.
 func TestBabysitterAlternatingFromParentA(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	// day1=Bob, day2=Alice, day3=babysitter, day4=recalc
 	// Stats at day4: Alice=1, Bob=1 → tied. Last parent = Alice(day2) → alternate → Bob
@@ -303,13 +293,13 @@ func TestBabysitterAlternatingFromParentA(t *testing.T) {
 // and regenerating from that date recalculates the assignment even when the
 // start date is today or in the past.
 func TestUnlockBabysitterRecalculatesStartDate(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 3, 11, 0, 0, 0, 0, time.UTC)
@@ -345,13 +335,13 @@ func TestUnlockBabysitterRecalculatesStartDate(t *testing.T) {
 // TestUnlockBabysitterRecalculatesMultipleDays tests unlocking a babysitter
 // and verifying all subsequent days are recalculated properly.
 func TestUnlockBabysitterRecalculatesMultipleDays(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)
@@ -392,13 +382,13 @@ func TestUnlockBabysitterRecalculatesMultipleDays(t *testing.T) {
 // regression test for: "Setting a babysitter in the past isn't properly
 // recalculating future assignments"
 func TestBabysitterOnPastDayRecalculatesFutureAssignments(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 3, 11, 0, 0, 0, 0, time.UTC)
@@ -435,13 +425,13 @@ func TestBabysitterOnPastDayRecalculatesFutureAssignments(t *testing.T) {
 // TestMultipleBabysitterDays verifies correct recalculation when multiple days
 // in a schedule are converted to babysitter assignments.
 func TestMultipleBabysitterDays(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)  // Alice
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)  // Bob → babysitter
@@ -481,13 +471,13 @@ func TestMultipleBabysitterDays(t *testing.T) {
 // TestConsecutiveBabysitterDays verifies that multiple consecutive babysitter
 // days are all treated as fixed and properly excluded from fairness calculations.
 func TestConsecutiveBabysitterDays(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)  // Alice
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)  // babysitter
@@ -523,13 +513,13 @@ func TestConsecutiveBabysitterDays(t *testing.T) {
 // day of the schedule is treated as fixed and doesn't disrupt subsequent
 // recalculations.
 func TestBabysitterOnFirstDayOfSchedule(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC) // babysitter
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC) // recalculate
@@ -554,13 +544,13 @@ func TestBabysitterOnFirstDayOfSchedule(t *testing.T) {
 // TestBabysitterOnLastDayOfSchedule verifies that a babysitter on the last
 // day is treated as fixed.
 func TestBabysitterOnLastDayOfSchedule(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
 	_ = time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)     // day2
@@ -592,13 +582,13 @@ func TestBabysitterOnLastDayOfSchedule(t *testing.T) {
 // TestBabysitterReplacedByParentOverride verifies that converting a babysitter
 // assignment back to a parent override correctly updates stats and recalculates.
 func TestBabysitterReplacedByParentOverride(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)
@@ -638,23 +628,14 @@ func TestBabysitterReplacedByParentOverride(t *testing.T) {
 // TestBabysitterWithUnavailableParent verifies that after a babysitter day,
 // unavailability rules still apply correctly on the recalculated days.
 func TestBabysitterWithUnavailableParent(t *testing.T) {
-	cfg := &config.Config{
-		Parents: config.ParentsConfig{
-			ParentA: "Alice",
-			ParentB: "Bob",
-		},
-		Availability: config.AvailabilityConfig{
-			ParentAUnavailable: []string{},
-			ParentBUnavailable: []string{"Thursday"},
-		},
-	}
+	store := newTestConfigStore("Alice", "Bob", []string{}, []string{"Thursday"})
 
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	// Wednesday=babysitter, Thursday=recalculate (Bob unavailable on Thursday)
 	wed := time.Date(2026, 4, 8, 0, 0, 0, 0, time.UTC)  // Wednesday
@@ -683,13 +664,13 @@ func TestBabysitterWithUnavailableParent(t *testing.T) {
 // TestMultipleDifferentBabysitters verifies that assignments to different
 // babysitter names are all properly excluded from parent fairness calculations.
 func TestMultipleDifferentBabysitters(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	day1 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)  // Alice
 	day2 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)  // babysitter Dawn
@@ -723,13 +704,13 @@ func TestMultipleDifferentBabysitters(t *testing.T) {
 // where a babysitter is set mid-week, verifying the entire schedule is
 // correctly recalculated end-to-end.
 func TestFullWeekWithMidWeekBabysitter(t *testing.T) {
-	cfg := newBabysitterTestConfig()
+	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(cfg, tracker)
+	sched := New(store, tracker)
 
 	// Monday through Sunday
 	mon := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
@@ -782,4 +763,76 @@ func TestFullWeekWithMidWeekBabysitter(t *testing.T) {
 
 	// Sun: Stats: Alice=3, Bob=2 → Bob has fewer → Bob
 	assert.Equal(t, "Bob", recalc[6].Parent, "Sun: Alice=3, Bob=2 → Bob (TotalCount)")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Regression: past days between babysitter override and today must be recalculated
+// ──────────────────────────────────────────────────────────────────────────────
+
+// TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday is a
+// regression test for the bug: setting a babysitter on a day 2+ days in the
+// past did not recalculate the intermediate past days between the babysitter
+// and today, because the "past = fixed" check ran before the "after override
+// = recalculate" check in GenerateSchedule.
+//
+// Scenario (mirrors real user report):
+//
+//	day1 = Alice (parent, past)
+//	day2 = Bob   (parent, past)  → set to babysitter
+//	day3 = Alice (parent, past)  → should shift to Bob (TotalCount: Alice=1, Bob=0)
+//	day4 = today                 → recalculate
+//	day5 = future                → recalculate
+func TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday(t *testing.T) {
+	store := newBabysitterTestConfigStore()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	sched := New(store, tracker)
+
+	day1 := time.Date(2026, 3, 29, 0, 0, 0, 0, time.UTC) // past
+	day2 := time.Date(2026, 3, 30, 0, 0, 0, 0, time.UTC) // past — will become babysitter
+	_ = time.Date(2026, 3, 31, 0, 0, 0, 0, time.UTC)     // day3: past — between override and today
+	day4 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)  // today
+	day5 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)  // future
+
+	// Generate initial schedule: Alice, Bob, Alice, Bob, Alice
+	initial, err := sched.GenerateSchedule(day1, day5, day1)
+	assert.NoError(t, err)
+	assert.Len(t, initial, 5)
+	assert.Equal(t, "Alice", initial[0].Parent)
+	assert.Equal(t, "Bob", initial[1].Parent)
+	assert.Equal(t, "Alice", initial[2].Parent)
+	assert.Equal(t, "Bob", initial[3].Parent)
+	assert.Equal(t, "Alice", initial[4].Parent)
+
+	// Set day2 (past) to babysitter
+	day2Assignment, err := tracker.GetAssignmentByDate(day2)
+	assert.NoError(t, err)
+	err = tracker.UpdateAssignmentToBabysitter(day2Assignment.ID, "Dawn", true)
+	assert.NoError(t, err)
+
+	// Regenerate from day2 (the babysitter date) with currentTime = day4 (today).
+	// This matches how the handler calls it: recalculateSchedule(assignment.Date)
+	// with time.Now() as currentTime.
+	recalc, err := sched.GenerateSchedule(day2, day5, day4)
+	assert.NoError(t, err)
+	assert.Len(t, recalc, 4) // day2..day5
+
+	// day2: babysitter override → fixed
+	assert.Equal(t, "Dawn", recalc[0].Parent, "day2 babysitter override must stay fixed")
+	assert.Equal(t, fairness.CaregiverTypeBabysitter, recalc[0].CaregiverType)
+
+	// day3 (past, but after override): must be recalculated, NOT kept as Alice.
+	// Stats at day3: Alice=1(day1), Bob=0 (day2 now babysitter) → Bob (TotalCount)
+	assert.Equal(t, "Bob", recalc[1].Parent,
+		"day3 (past day after babysitter override) must be recalculated: Alice=1, Bob=0 → Bob")
+	assert.Equal(t, fairness.DecisionReasonTotalCount, recalc[1].DecisionReason)
+
+	// day4 (today): Alice=1, Bob=1 → tied → alternate from Bob → Alice
+	assert.Equal(t, "Alice", recalc[2].Parent, "day4: tied stats, alternate from Bob → Alice")
+
+	// day5 (future): Alice=2, Bob=1 → Bob (TotalCount)
+	assert.Equal(t, "Bob", recalc[3].Parent, "day5: Alice=2, Bob=1 → Bob (TotalCount)")
 }

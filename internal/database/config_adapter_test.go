@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -135,65 +134,4 @@ func TestConfigAdapter_GetOAuthConfig(t *testing.T) {
 	got := adapterWithCfg.GetOAuthConfig()
 	require.NotNil(t, got)
 	assert.Equal(t, "test-client-id", got.ClientID)
-}
-
-func TestLoadRuntimeConfig_WithAdapter(t *testing.T) {
-	_, store, cleanup := setupTestConfigAdapter(t)
-	defer cleanup()
-
-	fileConfig := &config.Config{
-		App: config.ApplicationConfig{
-			Port:      9090,
-			AppUrl:    "http://test:9090",
-			PublicUrl: "http://test:9090",
-		},
-		Service: config.ServiceConfig{
-			StateFile:           "test.db",
-			LogLevel:            "debug",
-			ManualSyncOnStartup: false,
-		},
-		Schedule: config.ScheduleConfig{
-			CalendarID: "adapter-test-calendar",
-		},
-	}
-
-	runtimeCfg, err := LoadRuntimeConfig(fileConfig, store)
-	require.NoError(t, err)
-	require.NotNil(t, runtimeCfg)
-	require.NotNil(t, runtimeCfg.Config)
-
-	// Check app settings from file are preserved
-	assert.Equal(t, 9090, runtimeCfg.Config.App.Port)
-	assert.Equal(t, "http://test:9090", runtimeCfg.Config.App.AppUrl)
-	assert.Equal(t, "debug", runtimeCfg.Config.Service.LogLevel)
-
-	// Check runtime settings from adapter/store
-	assert.Equal(t, "AdapterParentA", runtimeCfg.Config.Parents.ParentA)
-	assert.Equal(t, "AdapterParentB", runtimeCfg.Config.Parents.ParentB)
-	assert.ElementsMatch(t, []string{"Wednesday", "Friday"}, runtimeCfg.Config.Availability.ParentAUnavailable)
-	assert.ElementsMatch(t, []string{"Monday", "Thursday"}, runtimeCfg.Config.Availability.ParentBUnavailable)
-	assert.Equal(t, "monthly", runtimeCfg.Config.Schedule.UpdateFrequency)
-	assert.Equal(t, 60, runtimeCfg.Config.Schedule.LookAheadDays)
-	assert.Equal(t, 10, runtimeCfg.Config.Schedule.PastEventThresholdDays)
-	assert.Equal(t, constants.StatsOrderDesc, runtimeCfg.Config.Schedule.StatsOrder)
-
-	// Check calendar ID is preserved from file
-	assert.Equal(t, "adapter-test-calendar", runtimeCfg.Config.Schedule.CalendarID)
-}
-
-func TestLoadRuntimeConfig_DirectFunction(t *testing.T) {
-	_, store, cleanup := setupTestConfigAdapter(t)
-	defer cleanup()
-
-	fileConfig := &config.Config{
-		App: config.ApplicationConfig{
-			Port: 8888,
-		},
-	}
-
-	// Test the convenience function
-	runtimeCfg, err := LoadRuntimeConfig(fileConfig, store)
-	require.NoError(t, err)
-	assert.NotNil(t, runtimeCfg)
-	assert.Equal(t, "AdapterParentA", runtimeCfg.Config.Parents.ParentA)
 }
