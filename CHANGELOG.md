@@ -1,3 +1,20 @@
+# [0.27.0](https://github.com/Belphemur/night-routine/compare/v0.26.2...v0.27.0) (2026-04-02)
+
+
+### Bug Fixes
+
+* **fairness:** compare schedule days using local date strings ([f0f976b](https://github.com/Belphemur/night-routine/commit/f0f976b3ea4f1e86f8c6d6f438eb45cda525eb0d))
+* **handlers:** add past-event threshold and name length validation ([796540b](https://github.com/Belphemur/night-routine/commit/796540b1310fb9bd51fbb11271246b13fa96e14f))
+* **scheduler:** recalculate start-date assignment after unlock ([4aaed9f](https://github.com/Belphemur/night-routine/commit/4aaed9f93d01236551b94ec4e1f58edc54590496))
+
+
+### Features
+
+* **calendar:** format babysitter events with dedicated metadata ([094a952](https://github.com/Belphemur/night-routine/commit/094a9520cfcb1917cd0c970181afb0260090c545))
+* **fairness:** add babysitter caregiver model and tracker support ([8e14572](https://github.com/Belphemur/night-routine/commit/8e14572e214f208ce46f0f27345d9ec3eb0779f2))
+* **handlers:** add babysitter statistics and calendar presentation ([9e1b7aa](https://github.com/Belphemur/night-routine/commit/9e1b7aaec0045c1953d415c4b4e8375033be8436))
+* **ui:** show loading modals for unlock and babysitter updates ([2e27021](https://github.com/Belphemur/night-routine/commit/2e2702111a6cc81d6972cc9a8c02f67d6ed93b61))
+
 ## [0.26.2](https://github.com/Belphemur/night-routine/compare/v0.26.1...v0.26.2) (2026-04-02)
 
 
