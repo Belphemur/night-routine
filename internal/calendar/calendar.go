@@ -249,12 +249,11 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 			endDateStr := a.Date.AddDate(0, 0, 1).Format("2006-01-02")
 
 			privateData := map[string]string{
-				"updatedAt":      a.UpdatedAt.Format(time.RFC3339),
-				"assignmentId":   fmt.Sprintf("%d", a.ID),
-				"parent":         a.Parent,
-				"caregiverType":  a.CaregiverType.String(),
-				"assignmentKind": a.CaregiverType.String(),
-				"app":            constants.NightRoutineIdentifier,
+				"updatedAt":     a.UpdatedAt.Format(time.RFC3339),
+				"assignmentId":  fmt.Sprintf("%d", a.ID),
+				"parent":        a.Parent,
+				"caregiverType": a.CaregiverType.String(),
+				"app":           constants.NightRoutineIdentifier,
 			}
 			if a.CaregiverType == fairness.CaregiverTypeBabysitter && a.BabysitterName != "" {
 				privateData["babysitterName"] = a.BabysitterName

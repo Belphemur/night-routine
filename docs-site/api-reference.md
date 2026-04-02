@@ -301,11 +301,11 @@ HTTP/1.1 200 OK
 
 #### `GET /api/assignment-details`
 
-Retrieves detailed assignment information for a specific date.
+Retrieves detailed fairness calculation data for a specific assignment.
 
 **Request:**
 ```http
-GET /api/assignment-details?date=2024-01-15 HTTP/1.1
+GET /api/assignment-details?assignment_id=123 HTTP/1.1
 Host: localhost:8080
 Cookie: session=...
 ```
@@ -314,12 +314,14 @@ Cookie: session=...
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `date` | string | Yes | ISO date (YYYY-MM-DD) |
+| `assignment_id` | integer | Yes | Assignment database ID |
 
 **Response:**
 ```http
 HTTP/1.1 200 OK
-Content-Type: text/html
+Content-Type: application/json
+
+{"assignment_id":123,"calculation_date":"2024-01-15","decision_reason":"Total Count","caregiver_type":"parent","parent_a_name":"Alice","parent_a_total_count":5,"parent_a_last_30_days":3,"parent_b_name":"Bob","parent_b_total_count":7,"parent_b_last_30_days":4}
 ```
 
 **Authentication:** Required
@@ -352,7 +354,7 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Type: application/json
 
-{"success": true}
+{"status": "ok"}
 ```
 
 **Authentication:** Required
