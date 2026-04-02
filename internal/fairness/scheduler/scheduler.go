@@ -146,17 +146,19 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 			continue
 		}
 
+		// If there's an override and this non-override assignment is after it,
+		// recalculate regardless of whether it's in the past or future.
+		// This ensures that setting a babysitter on a recent past day correctly
+		// shifts subsequent assignments even if they are also in the past.
+		if earliestOverrideStr != "" && assignmentDayStr > earliestOverrideStr {
+			continue // Not fixed, will be recalculated
+		}
+
 		// Past assignments (strictly before today's local date) are fixed - they already happened
 		if assignmentDayStr < currentDayStr {
 			assignmentFixedInTime[assignmentDayStr] = a
 			fixedCount++
 			continue
-		}
-
-		// For today or future assignments:
-		// If there's an override and this assignment is after it, recalculate
-		if earliestOverrideStr != "" && assignmentDayStr > earliestOverrideStr {
-			continue // Not fixed, will be recalculated
 		}
 
 		// Today's assignment not affected by an override: fix it
@@ -489,20 +491,8 @@ func (s *Scheduler) determineNextParent(parentA, parentB string, lastAssignments
 		return parentB, fairness.DecisionReasonTotalCount
 	}
 
-	// If total assignments are equal, prioritize the parent with fewer recent assignments (last 30 days)
-	fairnessLogger.Debug().
-		Int("parent_a_last30", statsA.Last30Days).
-		Int("parent_b_last30", statsB.Last30Days).
-		Msg("Total assignments equal, comparing last 30 days")
-	if statsA.Last30Days < statsB.Last30Days {
-		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer last 30 days)")
-		return parentA, fairness.DecisionReasonRecentCount
-	} else if statsB.Last30Days < statsA.Last30Days {
-		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer last 30 days)")
-		return parentB, fairness.DecisionReasonRecentCount
-	}
-
-	// Avoid more than two consecutive assignments
+	// Avoid more than two consecutive assignments (takes priority over recent count
+	// to prevent streaks, e.g. when a babysitter day is inserted between assignments)
 	lastParent := lastAssignments[0].Parent
 	consecutiveCount := 1
 	for i := 1; i < len(lastAssignments) && lastAssignments[i].Parent == lastParent; i++ {
@@ -519,6 +509,19 @@ func (s *Scheduler) determineNextParent(parentA, parentB string, lastAssignments
 		}
 		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (forced switch)")
 		return parentA, fairness.DecisionReasonConsecutiveLimit
+	}
+
+	// If no consecutive streak, prioritize the parent with fewer recent assignments (last 30 days)
+	fairnessLogger.Debug().
+		Int("parent_a_last30", statsA.Last30Days).
+		Int("parent_b_last30", statsB.Last30Days).
+		Msg("Total assignments equal, comparing last 30 days")
+	if statsA.Last30Days < statsB.Last30Days {
+		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer last 30 days)")
+		return parentA, fairness.DecisionReasonRecentCount
+	} else if statsB.Last30Days < statsA.Last30Days {
+		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer last 30 days)")
+		return parentB, fairness.DecisionReasonRecentCount
 	}
 
 	// Default to alternating if all else is equal

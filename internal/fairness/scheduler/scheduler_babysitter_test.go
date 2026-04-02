@@ -764,3 +764,75 @@ func TestFullWeekWithMidWeekBabysitter(t *testing.T) {
 	// Sun: Stats: Alice=3, Bob=2 → Bob has fewer → Bob
 	assert.Equal(t, "Bob", recalc[6].Parent, "Sun: Alice=3, Bob=2 → Bob (TotalCount)")
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Regression: past days between babysitter override and today must be recalculated
+// ──────────────────────────────────────────────────────────────────────────────
+
+// TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday is a
+// regression test for the bug: setting a babysitter on a day 2+ days in the
+// past did not recalculate the intermediate past days between the babysitter
+// and today, because the "past = fixed" check ran before the "after override
+// = recalculate" check in GenerateSchedule.
+//
+// Scenario (mirrors real user report):
+//
+//	day1 = Alice (parent, past)
+//	day2 = Bob   (parent, past)  → set to babysitter
+//	day3 = Alice (parent, past)  → should shift to Bob (TotalCount: Alice=1, Bob=0)
+//	day4 = today                 → recalculate
+//	day5 = future                → recalculate
+func TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday(t *testing.T) {
+	store := newBabysitterTestConfigStore()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	sched := New(store, tracker)
+
+	day1 := time.Date(2026, 3, 29, 0, 0, 0, 0, time.UTC) // past
+	day2 := time.Date(2026, 3, 30, 0, 0, 0, 0, time.UTC) // past — will become babysitter
+	_ = time.Date(2026, 3, 31, 0, 0, 0, 0, time.UTC)     // day3: past — between override and today
+	day4 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)  // today
+	day5 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)  // future
+
+	// Generate initial schedule: Alice, Bob, Alice, Bob, Alice
+	initial, err := sched.GenerateSchedule(day1, day5, day1)
+	assert.NoError(t, err)
+	assert.Len(t, initial, 5)
+	assert.Equal(t, "Alice", initial[0].Parent)
+	assert.Equal(t, "Bob", initial[1].Parent)
+	assert.Equal(t, "Alice", initial[2].Parent)
+	assert.Equal(t, "Bob", initial[3].Parent)
+	assert.Equal(t, "Alice", initial[4].Parent)
+
+	// Set day2 (past) to babysitter
+	day2Assignment, err := tracker.GetAssignmentByDate(day2)
+	assert.NoError(t, err)
+	err = tracker.UpdateAssignmentToBabysitter(day2Assignment.ID, "Dawn", true)
+	assert.NoError(t, err)
+
+	// Regenerate from day2 (the babysitter date) with currentTime = day4 (today).
+	// This matches how the handler calls it: recalculateSchedule(assignment.Date)
+	// with time.Now() as currentTime.
+	recalc, err := sched.GenerateSchedule(day2, day5, day4)
+	assert.NoError(t, err)
+	assert.Len(t, recalc, 4) // day2..day5
+
+	// day2: babysitter override → fixed
+	assert.Equal(t, "Dawn", recalc[0].Parent, "day2 babysitter override must stay fixed")
+	assert.Equal(t, fairness.CaregiverTypeBabysitter, recalc[0].CaregiverType)
+
+	// day3 (past, but after override): must be recalculated, NOT kept as Alice.
+	// Stats at day3: Alice=1(day1), Bob=0 (day2 now babysitter) → Bob (TotalCount)
+	assert.Equal(t, "Bob", recalc[1].Parent,
+		"day3 (past day after babysitter override) must be recalculated: Alice=1, Bob=0 → Bob")
+	assert.Equal(t, fairness.DecisionReasonTotalCount, recalc[1].DecisionReason)
+
+	// day4 (today): Alice=1, Bob=1 → tied → alternate from Bob → Alice
+	assert.Equal(t, "Alice", recalc[2].Parent, "day4: tied stats, alternate from Bob → Alice")
+
+	// day5 (future): Alice=2, Bob=1 → Bob (TotalCount)
+	assert.Equal(t, "Bob", recalc[3].Parent, "day5: Alice=2, Bob=1 → Bob (TotalCount)")
+}
