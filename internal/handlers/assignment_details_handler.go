@@ -46,7 +46,7 @@ type AssignmentDetailsResponse struct {
 	CalculationDate   string `json:"calculation_date"`
 	DecisionReason    string `json:"decision_reason"`
 	CaregiverType     string `json:"caregiver_type"`
-	BabysitterName    string `json:"babysitter_name,omitempty"`
+	ParentName        string `json:"parent_name,omitempty"`
 	ParentAName       string `json:"parent_a_name"`
 	ParentATotalCount int    `json:"parent_a_total_count"`
 	ParentALast30Days int    `json:"parent_a_last_30_days"`
@@ -141,10 +141,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 				AssignmentID:   assignment.ID,
 				DecisionReason: assignment.DecisionReason.String(),
 				CaregiverType:  assignment.CaregiverType.String(),
-				BabysitterName: assignment.BabysitterName,
-			}
-			if response.BabysitterName == "" {
-				response.BabysitterName = assignment.Parent
+				ParentName:     assignment.Parent,
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -171,13 +168,15 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 		CalculationDate:   details.CalculationDate.Format("2006-01-02"),
 		DecisionReason:    assignment.DecisionReason.String(),
 		CaregiverType:     assignment.CaregiverType.String(),
-		BabysitterName:    assignment.BabysitterName,
 		ParentAName:       details.ParentAName,
 		ParentATotalCount: details.ParentATotalCount,
 		ParentALast30Days: details.ParentALast30Days,
 		ParentBName:       details.ParentBName,
 		ParentBTotalCount: details.ParentBTotalCount,
 		ParentBLast30Days: details.ParentBLast30Days,
+	}
+	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter {
+		response.ParentName = assignment.Parent
 	}
 
 	w.Header().Set("Content-Type", "application/json")

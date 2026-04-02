@@ -259,8 +259,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 				"caregiverType": a.CaregiverType.String(),
 				"app":           constants.NightRoutineIdentifier,
 			}
-			if a.CaregiverType == fairness.CaregiverTypeBabysitter && a.BabysitterName != "" {
-				privateData["babysitterName"] = a.BabysitterName
+			if a.CaregiverType == fairness.CaregiverTypeBabysitter {
+				privateData["babysitterName"] = a.Parent
 			}
 
 			// Check if we already have a Google Calendar event ID for this assignment
@@ -391,11 +391,8 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 }
 
 // displayName returns the name to show in calendar events.
-// For babysitter assignments it prefers BabysitterName, falling back to Parent.
+// For all caregiver types, parent_name holds the correct display name.
 func displayName(assignment *scheduler.Assignment) string {
-	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter && assignment.BabysitterName != "" {
-		return assignment.BabysitterName
-	}
 	return assignment.Parent
 }
 

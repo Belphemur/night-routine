@@ -161,7 +161,7 @@ func TestHandleGetAssignmentDetails_BabysitterAssignment(t *testing.T) {
 	err = json.NewDecoder(w.Body).Decode(&response)
 	assert.NoError(t, err)
 	assert.Equal(t, fairness.CaregiverTypeBabysitter.String(), response.CaregiverType)
-	assert.Equal(t, "Dawn", response.BabysitterName)
+	assert.Equal(t, "Dawn", response.ParentName)
 }
 
 func TestHandleGetAssignmentDetails_NotFound(t *testing.T) {
@@ -282,7 +282,7 @@ func TestHandleSetAssignmentBabysitter_Success(t *testing.T) {
 	updated, err := tracker.GetAssignmentByID(assignment.ID)
 	require.NoError(t, err)
 	assert.Equal(t, fairness.CaregiverTypeBabysitter, updated.CaregiverType)
-	assert.Equal(t, "Dawn", updated.BabysitterName)
+	assert.Equal(t, "Dawn", updated.Parent)
 }
 
 func TestHandleSetAssignmentBabysitter_InvalidPayload(t *testing.T) {

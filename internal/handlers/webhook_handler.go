@@ -240,11 +240,7 @@ func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.
 		// If parent name hasn't changed in the summary, skip
 		if assignment.CaregiverType == assignee.CaregiverType {
 			if assignee.CaregiverType == fairness.CaregiverTypeBabysitter {
-				currentName := assignment.BabysitterName
-				if currentName == "" {
-					currentName = assignment.Parent
-				}
-				if currentName == assignee.Name {
+				if assignment.Parent == assignee.Name {
 					eventLogger.Debug().Msg("Event summary babysitter matches assignment babysitter, no update needed")
 					continue
 				}
