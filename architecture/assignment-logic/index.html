@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration">
+        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration and babysitter support">
       
       
         <meta name="author" content="Belphemur">
@@ -1217,6 +1217,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#7-babysitter-assignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Babysitter Assignment
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1836,6 +1847,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#7-babysitter-assignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Babysitter Assignment
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2238,6 +2260,21 @@
 - Internal database is updated
 - Future assignments recalculated to maintain fairness</p>
 <p><strong>Decision Reason:</strong> <code>Override</code></p>
+<h3 id="7-babysitter-assignment">7. Babysitter Assignment<a class="headerlink" href="#7-babysitter-assignment" title="Permanent link">&para;</a></h3>
+<p>Babysitter assignments are a special type of override where a named babysitter is assigned to a specific date via the web interface.</p>
+<p><strong>Key characteristics:</strong></p>
+<ul>
+<li><strong>Excluded from fairness</strong> - Babysitter dates are not counted toward either parent's statistics</li>
+<li><strong>Locked as override</strong> - The assignment is locked and won't be reassigned by the algorithm</li>
+<li><strong>Separate tracking</strong> - Babysitter stats are tracked independently on the statistics page</li>
+<li><strong>Triggers recalculation</strong> - Setting a babysitter recalculates surrounding parent assignments</li>
+</ul>
+<p><strong>Calendar format:</strong> <code>[BabysitterName] 🌃👶Routine</code> (same title format as parent events, with a different description indicating babysitter duty)</p>
+<p><strong>Decision Reason:</strong> <code>Override</code></p>
+<div class="admonition info">
+<p class="admonition-title">Fairness Impact</p>
+<p>When a babysitter is assigned, the day is effectively removed from the fairness pool. The algorithm recalculates the remaining non-override days to maintain balance between the two parents.</p>
+</div>
 <h2 id="fairness-algorithm-details">Fairness Algorithm Details<a class="headerlink" href="#fairness-algorithm-details" title="Permanent link">&para;</a></h2>
 <h3 id="balancing-total-counts">Balancing Total Counts<a class="headerlink" href="#balancing-total-counts" title="Permanent link">&para;</a></h3>
 <p>The algorithm tracks lifetime assignment counts:</p>
@@ -2406,11 +2443,13 @@
 <h2 id="advanced-customizing-the-algorithm">Advanced: Customizing the Algorithm<a class="headerlink" href="#advanced-customizing-the-algorithm" title="Permanent link">&para;</a></h2>
 <p>The fairness logic is in <code>internal/fairness/</code> and can be customized if needed:</p>
 <p><strong>Key files:</strong>
-- <code>fairness.go</code> - Main decision logic
-- <code>calculator.go</code> - Count calculations
-- <code>types.go</code> - Decision reason types</p>
+- <code>scheduler/</code> - Core scheduling algorithm (schedule generation, fairness criteria)
+- <code>tracker.go</code> - Assignment CRUD and statistics queries
+- <code>decision_reason.go</code> - Decision reason types and constants
+- <code>caregiver_type.go</code> - Caregiver type enum (parent, babysitter)
+- <code>interface.go</code> - Interfaces for tracker and scheduler</p>
 <p><strong>To customize:</strong>
-1. Modify the decision criteria in <code>fairness.go</code>
+1. Modify the decision criteria in <code>scheduler/</code>
 2. Adjust thresholds and weights
 3. Rebuild the application
 4. Test thoroughly with various scenarios</p>

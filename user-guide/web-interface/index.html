@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration">
+        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration and babysitter support">
       
       
         <meta name="author" content="Belphemur">
@@ -2832,7 +2832,8 @@
 <h4 id="color-coding">Color Coding<a class="headerlink" href="#color-coding" title="Permanent link">&para;</a></h4>
 <ul>
 <li><strong>Blue background</strong> - Parent A is assigned</li>
-<li><strong>Orange background</strong> - Parent B is assigned  </li>
+<li><strong>Orange background</strong> - Parent B is assigned</li>
+<li><strong>Slate/gray background</strong> - Babysitter is assigned</li>
 <li><strong>Yellow border</strong> - Today's date</li>
 <li><strong>Gray background</strong> - Days from previous/next month (padding)</li>
 </ul>
@@ -2845,6 +2846,7 @@
 <li><strong>Calculation Date</strong> - When the fairness algorithm evaluated this assignment</li>
 <li><strong>Parent Statistics</strong> - Both parents' total assignments and last 30-day counts at decision time</li>
 <li><strong>Decision Explanation</strong> - How the algorithm compared these statistics</li>
+<li><strong>Babysitter Assignment</strong> - Option to assign the date to a named babysitter</li>
 </ul>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Desktop</label><label for="__tabbed_2_2">Mobile</label></div>
 <div class="tabbed-content">
@@ -2855,6 +2857,7 @@
 <li>Parent A's total count and last 30 days</li>
 <li>Parent B's total count and last 30 days</li>
 <li>Explanation of the fairness algorithm's decision process</li>
+<li>Option to assign a babysitter to this date</li>
 </ul>
 </div>
 <div class="tabbed-block">
@@ -2866,7 +2869,7 @@
 <em>Mobile view of the assignment details modal</em></p>
 <div class="admonition note">
 <p class="admonition-title">Override Assignments</p>
-<p>Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed.</p>
+<p>Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed. Babysitter assignments also appear as locked overrides.</p>
 </div>
 <h4 id="decision-reasons">Decision Reasons<a class="headerlink" href="#decision-reasons" title="Permanent link">&para;</a></h4>
 <p>Each assignment includes a reason explaining why that parent was chosen:</p>
@@ -2900,7 +2903,7 @@
 </tr>
 <tr>
 <td><strong>Override</strong></td>
-<td>Manually changed via Google Calendar</td>
+<td>Manually changed via Google Calendar or babysitter assigned</td>
 </tr>
 </tbody>
 </table>
@@ -3044,6 +3047,7 @@
 <p>The statistics page (<code>/statistics</code>) provides a historical view of assignment distribution.</p>
 <h3 id="monthly-breakdown">Monthly Breakdown<a class="headerlink" href="#monthly-breakdown" title="Permanent link">&para;</a></h3>
 <p>Displays a table showing:</p>
+<p><strong>Parent Assignments:</strong></p>
 <table>
 <thead>
 <tr>
@@ -3074,11 +3078,44 @@
 </tr>
 </tbody>
 </table>
+<p><strong>Babysitter Assignments:</strong></p>
+<p>A separate section shows babysitter assignment counts per month, broken down by babysitter name:</p>
+<table>
+<thead>
+<tr>
+<th>Month</th>
+<th>Dawn</th>
+<th>Sarah</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jan 2024</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Feb 2024</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
 <h3 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Last 12 months</strong> - Shows up to 12 months of historical data</li>
 <li><strong>Only assigned months</strong> - Months without assignments are hidden</li>
-<li><strong>Fair distribution verification</strong> - Quickly see if assignments are balanced</li>
+<li><strong>Fair distribution verification</strong> - Quickly see if parent assignments are balanced</li>
+<li><strong>Babysitter tracking</strong> - Separate section for babysitter assignment history</li>
 <li><strong>Total counts</strong> - Sum of assignments per month</li>
 </ul>
 <h3 id="interpreting-statistics">Interpreting Statistics<a class="headerlink" href="#interpreting-statistics" title="Permanent link">&para;</a></h3>

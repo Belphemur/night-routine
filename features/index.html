@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration">
+        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration and babysitter support">
       
       
         <meta name="author" content="Belphemur">
@@ -553,6 +553,17 @@
     <span class="md-ellipsis">
       
         Flexible Scheduling Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#babysitter-assignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Babysitter Assignments
       
     </span>
   </a>
@@ -1712,6 +1723,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#babysitter-assignments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Babysitter Assignments
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2015,7 +2037,7 @@
 
 
 <h1 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h1>
-<p>Night Routine Scheduler offers a comprehensive set of features designed to make managing parental night routine duties simple, fair, and automated.</p>
+<p>Night Routine Scheduler offers a comprehensive set of features designed to make managing parental night routine duties simple, fair, and automated. It also supports optional babysitter assignments for nights when neither parent is handling the routine.</p>
 <h2 id="core-scheduling">Core Scheduling<a class="headerlink" href="#core-scheduling" title="Permanent link">&para;</a></h2>
 <h3 id="advanced-fairness-algorithm">Advanced Fairness Algorithm<a class="headerlink" href="#advanced-fairness-algorithm" title="Permanent link">&para;</a></h3>
 <p>The application uses a sophisticated multi-criteria fairness algorithm to ensure equitable distribution of night routine duties:</p>
@@ -2034,6 +2056,16 @@
 <li><strong>Manual Sync on Startup</strong> - Optionally synchronize schedules when the application starts (enabled by default)</li>
 <li><strong>On-Demand Synchronization</strong> - Trigger manual schedule updates via the web interface</li>
 </ul>
+<h3 id="babysitter-assignments">Babysitter Assignments<a class="headerlink" href="#babysitter-assignments" title="Permanent link">&para;</a></h3>
+<p>In addition to the two-parent fairness algorithm, the application supports assigning specific dates to named babysitters:</p>
+<ul>
+<li><strong>Manual Assignment</strong> - Click any assignment on the calendar and assign a babysitter by name</li>
+<li><strong>Excluded from Fairness</strong> - Babysitter assignments are completely excluded from parent fairness calculations</li>
+<li><strong>Separate Statistics</strong> - Babysitter usage is tracked and displayed in its own section on the statistics page</li>
+<li><strong>Automatic Lock</strong> - Babysitter assignments are automatically locked as overrides, preventing the algorithm from reassigning them</li>
+<li><strong>Schedule Recalculation</strong> - Setting a babysitter triggers automatic recalculation of surrounding assignments to maintain parent fairness</li>
+<li><strong>Reversible</strong> - Babysitter assignments can be unlocked, reverting them to normal parent scheduling</li>
+</ul>
 <h2 id="google-calendar-integration">Google Calendar Integration<a class="headerlink" href="#google-calendar-integration" title="Permanent link">&para;</a></h2>
 <h3 id="oauth2-authentication">OAuth2 Authentication<a class="headerlink" href="#oauth2-authentication" title="Permanent link">&para;</a></h3>
 <ul>
@@ -2044,9 +2076,10 @@
 <h3 id="automatic-event-creation">Automatic Event Creation<a class="headerlink" href="#automatic-event-creation" title="Permanent link">&para;</a></h3>
 <p>All calendar events are created with:</p>
 <ul>
-<li><strong>Consistent Naming</strong> - Events follow the format: <code>[ParentName] 🌃👶Routine</code></li>
+<li><strong>Consistent Naming</strong> - All events follow the format: <code>[Name] 🌃👶Routine</code> for both parents and babysitters</li>
 <li><strong>All-Day Events</strong> - Events span the entire day for simplicity</li>
 <li><strong>Decision Reasons</strong> - Event descriptions include the reason for the assignment</li>
+<li><strong>Babysitter Distinction</strong> - Babysitter event descriptions indicate the night is handled by a babysitter</li>
 <li><strong>No Reminders</strong> - Events are created without reminders to avoid notification fatigue</li>
 <li><strong>Intelligent Updates</strong> - Existing events are updated rather than deleted and recreated</li>
 </ul>
@@ -2057,7 +2090,7 @@
 <li><strong>Manual Override Detection</strong> - Detects when event titles are manually edited in Google Calendar</li>
 </ul>
 <h3 id="manual-override-support">Manual Override Support<a class="headerlink" href="#manual-override-support" title="Permanent link">&para;</a></h3>
-<p>Users can override assignments by editing event titles directly in Google Calendar:</p>
+<p>Users can override assignments by editing event titles directly in Google Calendar or by assigning a babysitter via the web interface:</p>
 <ul>
 <li><strong>Configurable Threshold</strong> - Only accepts changes for events within a specified timeframe (default: 5 days in the past)</li>
 <li><strong>Automatic Recalculation</strong> - Future assignments are recalculated to maintain fairness after manual overrides</li>
@@ -2083,7 +2116,7 @@
 <li><strong>Dashboard View</strong> - Central hub for all night routine management</li>
 <li><strong>Authentication Status Card</strong> - Prominent display of Google Calendar connection status</li>
 <li><strong>Visual Monthly Assignment Calendar</strong>:</li>
-<li>Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B)</li>
+<li>Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B, slate/gray for babysitter)</li>
 <li>Subtle today highlight with yellow background</li>
 <li>Rounded corners and modern table design</li>
 <li>Assignment decision reasons (elegant tooltips on desktop, inline on mobile)</li>
@@ -2108,6 +2141,7 @@
 <li><strong>Parent A Statistics</strong> - Total assignments and last 30-day count at decision time</li>
 <li><strong>Parent B Statistics</strong> - Total assignments and last 30-day count at decision time</li>
 <li><strong>Decision Explanation</strong> - How the algorithm compared these statistics to ensure balanced distribution</li>
+<li><strong>Babysitter Option</strong> - Assign the date to a named babysitter directly from the modal</li>
 </ul>
 <p>This transparency feature helps users understand and trust the automated assignment process by providing complete visibility into the fairness calculations.</p>
 <h3 id="calendar-selection-page">Calendar Selection Page<a class="headerlink" href="#calendar-selection-page" title="Permanent link">&para;</a></h3>
@@ -2135,6 +2169,7 @@
 <li><strong>Monthly Assignment Counts</strong> - Color-coded badges for each count</li>
 <li><strong>12-Month History</strong> - Displays data for the last 12 months</li>
 <li><strong>Fair Distribution Verification</strong> - Helps verify equitable distribution over time</li>
+<li><strong>Babysitter Statistics</strong> - Separate section showing babysitter assignment counts per month</li>
 <li><strong>Empty State Design</strong> - Friendly message when no data is available</li>
 </ul>
 <h3 id="responsive-design">Responsive Design<a class="headerlink" href="#responsive-design" title="Permanent link">&para;</a></h3>
@@ -2149,7 +2184,8 @@
 <h3 id="sqlite-database">SQLite Database<a class="headerlink" href="#sqlite-database" title="Permanent link">&para;</a></h3>
 <p>The application uses SQLite for persistent storage with the following features:</p>
 <ul>
-<li><strong>Assignment History</strong> - Complete record of all assignments with decision reasons</li>
+<li><strong>Assignment History</strong> - Complete record of all assignments with decision reasons and caregiver type</li>
+<li><strong>Caregiver Tracking</strong> - Distinguishes between parent and babysitter assignments</li>
 <li><strong>OAuth2 Tokens</strong> - Securely stored tokens with automatic refresh capability</li>
 <li><strong>Calendar Configuration</strong> - Selected Google Calendar settings</li>
 <li><strong>Notification Channels</strong> - Management of webhook notification channels</li>
@@ -2172,7 +2208,7 @@
 <li><strong>Recent Count</strong> - Parent had fewer recent assignments</li>
 <li><strong>Consecutive Limit</strong> - Assignment made to avoid too many consecutive duties</li>
 <li><strong>Alternating</strong> - Maintains fair alternating pattern</li>
-<li><strong>Manual Override</strong> - User manually changed the assignment via Google Calendar</li>
+<li><strong>Manual Override</strong> - User manually changed the assignment via Google Calendar or assigned a babysitter</li>
 </ul>
 <h2 id="operations-deployment">Operations &amp; Deployment<a class="headerlink" href="#operations-deployment" title="Permanent link">&para;</a></h2>
 <h3 id="structured-logging">Structured Logging<a class="headerlink" href="#structured-logging" title="Permanent link">&para;</a></h3>

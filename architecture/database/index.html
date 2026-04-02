@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration">
+        <meta name="description" content="A Go application that manages night routine scheduling between two parents with Google Calendar integration and babysitter support">
       
       
         <meta name="author" content="Belphemur">
@@ -2707,12 +2707,22 @@
 <tr>
 <td><code>parent</code></td>
 <td>TEXT NOT NULL</td>
-<td>Parent name (Parent A or Parent B)</td>
+<td>Assigned name (parent or babysitter display name)</td>
 </tr>
 <tr>
 <td><code>reason</code></td>
 <td>TEXT NOT NULL</td>
 <td>Decision reason</td>
+</tr>
+<tr>
+<td><code>caregiver_type</code></td>
+<td>TEXT NOT NULL DEFAULT 'parent'</td>
+<td>Caregiver type: <code>parent</code> or <code>babysitter</code></td>
+</tr>
+<tr>
+<td><code>babysitter_name</code></td>
+<td>TEXT</td>
+<td>Babysitter name (NULL for parent assignments)</td>
 </tr>
 <tr>
 <td><code>created_at</code></td>
@@ -2736,7 +2746,10 @@
 - <code>Recent Count</code> - Balance recent assignments
 - <code>Consecutive Limit</code> - Avoid too many consecutive assignments
 - <code>Alternating</code> - Maintain alternating pattern
-- <code>Override</code> - Manual change via Google Calendar</p>
+- <code>Override</code> - Manual change via Google Calendar or babysitter assignment</p>
+<p><strong>Caregiver Types:</strong>
+- <code>parent</code> - Standard parent assignment (participates in fairness algorithm)
+- <code>babysitter</code> - Babysitter override (excluded from parent fairness calculations)</p>
 <h4 id="oauth_tokens"><code>oauth_tokens</code><a class="headerlink" href="#oauth_tokens" title="Permanent link">&para;</a></h4>
 <p>Stores Google OAuth2 access and refresh tokens.</p>
 <table>
