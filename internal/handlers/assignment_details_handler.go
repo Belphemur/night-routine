@@ -141,10 +141,7 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 				AssignmentID:   assignment.ID,
 				DecisionReason: assignment.DecisionReason.String(),
 				CaregiverType:  assignment.CaregiverType.String(),
-				BabysitterName: assignment.BabysitterName,
-			}
-			if response.BabysitterName == "" {
-				response.BabysitterName = assignment.Parent
+				BabysitterName: assignment.Parent,
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -171,13 +168,15 @@ func (h *AssignmentDetailsHandler) handleGetAssignmentDetails(w http.ResponseWri
 		CalculationDate:   details.CalculationDate.Format("2006-01-02"),
 		DecisionReason:    assignment.DecisionReason.String(),
 		CaregiverType:     assignment.CaregiverType.String(),
-		BabysitterName:    assignment.BabysitterName,
 		ParentAName:       details.ParentAName,
 		ParentATotalCount: details.ParentATotalCount,
 		ParentALast30Days: details.ParentALast30Days,
 		ParentBName:       details.ParentBName,
 		ParentBTotalCount: details.ParentBTotalCount,
 		ParentBLast30Days: details.ParentBLast30Days,
+	}
+	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter {
+		response.BabysitterName = assignment.Parent
 	}
 
 	w.Header().Set("Content-Type", "application/json")

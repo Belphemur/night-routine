@@ -594,7 +594,6 @@ func TestUpdateAssignmentToBabysitter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, updated)
 	assert.Equal(t, CaregiverTypeBabysitter, updated.CaregiverType)
-	assert.Equal(t, "Dawn", updated.BabysitterName)
 	assert.Equal(t, "Dawn", updated.Parent)
 	assert.True(t, updated.Override)
 	assert.Equal(t, DecisionReasonOverride, updated.DecisionReason)
@@ -605,7 +604,6 @@ func TestUpdateAssignmentToBabysitter(t *testing.T) {
 	updated, err = tracker.GetAssignmentByID(assignment.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, CaregiverTypeParent, updated.CaregiverType)
-	assert.Empty(t, updated.BabysitterName)
 	assert.Equal(t, "Bob", updated.Parent)
 }
 
@@ -657,7 +655,6 @@ func TestUnlockAssignment_ClearsBabysitterState(t *testing.T) {
 	assert.NotNil(t, updated)
 	assert.False(t, updated.Override)
 	assert.Equal(t, CaregiverTypeParent, updated.CaregiverType)
-	assert.Empty(t, updated.BabysitterName)
 	// parent_name retains the babysitter name after unlock (the scheduler
 	// will overwrite it when it regenerates the schedule in the handler).
 	assert.Equal(t, "Dawn", updated.Parent)
@@ -726,7 +723,6 @@ func TestRecordBabysitterAssignment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, assignment)
 		assert.Equal(t, "Dawn", assignment.Parent)
-		assert.Equal(t, "Dawn", assignment.BabysitterName)
 		assert.Equal(t, CaregiverTypeBabysitter, assignment.CaregiverType)
 		assert.True(t, assignment.Override)
 		assert.Equal(t, DecisionReasonOverride, assignment.DecisionReason)
@@ -745,7 +741,7 @@ func TestRecordBabysitterAssignment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, original.ID, updated.ID, "should be the same row via upsert")
 		assert.Equal(t, CaregiverTypeBabysitter, updated.CaregiverType)
-		assert.Equal(t, "Dawn", updated.BabysitterName)
+		assert.Equal(t, "Dawn", updated.Parent)
 	})
 }
 

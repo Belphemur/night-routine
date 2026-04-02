@@ -39,7 +39,6 @@ type Assignment struct {
 	Date                  time.Time
 	Parent                string
 	ParentType            ParentType
-	BabysitterName        string
 	CaregiverType         fairness.CaregiverType
 	GoogleCalendarEventID string
 	DecisionReason        fairness.DecisionReason
@@ -221,7 +220,6 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 				Date:                  fixedAssignment.Date,
 				Parent:                fixedAssignment.Parent,
 				ParentType:            parentType,
-				BabysitterName:        fixedAssignment.BabysitterName,
 				CaregiverType:         fixedAssignment.CaregiverType,
 				GoogleCalendarEventID: fixedAssignment.GoogleCalendarEventID,
 				DecisionReason:        fixedAssignment.DecisionReason, // Use the reason from the fixed assignment
@@ -315,7 +313,6 @@ func (s *Scheduler) assignForDate(date time.Time, cfg *scheduleConfig) (*Assignm
 		Date:                  trackerAssignment.Date,
 		Parent:                trackerAssignment.Parent,
 		ParentType:            parentType,
-		BabysitterName:        trackerAssignment.BabysitterName,
 		CaregiverType:         trackerAssignment.CaregiverType,
 		GoogleCalendarEventID: trackerAssignment.GoogleCalendarEventID,
 		DecisionReason:        trackerAssignment.DecisionReason,
@@ -373,7 +370,6 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 		Date:                  assignment.Date,
 		Parent:                assignment.Parent,
 		ParentType:            parentType,
-		BabysitterName:        assignment.BabysitterName,
 		CaregiverType:         assignment.CaregiverType,
 		GoogleCalendarEventID: assignment.GoogleCalendarEventID,
 		DecisionReason:        assignment.DecisionReason,

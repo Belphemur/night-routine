@@ -282,7 +282,7 @@ func TestHandleSetAssignmentBabysitter_Success(t *testing.T) {
 	updated, err := tracker.GetAssignmentByID(assignment.ID)
 	require.NoError(t, err)
 	assert.Equal(t, fairness.CaregiverTypeBabysitter, updated.CaregiverType)
-	assert.Equal(t, "Dawn", updated.BabysitterName)
+	assert.Equal(t, "Dawn", updated.Parent)
 }
 
 func TestHandleSetAssignmentBabysitter_InvalidPayload(t *testing.T) {

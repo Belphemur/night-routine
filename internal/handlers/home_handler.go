@@ -125,7 +125,7 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 			if day.Assignment != nil {
 				dayJSON.AssignmentID = day.Assignment.ID
 				dayJSON.AssignmentParent = day.Assignment.Parent
-				dayJSON.BabysitterName = day.Assignment.BabysitterName
+				dayJSON.BabysitterName = day.Assignment.Parent
 				dayJSON.CaregiverType = day.Assignment.CaregiverType.String()
 				dayJSON.AssignmentReason = string(day.Assignment.DecisionReason)
 				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"

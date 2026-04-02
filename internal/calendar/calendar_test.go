@@ -24,22 +24,20 @@ func TestDisplayName(t *testing.T) {
 			want: "Alice",
 		},
 		{
-			name: "babysitter assignment uses BabysitterName",
+			name: "babysitter assignment uses Parent name",
 			assignment: &scheduler.Assignment{
-				Parent:         "Alice",
-				BabysitterName: "Dawn",
-				CaregiverType:  fairness.CaregiverTypeBabysitter,
+				Parent:        "Dawn",
+				CaregiverType: fairness.CaregiverTypeBabysitter,
 			},
 			want: "Dawn",
 		},
 		{
-			name: "babysitter with empty name falls back to Parent",
+			name: "babysitter with parent name",
 			assignment: &scheduler.Assignment{
-				Parent:         "Alice",
-				BabysitterName: "",
-				CaregiverType:  fairness.CaregiverTypeBabysitter,
+				Parent:        "Dawn",
+				CaregiverType: fairness.CaregiverTypeBabysitter,
 			},
-			want: "Alice",
+			want: "Dawn",
 		},
 	}
 
@@ -67,9 +65,8 @@ func TestFormatEventSummary(t *testing.T) {
 		{
 			name: "babysitter assignment",
 			assignment: &scheduler.Assignment{
-				Parent:         "Alice",
-				BabysitterName: "Dawn",
-				CaregiverType:  fairness.CaregiverTypeBabysitter,
+				Parent:        "Dawn",
+				CaregiverType: fairness.CaregiverTypeBabysitter,
 			},
 			want: "[Dawn] \U0001f303\U0001f476Routine",
 		},
@@ -102,8 +99,7 @@ func TestFormatEventDescription(t *testing.T) {
 		{
 			name: "babysitter assignment says handled by babysitter",
 			assignment: &scheduler.Assignment{
-				Parent:         "Alice",
-				BabysitterName: "Dawn",
+				Parent:         "Dawn",
 				CaregiverType:  fairness.CaregiverTypeBabysitter,
 				DecisionReason: fairness.DecisionReasonOverride,
 			},
