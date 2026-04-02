@@ -135,7 +135,8 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 7. **Run tests**: Execute `go test ./...` to ensure nothing breaks
 8. **Generate assets**: If templates/CSS changed, run `go generate ./...`
 9. **Verify the build**: Build the application to ensure it compiles
-10. **Commit changes**: Use semantic/conventional commit format
+10. **Record design decisions**: If the change involves algorithm, business logic, or architectural trade-offs, use the `record-decision` skill to document it in `docs/design-decisions/`
+11. **Commit changes**: Use semantic/conventional commit format
 
 ### Commit Messages
 
@@ -229,6 +230,12 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - User documentation in `docs-site/` (MkDocs)
 - Add comments for complex logic and public APIs
 - Update relevant docs when changing functionality
+- **Design decisions** are recorded in `docs/design-decisions/` using the `record-decision` skill
+  - Use the `record-decision` skill whenever a code change involves a non-trivial design choice, trade-off, or new pattern (e.g., algorithm changes, business logic reordering, new architectural patterns)
+  - Decisions are grouped by domain in separate files (e.g., `fairness.md`, `calendar.md`)
+  - Each decision records **what** was decided, **why** (trade-offs, alternatives), and **where** it lives in code
+  - The template is at `docs/design-decisions/TEMPLATE.md`
+  - This is a valuable historical record — always check existing decisions before making related changes
 
 ## Coding Conventions
 
