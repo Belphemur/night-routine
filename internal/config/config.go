@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/go-viper/mapstructure/v2"
-	ktoml "github.com/knadh/koanf/parsers/toml"
+	ktoml "github.com/knadh/koanf/parsers/toml/v2"
 	"github.com/knadh/koanf/providers/confmap"
-	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	koanf "github.com/knadh/koanf/v2"
 
@@ -144,10 +144,13 @@ func Load(path string) (*Config, error) {
 	// 4. NR_* env vars (highest precedence).
 	// NR_SECTION__FIELD_NAME → section.field_name
 	// e.g. NR_APP__PORT → app.port, NR_OAUTH__CLIENT_ID → oauth.client_id
-	if err := k.Load(env.Provider("NR_", ".", func(s string) string {
-		s = strings.TrimPrefix(s, "NR_")
-		s = strings.ToLower(s)
-		return strings.ReplaceAll(s, "__", ".")
+	if err := k.Load(env.Provider(".", env.Opt{
+		Prefix: "NR_",
+		TransformFunc: func(s string, v string) (string, any) {
+			s = strings.TrimPrefix(s, "NR_")
+			s = strings.ToLower(s)
+			return strings.ReplaceAll(s, "__", "."), v
+		},
 	}), nil); err != nil {
 		return nil, fmt.Errorf("failed to load NR_ env vars: %w", err)
 	}
