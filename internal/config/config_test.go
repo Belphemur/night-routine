@@ -350,6 +350,21 @@ look_ahead_days = 1
 state_file = "s.db"`,
 			expectedErr: "invalid public_url 'http://app url with spaces.com'", // Update expected error
 		},
+		{
+			name: "Missing State File",
+			tomlContent: `
+[app]
+app_url = "http://a.com"
+public_url = "http://p.com"
+[parents]
+parent_a = "A"
+parent_b = "B"
+[schedule]
+update_frequency = "daily"
+look_ahead_days = 1
+[service]`,
+			expectedErr: "service.state_file is required",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -666,4 +681,32 @@ state_file = %q
 	require.NoError(t, errAbs)
 	assert.Equal(t, absPath, cfgAbs.Service.StateFile)
 	assert.True(t, filepath.IsAbs(cfgAbs.Service.StateFile))
+}
+
+func TestLoadConfig_TrailingSlashAppUrl(t *testing.T) {
+// app_url with a trailing slash must not produce a double-slash redirect URL
+tomlContent := `
+[app]
+app_url = "http://localhost:8888/"
+public_url = "http://localhost:8888/"
+[parents]
+parent_a = "A"
+parent_b = "B"
+[schedule]
+update_frequency = "weekly"
+look_ahead_days = 7
+[service]
+state_file = "state.db"
+`
+configFile := createTempConfigFile(t, tomlContent)
+setEnvVars(t, map[string]string{
+"NR_OAUTH__CLIENT_ID":     "id",
+"NR_OAUTH__CLIENT_SECRET": "secret",
+})
+
+cfg, err := Load(configFile)
+require.NoError(t, err)
+
+assert.Equal(t, "http://localhost:8888/oauth/callback", cfg.OAuth.RedirectURL,
+"trailing slash in app_url must not produce a double-slash redirect URL")
 }

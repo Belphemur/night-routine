@@ -167,6 +167,11 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// Validate state_file before path resolution to catch missing values early.
+	if cfg.Service.StateFile == "" {
+		return nil, fmt.Errorf("service.state_file is required (set NR_SERVICE__STATE_FILE or service.state_file in TOML)")
+	}
+
 	// Resolve relative state file paths against the config file's parent directory.
 	if !filepath.IsAbs(cfg.Service.StateFile) {
 		configDir := filepath.Dir(path)
@@ -180,7 +185,7 @@ func Load(path string) (*Config, error) {
 	cfg.OAuth = &oauth2.Config{
 		ClientID:     cfg.Credentials.ClientID,
 		ClientSecret: cfg.Credentials.ClientSecret,
-		RedirectURL:  cfg.App.AppUrl + "/oauth/callback",
+		RedirectURL:  strings.TrimSuffix(cfg.App.AppUrl, "/") + "/oauth/callback",
 		Scopes: []string{
 			calendar.CalendarEventsScope,
 			calendar.CalendarCalendarlistReadonlyScope,
