@@ -100,14 +100,16 @@ func TestDetermineAssignmentForDate(t *testing.T) {
 
 	var lastAssignments []*fairness.Assignment
 
+	cfg := testScheduleConfig(store)
+
 	// Monday: Alice is unavailable
-	parent, reason, err := scheduler.determineParentForDate(monday, lastAssignments, stats)
+	parent, reason, err := scheduler.determineParentForDate(monday, lastAssignments, stats, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonUnavailability, reason)
 
 	// Thursday: Bob is unavailable
-	parent, reason, err = scheduler.determineParentForDate(thursday, lastAssignments, stats)
+	parent, reason, err = scheduler.determineParentForDate(thursday, lastAssignments, stats, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonUnavailability, reason)
@@ -127,8 +129,10 @@ func TestAssignForDate(t *testing.T) {
 	monday := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC)   // Monday
 	thursday := time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC) // Thursday
 
+	cfg := testScheduleConfig(store)
+
 	// Monday: Alice is unavailable, so Bob should be assigned
-	assignment, err := scheduler.assignForDate(monday)
+	assignment, err := scheduler.assignForDate(monday, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", assignment.Parent)
 
@@ -140,7 +144,7 @@ func TestAssignForDate(t *testing.T) {
 	assert.Equal(t, monday.Format("2006-01-02"), recordedAssignments[0].Date.Format("2006-01-02"))
 
 	// Thursday: Bob is unavailable, so Alice should be assigned
-	assignment, err = scheduler.assignForDate(thursday)
+	assignment, err = scheduler.assignForDate(thursday, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", assignment.Parent)
 
@@ -229,8 +233,10 @@ func TestBothParentsUnavailable(t *testing.T) {
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
+	cfg := testScheduleConfig(store)
+
 	// Should return an error when both parents are unavailable
-	_, _, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats)
+	_, _, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats, cfg)
 	assert.Error(t, err)
 }
 

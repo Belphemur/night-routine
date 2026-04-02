@@ -154,7 +154,7 @@ Babysitter assignments are a special type of override where a named babysitter i
 **Decision Reason:** `Override`
 
 !!! info "Fairness Impact"
-When a babysitter is assigned, the day is effectively removed from the fairness pool. The algorithm recalculates the remaining non-override days to maintain balance between the two parents.
+    When a babysitter is assigned, the day is effectively removed from the fairness pool. The algorithm recalculates the remaining non-override days to maintain balance between the two parents.
 
 ## Fairness Algorithm Details
 
@@ -207,6 +207,7 @@ if recentCountA < recentCountB {
 } else if recentCountB < recentCountA {
     assign(ParentB, "Recent Count")
 }
+```
 
 ## Example Scenarios
 

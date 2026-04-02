@@ -46,6 +46,15 @@ type Assignment struct {
 	UpdatedAt             time.Time
 }
 
+// scheduleConfig holds configuration resolved once per GenerateSchedule call
+// to avoid repeated config store queries for every day in the range.
+type scheduleConfig struct {
+	parentA            string
+	parentB            string
+	parentAUnavailable []string
+	parentBUnavailable []string
+}
+
 // Scheduler handles the night routine scheduling logic
 type Scheduler struct {
 	configStore config.ConfigStoreInterface
@@ -67,6 +76,29 @@ func (s *Scheduler) getParents() (parentA, parentB string, err error) {
 	return s.configStore.GetParents()
 }
 
+// resolveScheduleConfig fetches parents and availability once from the config
+// store so that the per-day assignment loop does not repeat those queries.
+func (s *Scheduler) resolveScheduleConfig() (*scheduleConfig, error) {
+	parentA, parentB, err := s.configStore.GetParents()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parent names: %w", err)
+	}
+	parentADays, err := s.configStore.GetAvailability("parent_a")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parent_a availability: %w", err)
+	}
+	parentBDays, err := s.configStore.GetAvailability("parent_b")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parent_b availability: %w", err)
+	}
+	return &scheduleConfig{
+		parentA:            parentA,
+		parentB:            parentB,
+		parentAUnavailable: parentADays,
+		parentBUnavailable: parentBDays,
+	}, nil
+}
+
 // GenerateSchedule creates a schedule for the specified date range, considering a current time.
 // Assignments that are overridden or occurred before/on currentTime are considered fixed.
 // When an override exists on or after the current day, all non-override days after that override are recalculated.
@@ -78,11 +110,14 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		Logger()
 	genLogger.Info().Msg("Generating schedule")
 
-	parentA, _, err := s.getParents()
+	// Resolve config once for the entire schedule generation to avoid
+	// repeated config store queries for every day in the range.
+	cfg, err := s.resolveScheduleConfig()
 	if err != nil {
-		genLogger.Error().Err(err).Msg("Failed to get parent names")
-		return nil, fmt.Errorf("failed to get parent names: %w", err)
+		genLogger.Error().Err(err).Msg("Failed to resolve schedule config")
+		return nil, fmt.Errorf("failed to resolve schedule config: %w", err)
 	}
+	parentA := cfg.parentA
 
 	var schedule []*Assignment
 	current := start
@@ -196,7 +231,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		} else {
 			dayLogger.Debug().Msg("No fixed assignment found for this date, assigning parent")
 			// No fixed assignment, determine assignment based on fairness rules
-			assignment, err := s.assignForDate(current)
+			assignment, err := s.assignForDate(current, cfg)
 			if err != nil {
 				dayLogger.Error().Err(err).Msg("Failed to assign parent for date")
 				// Wrap error with date context
@@ -213,16 +248,14 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 	return schedule, nil
 }
 
-// assignForDate determines who should do the night routine on a specific date and records it
-func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
+// assignForDate determines who should do the night routine on a specific date and records it.
+// It uses the pre-resolved scheduleConfig to avoid repeated config store queries.
+func (s *Scheduler) assignForDate(date time.Time, cfg *scheduleConfig) (*Assignment, error) {
 	assignLogger := s.logger.With().Str("date", date.Format("2006-01-02")).Logger()
 	assignLogger.Debug().Msg("Assigning parent for date")
 
-	parentAName, parentBName, err := s.getParents()
-	if err != nil {
-		assignLogger.Error().Err(err).Msg("Failed to get parent names")
-		return nil, fmt.Errorf("failed to get parent names: %w", err)
-	}
+	parentAName := cfg.parentA
+	parentBName := cfg.parentB
 
 	// Get last assignments up to the given date to ensure fairness, including overridden ones
 	assignLogger.Debug().Msg("Fetching last assignments")
@@ -244,7 +277,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 
 	// Determine the next parent to assign based on fairness rules
 	assignLogger.Debug().Msg("Determining parent based on fairness rules")
-	parent, decisionReason, err := s.determineParentForDate(date, lastAssignments, stats)
+	parent, decisionReason, err := s.determineParentForDate(date, lastAssignments, stats, cfg)
 	if err != nil {
 		assignLogger.Error().Err(err).Msg("Failed to determine parent for date")
 		return nil, err // Error already has context
@@ -397,29 +430,18 @@ func resolveParentType(a *fairness.Assignment, parentAName string) ParentType {
 	return ParentTypeB
 }
 
-// determineParentForDate determines who should do the night routine on a specific date
-func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason, error) {
+// determineParentForDate determines who should do the night routine on a specific date.
+// It uses the pre-resolved scheduleConfig for parent names and availability.
+func (s *Scheduler) determineParentForDate(date time.Time, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats, cfg *scheduleConfig) (string, fairness.DecisionReason, error) {
 	determineLogger := s.logger.With().Str("date", date.Format("2006-01-02")).Logger()
 	determineLogger.Debug().Msg("Determining parent for date considering unavailability")
 	dayOfWeek := date.Format("Monday")
 
-	parentA, parentB, err := s.getParents()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get parent names: %w", err)
-	}
+	parentA := cfg.parentA
+	parentB := cfg.parentB
 
-	// Check unavailability from config store
-	parentADays, err := s.configStore.GetAvailability("parent_a")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get parent_a availability: %w", err)
-	}
-	parentBDays, err := s.configStore.GetAvailability("parent_b")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get parent_b availability: %w", err)
-	}
-
-	parentAUnavailable := contains(parentADays, dayOfWeek)
-	parentBUnavailable := contains(parentBDays, dayOfWeek)
+	parentAUnavailable := contains(cfg.parentAUnavailable, dayOfWeek)
+	parentBUnavailable := contains(cfg.parentBUnavailable, dayOfWeek)
 	determineLogger.Debug().
 		Str("day_of_week", dayOfWeek).
 		Bool("parent_a_unavailable", parentAUnavailable).

@@ -47,6 +47,17 @@ func newTestConfigStore(parentA, parentB string, parentAUnavailable, parentBUnav
 	}
 }
 
+// testScheduleConfig builds a scheduleConfig from a testConfigStore for tests
+// that call assignForDate or determineParentForDate directly.
+func testScheduleConfig(store *testConfigStore) *scheduleConfig {
+	return &scheduleConfig{
+		parentA:            store.parentA,
+		parentB:            store.parentB,
+		parentAUnavailable: store.parentAUnavailable,
+		parentBUnavailable: store.parentBUnavailable,
+	}
+}
+
 // setupTestDB creates a new in-memory database for testing
 func setupTestDB(t *testing.T) (*database.DB, func()) {
 	// Create a new in-memory database with shared cache and foreign keys enabled

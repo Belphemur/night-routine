@@ -108,6 +108,7 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			tracker, err := fairness.New(db)
 			assert.NoError(t, err)
 			scheduler := New(store, tracker)
+			cfg := testScheduleConfig(store)
 
 			// Start from a Sunday to ensure we cover a full week
 			startDate := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday
@@ -122,7 +123,7 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 			for day := 0; day < tc.days; day++ {
 				date := startDate.AddDate(0, 0, day)
 
-				assignment, err := scheduler.assignForDate(date)
+				assignment, err := scheduler.assignForDate(date, cfg)
 				assert.NoError(t, err)
 
 				// Count the assignment
@@ -208,9 +209,10 @@ func TestAssignForDateWithSpecificDays(t *testing.T) {
 			tracker, err := fairness.New(db)
 			assert.NoError(t, err)
 			scheduler := New(store, tracker)
+			cfg := testScheduleConfig(store)
 
 			// Assign for the specific date
-			assignment, err := scheduler.assignForDate(tc.date)
+			assignment, err := scheduler.assignForDate(tc.date, cfg)
 			assert.NoError(t, err)
 
 			// Verify the assignment matches the expected parent

@@ -783,6 +783,7 @@ func TestProcessEventsWithinTransaction_PastEventThreshold(t *testing.T) {
 			// Create real scheduler — uses mockConfigStore for parent/availability lookups
 			mockConfigStore := new(MockConfigStore)
 			mockConfigStore.On("GetSchedule").Return("daily", 7, tt.thresholdDays, constants.StatsOrderDesc, nil)
+			mockConfigStore.On("GetParents").Return("OriginalParent", "NewParent", nil)
 			mockConfigStore.On("GetAvailability", mock.Anything).Maybe().Return([]string{}, nil)
 			scheduler := Scheduler.New(mockConfigStore, tracker)
 
