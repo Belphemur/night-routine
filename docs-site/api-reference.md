@@ -241,6 +241,7 @@ Content-Type: text/html
 
 **Data Shown:**
 - Monthly assignment counts per parent
+- Monthly babysitter assignment counts (separate section)
 - Last 12 months
 - Total assignments per month
 
@@ -293,6 +294,77 @@ HTTP/1.1 200 OK
 - Calendar events are created
 - Events are modified
 - Events are deleted
+
+---
+
+### Assignment Management
+
+#### `GET /api/assignment-details`
+
+Retrieves detailed fairness calculation data for a specific assignment.
+
+**Request:**
+```http
+GET /api/assignment-details?assignment_id=123 HTTP/1.1
+Host: localhost:8080
+Cookie: session=...
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `assignment_id` | integer | Yes | Assignment database ID |
+
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"assignment_id":123,"calculation_date":"2024-01-15","decision_reason":"Total Count","caregiver_type":"parent","parent_a_name":"Alice","parent_a_total_count":5,"parent_a_last_30_days":3,"parent_b_name":"Bob","parent_b_total_count":7,"parent_b_last_30_days":4}
+```
+
+**Authentication:** Required
+
+---
+
+#### `POST /api/assignment-babysitter`
+
+Assigns a babysitter to a specific date. The assignment is locked as an override and excluded from parent fairness calculations.
+
+**Request:**
+```http
+POST /api/assignment-babysitter HTTP/1.1
+Host: localhost:8080
+Cookie: session=...
+Content-Type: application/json
+
+{"assignment_id": 123, "babysitter_name": "Dawn"}
+```
+
+**JSON Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `assignment_id` | integer | Yes | Assignment database ID |
+| `babysitter_name` | string | Yes | Name of the babysitter |
+
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"status": "ok"}
+```
+
+**Authentication:** Required
+
+**Actions:**
+1. Updates the assignment's caregiver type to `babysitter`
+2. Stores the babysitter name
+3. Locks the assignment as an override
+4. Recalculates future parent assignments to maintain fairness
+5. Syncs updated events to Google Calendar
 
 ---
 
@@ -434,14 +506,21 @@ Represents a night routine assignment.
 
 ```go
 type Assignment struct {
-    ID        int64     // Database ID
-    Date      time.Time // Assignment date
-    Parent    string    // Parent name (ParentA or ParentB)
-    Reason    string    // Decision reason
-    CreatedAt time.Time // Creation timestamp
-    UpdatedAt time.Time // Last update timestamp
+    ID             int64         // Database ID
+    Date           time.Time     // Assignment date
+    Parent         string        // Display name (parent or babysitter)
+    Reason         string        // Decision reason
+    CaregiverType  CaregiverType // "parent" or "babysitter"
+    BabysitterName string        // Babysitter name (empty for parent assignments)
+    Override       bool          // Whether this is a manual override
+    CreatedAt      time.Time     // Creation timestamp
+    UpdatedAt      time.Time     // Last update timestamp
 }
 ```
+
+**Caregiver Types:**
+- `parent` - Standard parent assignment (participates in fairness)
+- `babysitter` - Babysitter override (excluded from fairness)
 
 **Decision Reasons:**
 - `Unavailability`

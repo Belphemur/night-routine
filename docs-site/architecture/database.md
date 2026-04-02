@@ -104,8 +104,10 @@ Stores night routine assignment history and fairness tracking.
 |--------|------|-------------|
 | `id` | INTEGER PRIMARY KEY | Auto-incrementing ID |
 | `date` | TEXT UNIQUE NOT NULL | ISO date (YYYY-MM-DD) |
-| `parent` | TEXT NOT NULL | Parent name (Parent A or Parent B) |
+| `parent` | TEXT NOT NULL | Assigned name (parent or babysitter display name) |
 | `reason` | TEXT NOT NULL | Decision reason |
+| `caregiver_type` | TEXT NOT NULL DEFAULT 'parent' | Caregiver type: `parent` or `babysitter` |
+| `babysitter_name` | TEXT | Babysitter name (NULL for parent assignments) |
 | `created_at` | TEXT NOT NULL | Creation timestamp |
 | `updated_at` | TEXT NOT NULL | Last update timestamp |
 
@@ -120,7 +122,11 @@ Stores night routine assignment history and fairness tracking.
 - `Recent Count` - Balance recent assignments
 - `Consecutive Limit` - Avoid too many consecutive assignments
 - `Alternating` - Maintain alternating pattern
-- `Override` - Manual change via Google Calendar
+- `Override` - Manual change via Google Calendar or babysitter assignment
+
+**Caregiver Types:**
+- `parent` - Standard parent assignment (participates in fairness algorithm)
+- `babysitter` - Babysitter override (excluded from parent fairness calculations)
 
 #### `oauth_tokens`
 

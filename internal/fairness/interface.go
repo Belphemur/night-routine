@@ -7,6 +7,9 @@ type TrackerInterface interface {
 	// RecordAssignment records a new assignment with all details
 	RecordAssignment(parent string, date time.Time, override bool, decisionReason DecisionReason) (*Assignment, error)
 
+	// RecordBabysitterAssignment records a named babysitter assignment for a date.
+	RecordBabysitterAssignment(name string, date time.Time, override bool) (*Assignment, error)
+
 	// GetLastAssignmentsUntil returns the last n assignments up to a specific date
 	GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
 
@@ -31,6 +34,9 @@ type TrackerInterface interface {
 	// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
 	UpdateAssignmentParent(id int64, parent string, override bool) error
 
+	// UpdateAssignmentToBabysitter sets an assignment to a named babysitter.
+	UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error
+
 	UnlockAssignment(id int64) error
 
 	// GetLastAssignmentDate returns the date of the last assignment in the database
@@ -39,6 +45,9 @@ type TrackerInterface interface {
 	// GetParentMonthlyStatsForLastNMonths fetches and aggregates assignment counts per parent per month for the last n months,
 	// relative to the given referenceTime.
 	GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]MonthlyStatRow, error)
+
+	// GetBabysitterMonthlyStatsForLastNMonths fetches babysitter assignment counts per babysitter per month.
+	GetBabysitterMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]MonthlyStatRow, error)
 
 	// SaveAssignmentDetails stores the fairness algorithm calculation details for an assignment
 	SaveAssignmentDetails(assignmentID int64, calculationDate time.Time, parentAName string, statsA Stats, parentBName string, statsB Stats) error

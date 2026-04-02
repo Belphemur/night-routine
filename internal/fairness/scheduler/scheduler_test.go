@@ -495,3 +495,72 @@ func TestOverrideOnPastDayRecalculatesFollowingDays(t *testing.T) {
 	assert.Equal(t, fairness.DecisionReasonTotalCount, newSchedule[3].DecisionReason,
 		"day4 should have TotalCount reason (Alice=1, Bob=2)")
 }
+
+// TestUnlockBabysitterRecalculatesStartDate tests that unlocking a babysitter
+// assignment and regenerating from that date actually recalculates the assignment,
+// even when the start date is today or in the past. This is a regression test
+// for the bug where the scheduler treated today/past non-override assignments
+// as "fixed", preventing proper recalculation after unlock.
+func TestUnlockBabysitterRecalculatesStartDate(t *testing.T) {
+	cfg := &config.Config{
+		Parents: config.ParentsConfig{
+			ParentA: "Alice",
+			ParentB: "Bob",
+		},
+		Availability: config.AvailabilityConfig{
+			ParentAUnavailable: []string{},
+			ParentBUnavailable: []string{},
+		},
+	}
+
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	sched := New(cfg, tracker)
+
+	// Scenario:
+	// day1=Alice, day2=Bob (initial schedule)
+	// day2 is set to babysitter "Dawn" (override)
+	// User unlocks day2 → caregiver_type reverts to parent, parent_name stays "Dawn"
+	// Regenerate from day2 with currentTime=day2 (today)
+	// day2 should be recalculated to a real parent, NOT remain as "Dawn"
+
+	day1 := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC) // Tuesday
+	day2 := time.Date(2026, 3, 11, 0, 0, 0, 0, time.UTC) // Wednesday
+
+	// Step 1: Generate initial schedule
+	initial, err := sched.GenerateSchedule(day1, day2, day1)
+	assert.NoError(t, err)
+	assert.Len(t, initial, 2)
+	assert.Equal(t, "Alice", initial[0].Parent) // day1
+	assert.Equal(t, "Bob", initial[1].Parent)   // day2
+
+	// Step 2: Set day2 to babysitter
+	day2Assignment, err := tracker.GetAssignmentByDate(day2)
+	assert.NoError(t, err)
+	err = tracker.UpdateAssignmentToBabysitter(day2Assignment.ID, "Dawn", true)
+	assert.NoError(t, err)
+
+	// Step 3: Unlock day2 (simulates UnlockHandler)
+	err = tracker.UnlockAssignment(day2Assignment.ID)
+	assert.NoError(t, err)
+
+	// Verify the DB state: parent_name is still "Dawn" but override=false, caregiver_type=parent
+	unlocked, err := tracker.GetAssignmentByID(day2Assignment.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, "Dawn", unlocked.Parent, "parent_name retains babysitter name after unlock")
+	assert.Equal(t, fairness.CaregiverTypeParent, unlocked.CaregiverType)
+	assert.False(t, unlocked.Override)
+
+	// Step 4: Regenerate from day2 with currentTime=day2 (simulates recalculation after unlock)
+	recalc, err := sched.GenerateSchedule(day2, day2, day2)
+	assert.NoError(t, err)
+	assert.Len(t, recalc, 1)
+
+	// The key assertion: day2 must be recalculated to a real parent, not kept as "Dawn"
+	// Alice=1 (day1), Bob=0 after unlock → Bob gets assigned (TotalCount)
+	assert.NotEqual(t, "Dawn", recalc[0].Parent, "day2 should NOT keep the babysitter name after unlock + recalculate")
+	assert.Equal(t, "Bob", recalc[0].Parent, "day2 should be Bob (fewer total assignments)")
+}

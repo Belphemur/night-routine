@@ -3,7 +3,7 @@
   <h1>Night Routine Scheduler</h1>
 </div>
 
-A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation.
+A Go application that manages night routine scheduling between two parents, with Google Calendar integration for automated event creation and optional babysitter assignment support.
 
 ## Why?
 
@@ -13,6 +13,7 @@ Managing night routine duties between parents can be challenging. This applicati
 - **Availability awareness** - Respects each parent's unavailable days
 - **Transparency** - Every assignment includes a clear decision reason
 - **Flexibility** - Supports manual overrides when life happens
+- **Babysitter support** - Assign specific dates to named babysitters, tracked separately from parent fairness
 - **Google Calendar integration** - Seamlessly syncs with your existing calendar workflow
 
 The application ensures both parents share night routine duties fairly while maintaining flexibility for real-world scheduling needs.
@@ -22,21 +23,18 @@ The application ensures both parents share night routine duties fairly while mai
 ### Configuration Management
 
 - **Web-Based Settings UI** - Intuitive interface for managing all runtime configuration
-
   - Configure parent names that appear in calendar events
   - Set availability constraints for each parent
   - Adjust schedule frequency and planning horizon
   - Changes take effect immediately without application restart
 
 - **Database-Backed Configuration** - Settings stored in SQLite database
-
   - Persistent across application restarts
   - Atomic transactions ensure consistency
   - Database constraints validate data integrity
   - Automatic backup and migration support
 
 - **Automatic Sync** - Settings changes trigger immediate calendar synchronization
-
   - Schedule recalculates based on new constraints
   - Calendar events updated automatically
   - Fairness algorithm adjusts to new availability patterns
@@ -53,6 +51,7 @@ The application ensures both parents share night routine duties fairly while mai
 - **Transparency** - Every assignment includes a clear decision reason with detailed fairness calculations
 - **Assignment Details** - Click any assignment to view the fairness algorithm calculations that determined the assignment
 - **Flexibility** - Supports manual overrides when life happens
+- **Babysitter Assignments** - Assign named babysitters to specific dates, excluded from parent fairness calculations
 - **Google Calendar Integration** - Seamlessly syncs with your existing calendar workflow
 
 ## Screenshots
@@ -82,6 +81,7 @@ _Desktop view: Click any assignment to see the calculation date and both parents
 _Mobile view: The assignment details modal is fully responsive and provides the same transparency on mobile devices._
 
 The assignment details modal shows:
+
 - **Calculation Date** - When the fairness algorithm evaluated this assignment
 - **Parent Statistics** - Total assignments and last 30-day counts for both parents at decision time
 - **Decision Explanation** - How the algorithm used these statistics to ensure balanced distribution
@@ -100,7 +100,7 @@ docker pull ghcr.io/belphemur/night-routine:latest
 docker run \
   -e NR_OAUTH__CLIENT_ID=your-client-id \
   -e NR_OAUTH__CLIENT_SECRET=your-client-secret \
-  
+
   -e CONFIG_FILE=/app/config/routine.toml \
   -v /path/to/config:/app/config \
   -v /path/to/data:/app/data \

@@ -37,6 +37,11 @@ func (m *MockTracker) RecordAssignment(parent string, date time.Time, override b
 	return args.Get(0).(*fairness.Assignment), args.Error(1)
 }
 
+func (m *MockTracker) RecordBabysitterAssignment(name string, date time.Time, override bool) (*fairness.Assignment, error) {
+	args := m.Called(name, date, override)
+	return args.Get(0).(*fairness.Assignment), args.Error(1)
+}
+
 func (m *MockTracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*fairness.Assignment, error) {
 	args := m.Called(n, until)
 	return args.Get(0).([]*fairness.Assignment), args.Error(1)
@@ -77,7 +82,20 @@ func (m *MockTracker) UpdateAssignmentParent(id int64, parent string, override b
 	return args.Error(0)
 }
 
+func (m *MockTracker) UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error {
+	args := m.Called(id, babysitterName, override)
+	return args.Error(0)
+}
+
 func (m *MockTracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]fairness.MonthlyStatRow, error) {
+	args := m.Called(referenceTime, nMonths)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]fairness.MonthlyStatRow), args.Error(1)
+}
+
+func (m *MockTracker) GetBabysitterMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]fairness.MonthlyStatRow, error) {
 	args := m.Called(referenceTime, nMonths)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -166,6 +184,11 @@ func (m *MockScheduler) UpdateAssignmentParent(id int64, parent string, override
 	return args.Error(0)
 }
 
+func (m *MockScheduler) UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error {
+	args := m.Called(id, babysitterName, override)
+	return args.Error(0)
+}
+
 func (m *MockScheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Scheduler.Assignment, error) {
 	args := m.Called(eventID)
 	return args.Get(0).(*Scheduler.Assignment), args.Error(1)
@@ -182,6 +205,17 @@ type MockConfigStore struct {
 }
 
 func (m *MockConfigStore) GetParents() (string, string, error) {
+	hasExpectation := false
+	for _, call := range m.ExpectedCalls {
+		if call.Method == "GetParents" {
+			hasExpectation = true
+			break
+		}
+	}
+	if !hasExpectation {
+		return "ParentA", "ParentB", nil
+	}
+
 	args := m.Called()
 	return args.String(0), args.String(1), args.Error(2)
 }

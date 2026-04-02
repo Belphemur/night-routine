@@ -1,20 +1,35 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
+	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )
+
+type recordingCalendarService struct {
+	noopCalendarService
+	syncCalls int
+}
+
+func (r *recordingCalendarService) SyncSchedule(_ context.Context, _ []*Scheduler.Assignment) error {
+	r.syncCalls++
+	return nil
+}
 
 func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*AssignmentDetailsHandler, *fairness.Tracker, *database.DB, func()) {
 	// Create test database
@@ -65,8 +80,12 @@ func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*Assig
 	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
-	// Create assignment details handler
-	handler := NewAssignmentDetailsHandler(baseHandler, tracker)
+	// Create assignment details handler with scheduler and no-op external integrations.
+	fileConfig := &config.Config{
+		Parents: config.ParentsConfig{ParentA: "Alice", ParentB: "Bob"},
+	}
+	sched := Scheduler.New(fileConfig, tracker)
+	handler := NewAssignmentDetailsHandler(baseHandler, tracker, sched, &noopCalendarService{}, &noopConfigStore{})
 
 	cleanup := func() {
 		db.Close()
@@ -113,6 +132,29 @@ func TestHandleGetAssignmentDetails_Success(t *testing.T) {
 	assert.Equal(t, "Bob", response.ParentBName)
 	assert.Equal(t, 7, response.ParentBTotalCount)
 	assert.Equal(t, 4, response.ParentBLast30Days)
+	assert.Equal(t, fairness.CaregiverTypeParent.String(), response.CaregiverType)
+}
+
+func TestHandleGetAssignmentDetails_BabysitterAssignment(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	date := time.Date(2025, 1, 16, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonAlternating)
+	require.NoError(t, err)
+	require.NoError(t, tracker.UpdateAssignmentToBabysitter(assignment.ID, "Dawn", true))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/assignment-details?assignment_id="+strconv.FormatInt(assignment.ID, 10), nil)
+	w := httptest.NewRecorder()
+
+	handler.handleGetAssignmentDetails(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response AssignmentDetailsResponse
+	err = json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Equal(t, fairness.CaregiverTypeBabysitter.String(), response.CaregiverType)
+	assert.Equal(t, "Dawn", response.BabysitterName)
 }
 
 func TestHandleGetAssignmentDetails_NotFound(t *testing.T) {
@@ -213,4 +255,155 @@ func TestHandleGetAssignmentDetails_WrongMethod(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_Success(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	date := time.Now().Truncate(24 * time.Hour) // Use today to stay within threshold
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	updated, err := tracker.GetAssignmentByID(assignment.ID)
+	require.NoError(t, err)
+	assert.Equal(t, fairness.CaregiverTypeBabysitter, updated.CaregiverType)
+	assert.Equal(t, "Dawn", updated.BabysitterName)
+}
+
+func TestHandleSetAssignmentBabysitter_InvalidPayload(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewBufferString("bad json"))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_TriggersScheduleRecalculation(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	recordingSvc := &recordingCalendarService{}
+	handler.CalendarService = recordingSvc
+
+	date := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 1, recordingSvc.syncCalls, "setting babysitter should trigger schedule recalculation/sync")
+}
+
+func TestHandleSetAssignmentBabysitter_Unauthenticated(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, false)
+	defer cleanup()
+
+	payload := []byte(`{"assignment_id":1,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_WrongMethod(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/assignment-babysitter", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_MissingFields(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{"zero assignment_id", `{"assignment_id":0,"babysitter_name":"Dawn"}`},
+		{"empty babysitter_name", `{"assignment_id":1,"babysitter_name":""}`},
+		{"whitespace babysitter_name", `{"assignment_id":1,"babysitter_name":"   "}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewBufferString(tt.payload))
+			w := httptest.NewRecorder()
+			handler.handleSetAssignmentBabysitter(w, req)
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+		})
+	}
+}
+
+func TestHandleSetAssignmentBabysitter_NotFound(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	payload := []byte(`{"assignment_id":99999,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_NameTooLong(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	longName := strings.Repeat("a", 81)
+	payload := []byte(`{"assignment_id":1,"babysitter_name":"` + longName + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err := json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "maximum length")
+}
+
+func TestHandleSetAssignmentBabysitter_PastThreshold(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	// Create an assignment far in the past (beyond the default 7-day threshold)
+	oldDate := time.Now().AddDate(0, 0, -30)
+	assignment, err := tracker.RecordAssignment("Alice", oldDate, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "too far in the past")
 }

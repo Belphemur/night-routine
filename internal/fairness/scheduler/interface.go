@@ -17,6 +17,9 @@ type SchedulerInterface interface {
 
 	// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
 	UpdateAssignmentParent(id int64, parent string, override bool) error
+
+	// UpdateAssignmentToBabysitter updates the assignment to a babysitter and sets the override flag.
+	UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error
 }
 
 // Ensure Scheduler implements SchedulerInterface

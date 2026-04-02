@@ -16,6 +16,7 @@ type ParentType int
 const (
 	ParentTypeA ParentType = iota
 	ParentTypeB
+	ParentTypeBabysitter
 )
 
 // String returns the string representation of the ParentType
@@ -25,6 +26,8 @@ func (p ParentType) String() string {
 		return "ParentA"
 	case ParentTypeB:
 		return "ParentB"
+	case ParentTypeBabysitter:
+		return "Babysitter"
 	default:
 		return "Unknown"
 	}
@@ -36,6 +39,8 @@ type Assignment struct {
 	Date                  time.Time
 	Parent                string
 	ParentType            ParentType
+	BabysitterName        string
+	CaregiverType         fairness.CaregiverType
 	GoogleCalendarEventID string
 	DecisionReason        fairness.DecisionReason
 	UpdatedAt             time.Time
@@ -80,71 +85,75 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 	}
 	genLogger.Debug().Int("count", len(existingAssignments)).Msg("Fetched existing assignments")
 
-	// Truncate currentTime to the beginning of the day for comparison
-	currentDay := currentTime.Truncate(24 * time.Hour)
+	// Use the local date string of currentTime for "today" comparisons.
+	// time.Truncate(24h) truncates to UTC midnight which is wrong for servers in non-UTC
+	// timezones: a server in UTC-4 at 20:00 local = 00:00 UTC next day, making
+	// Truncate identify tomorrow as "today".  Date strings (formatted in the time's
+	// own location) are always consistent with the DB which stores local date strings.
 
 	// First pass: find the earliest override in the range.
 	// Days after this override that are on or after currentDay need recalculation.
-	var earliestOverride *time.Time
+	var earliestOverrideStr string
 	for _, a := range existingAssignments {
 		if a.Override {
-			assignmentDay := a.Date.Truncate(24 * time.Hour)
-			if earliestOverride == nil || assignmentDay.Before(*earliestOverride) {
-				t := assignmentDay
-				earliestOverride = &t
+			assignmentDayStr := a.Date.Format("2006-01-02")
+			if earliestOverrideStr == "" || assignmentDayStr < earliestOverrideStr {
+				earliestOverrideStr = assignmentDayStr
 			}
 		}
 	}
-	if earliestOverride != nil {
-		genLogger.Debug().Time("earliest_override", *earliestOverride).Msg("Found earliest override in range")
+	if earliestOverrideStr != "" {
+		genLogger.Debug().Str("earliest_override", earliestOverrideStr).Msg("Found earliest override in range")
 	} else {
 		genLogger.Debug().Msg("No override found in range")
 	}
 
 	// Second pass: map assignments that are fixed
 	// Fixed assignments are:
-	// 1. Assignments strictly before currentDay (in the past) - these cannot be changed
+	// 1. Assignments strictly before today AND strictly before the start date (truly past)
 	// 2. Override assignments (always fixed - user explicitly set them)
 	// NOT fixed (will be recalculated):
+	// - Non-override assignments at the start date (the caller explicitly requested recalculation from here)
 	// - Non-override assignments on or after currentDay that are after an override
-	// - Non-override assignments strictly after currentDay (future, no override) - existing behavior
+	startDayStr := start.Format("2006-01-02")
+	currentDayStr := currentTime.Format("2006-01-02")
 	assignmentFixedInTime := make(map[string]*fairness.Assignment)
 	fixedCount := 0
 	for _, a := range existingAssignments {
-		assignmentDay := a.Date.Truncate(24 * time.Hour)
+		assignmentDayStr := a.Date.Format("2006-01-02")
 
 		// Overrides are always fixed
 		if a.Override {
-			dateStr := a.Date.Format("2006-01-02")
-			assignmentFixedInTime[dateStr] = a
+			assignmentFixedInTime[assignmentDayStr] = a
 			fixedCount++
 			continue
 		}
 
-		// Past assignments (strictly before currentDay) are fixed - they already happened
-		if assignmentDay.Before(currentDay) {
-			dateStr := a.Date.Format("2006-01-02")
-			assignmentFixedInTime[dateStr] = a
+		// The start date is never fixed — the caller explicitly requested
+		// recalculation from this point (e.g. after an unlock or babysitter removal).
+		if assignmentDayStr == startDayStr {
+			continue
+		}
+
+		// Past assignments (strictly before today's local date) are fixed - they already happened
+		if assignmentDayStr < currentDayStr {
+			assignmentFixedInTime[assignmentDayStr] = a
 			fixedCount++
 			continue
 		}
 
-		// For assignments on or after currentDay:
+		// For today or future assignments:
 		// If there's an override and this assignment is after it, recalculate
-		if earliestOverride != nil && assignmentDay.After(*earliestOverride) {
+		if earliestOverrideStr != "" && assignmentDayStr > earliestOverrideStr {
 			continue // Not fixed, will be recalculated
 		}
 
-		// No override affecting this day, or assignment is on/before the override date
-		// For currentDay: mark as fixed only if no override affects it
-		// For future days: recalculate (existing behavior)
-		if !assignmentDay.After(currentDay) {
-			// This is currentDay - only fix if not affected by an override
-			dateStr := a.Date.Format("2006-01-02")
-			assignmentFixedInTime[dateStr] = a
+		// Today's assignment not affected by an override: fix it
+		if assignmentDayStr == currentDayStr {
+			assignmentFixedInTime[assignmentDayStr] = a
 			fixedCount++
 		}
-		// Else: it's in the future, recalculate (current behavior)
+		// Future assignments (not override, not past, not today): recalculate
 	}
 	genLogger.Debug().Int("fixed_count", fixedCount).Msg("Mapped fixed assignments (overridden or past)")
 
@@ -158,15 +167,14 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		if fixedAssignment, ok := assignmentFixedInTime[dateStr]; ok {
 			dayLogger.Info().Int64("assignment_id", fixedAssignment.ID).Str("parent", fixedAssignment.Parent).Str("reason", string(fixedAssignment.DecisionReason)).Bool("override", fixedAssignment.Override).Msg("Using fixed assignment")
 			// Convert to scheduler assignment
-			parentType := ParentTypeB
-			if fixedAssignment.Parent == s.config.Parents.ParentA {
-				parentType = ParentTypeA
-			}
+			parentType := resolveParentType(fixedAssignment, s.config.Parents.ParentA)
 			assignment := &Assignment{
 				ID:                    fixedAssignment.ID,
 				Date:                  fixedAssignment.Date,
 				Parent:                fixedAssignment.Parent,
 				ParentType:            parentType,
+				BabysitterName:        fixedAssignment.BabysitterName,
+				CaregiverType:         fixedAssignment.CaregiverType,
 				GoogleCalendarEventID: fixedAssignment.GoogleCalendarEventID,
 				DecisionReason:        fixedAssignment.DecisionReason, // Use the reason from the fixed assignment
 				UpdatedAt:             fixedAssignment.UpdatedAt,
@@ -234,7 +242,7 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	assignLogger.Info().Int64("assignment_id", trackerAssignment.ID).Msg("Assignment recorded successfully")
 
 	// Save assignment details for non-override decisions
-	if decisionReason != fairness.DecisionReasonOverride {
+	if trackerAssignment.CaregiverType != fairness.CaregiverTypeBabysitter && decisionReason != fairness.DecisionReasonOverride {
 		assignLogger.Debug().Msg("Saving assignment details")
 		parentAName := s.config.Parents.ParentA
 		parentBName := s.config.Parents.ParentB
@@ -251,15 +259,14 @@ func (s *Scheduler) assignForDate(date time.Time) (*Assignment, error) {
 	}
 
 	// Convert to scheduler assignment
-	parentType := ParentTypeB
-	if trackerAssignment.Parent == s.config.Parents.ParentA {
-		parentType = ParentTypeA
-	}
+	parentType := resolveParentType(trackerAssignment, s.config.Parents.ParentA)
 	return &Assignment{
 		ID:                    trackerAssignment.ID,
 		Date:                  trackerAssignment.Date,
 		Parent:                trackerAssignment.Parent,
 		ParentType:            parentType,
+		BabysitterName:        trackerAssignment.BabysitterName,
+		CaregiverType:         trackerAssignment.CaregiverType,
 		GoogleCalendarEventID: trackerAssignment.GoogleCalendarEventID,
 		DecisionReason:        trackerAssignment.DecisionReason,
 		UpdatedAt:             trackerAssignment.UpdatedAt,
@@ -305,15 +312,14 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 	}
 
 	getLogger.Info().Int64("assignment_id", assignment.ID).Msg("Found assignment by event ID")
-	parentType := ParentTypeB
-	if assignment.Parent == s.config.Parents.ParentA {
-		parentType = ParentTypeA
-	}
+	parentType := resolveParentType(assignment, s.config.Parents.ParentA)
 	return &Assignment{
 		ID:                    assignment.ID,
 		Date:                  assignment.Date,
 		Parent:                assignment.Parent,
 		ParentType:            parentType,
+		BabysitterName:        assignment.BabysitterName,
+		CaregiverType:         assignment.CaregiverType,
 		GoogleCalendarEventID: assignment.GoogleCalendarEventID,
 		DecisionReason:        assignment.DecisionReason,
 		UpdatedAt:             assignment.UpdatedAt, // Include UpdatedAt
@@ -338,6 +344,35 @@ func (s *Scheduler) UpdateAssignmentParent(id int64, parent string, override boo
 
 	updateLogger.Info().Msg("Assignment parent updated successfully")
 	return nil
+}
+
+// UpdateAssignmentToBabysitter updates an assignment to a babysitter and sets override state.
+func (s *Scheduler) UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error {
+	updateLogger := s.logger.With().
+		Int64("assignment_id", id).
+		Str("babysitter_name", babysitterName).
+		Bool("override", override).
+		Logger()
+	updateLogger.Info().Msg("Updating assignment to babysitter")
+
+	err := s.tracker.UpdateAssignmentToBabysitter(id, babysitterName, override)
+	if err != nil {
+		updateLogger.Error().Err(err).Msg("Failed to update assignment to babysitter in tracker")
+		return fmt.Errorf("failed to update assignment to babysitter: %w", err)
+	}
+
+	updateLogger.Info().Msg("Assignment updated to babysitter successfully")
+	return nil
+}
+
+func resolveParentType(a *fairness.Assignment, parentAName string) ParentType {
+	if a.CaregiverType == fairness.CaregiverTypeBabysitter {
+		return ParentTypeBabysitter
+	}
+	if a.Parent == parentAName {
+		return ParentTypeA
+	}
+	return ParentTypeB
 }
 
 // determineParentForDate determines who should do the night routine on a specific date

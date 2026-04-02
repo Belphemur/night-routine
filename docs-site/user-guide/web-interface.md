@@ -29,7 +29,8 @@ The centerpiece of the home page is a visual calendar showing the current month'
 #### Color Coding
 
 - **Blue background** - Parent A is assigned
-- **Orange background** - Parent B is assigned  
+- **Orange background** - Parent B is assigned
+- **Slate/gray background** - Babysitter is assigned
 - **Yellow border** - Today's date
 - **Gray background** - Days from previous/next month (padding)
 
@@ -45,6 +46,7 @@ The assignment details modal shows:
 - **Calculation Date** - When the fairness algorithm evaluated this assignment
 - **Parent Statistics** - Both parents' total assignments and last 30-day counts at decision time
 - **Decision Explanation** - How the algorithm compared these statistics
+- **Babysitter Assignment** - Option to assign the date to a named babysitter
 
 === "Desktop"
     **Click** on any assignment cell to open the details modal. The modal displays:
@@ -53,6 +55,7 @@ The assignment details modal shows:
     - Parent A's total count and last 30 days
     - Parent B's total count and last 30 days
     - Explanation of the fairness algorithm's decision process
+    - Option to assign a babysitter to this date
 
 === "Mobile"
     **Tap** on any assignment cell to open the details modal. The modal is fully responsive and provides the same information on mobile devices.
@@ -61,7 +64,7 @@ The assignment details modal shows:
 _Mobile view of the assignment details modal_
 
 !!! note "Override Assignments"
-    Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed.
+    Clicking on an assignment marked as "Override" (with 🔒 icon) will show the override removal modal instead of the details modal, allowing you to remove the manual override if needed. Babysitter assignments also appear as locked overrides.
 
 #### Decision Reasons
 
@@ -74,7 +77,7 @@ Each assignment includes a reason explaining why that parent was chosen:
 | **Recent Count** | This parent has had fewer recent assignments |
 | **Consecutive Limit** | Prevents too many consecutive assignments |
 | **Alternating** | Maintains an alternating pattern |
-| **Override** | Manually changed via Google Calendar |
+| **Override** | Manually changed via Google Calendar or babysitter assigned |
 
 ### Quick Actions
 
@@ -245,17 +248,30 @@ The statistics page (`/statistics`) provides a historical view of assignment dis
 
 Displays a table showing:
 
+**Parent Assignments:**
+
 | Month | Parent A | Parent B | Total |
 |-------|----------|----------|-------|
 | Jan 2024 | 15 | 16 | 31 |
 | Feb 2024 | 14 | 14 | 28 |
 | ... | ... | ... | ... |
 
+**Babysitter Assignments:**
+
+A separate section shows babysitter assignment counts per month, broken down by babysitter name:
+
+| Month | Dawn | Sarah | Total |
+|-------|------|-------|-------|
+| Jan 2024 | 2 | 1 | 3 |
+| Feb 2024 | 3 | 0 | 3 |
+| ... | ... | ... | ... |
+
 ### Features
 
 - **Last 12 months** - Shows up to 12 months of historical data
 - **Only assigned months** - Months without assignments are hidden
-- **Fair distribution verification** - Quickly see if assignments are balanced
+- **Fair distribution verification** - Quickly see if parent assignments are balanced
+- **Babysitter tracking** - Separate section for babysitter assignment history
 - **Total counts** - Sum of assignments per month
 
 ### Interpreting Statistics

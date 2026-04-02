@@ -93,6 +93,15 @@
     <div class="mb-6">
         <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">📅 {{.CurrentMonth}}</h2>
         <p class="text-slate-600">Your night routine assignments</p>
+        <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            <span class="inline-flex items-center gap-2 bg-blue-100 text-blue-900 px-3 py-1 rounded-full font-semibold"><span
+                    class="w-2 h-2 rounded-full bg-blue-500"></span>Parent A</span>
+            <span
+                class="inline-flex items-center gap-2 bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-semibold"><span
+                    class="w-2 h-2 rounded-full bg-orange-500"></span>Parent B</span>
+            <span class="inline-flex items-center gap-2 bg-slate-200 text-slate-900 px-3 py-1 rounded-full font-semibold"><span
+                    class="w-2 h-2 rounded-full bg-slate-600"></span>Babysitter</span>
+        </div>
     </div>
     <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
         <table class="w-full border-collapse min-w-full" id="assignment-calendar" role="table" aria-label="Monthly calendar of night routine assignments">
@@ -131,14 +140,20 @@
                             {{if .Assignment}}
                                 {{if eq .Assignment.ParentType.String "ParentA"}}bg-linear-to-br from-blue-50 to-indigo-100 text-indigo-900 border-indigo-200 hover:from-blue-100 hover:to-indigo-200{{end}}
                                 {{if eq .Assignment.ParentType.String "ParentB"}}bg-linear-to-br from-amber-50 to-orange-100 text-orange-900 border-orange-200 hover:from-amber-100 hover:to-orange-200{{end}}
+                                {{if eq .Assignment.ParentType.String "Babysitter"}}bg-linear-to-br from-slate-100 to-zinc-200 text-slate-900 border-slate-300 hover:from-slate-200 hover:to-zinc-300{{end}}
                                 {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
                             {{end}}" 
                         data-date="{{.Date.Format "2006-01-02"}}" 
                         {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
-                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
+                        {{if .Assignment}}data-caregiver-type="{{.Assignment.CaregiverType}}"{{end}}
+                        {{if .Assignment.BabysitterName}}data-babysitter-name="{{.Assignment.BabysitterName}}"{{end}}
+                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.ParentType.String "Babysitter"}} (babysitter){{end}}{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
                         <span class="block text-lg md:text-xl font-bold mb-1">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="block text-xs md:text-sm font-semibold">{{.Assignment.Parent}}</span>
+                        {{if eq .Assignment.ParentType.String "Babysitter"}}
+                        <span class="block text-xs text-slate-700 mt-1">Babysitter</span>
+                        {{end}}
                         {{if .Assignment.DecisionReason}}
                         <span class="block text-xs text-slate-500 mt-1">{{.Assignment.DecisionReason}}</span>
                         {{end}}
@@ -269,6 +284,14 @@
                 <div class="mt-4 text-left" id="details-modal-content"></div>
             </div>
             <div class="mt-5">
+                <button type="button" id="details-modal-mark-babysitter"
+                    class="hidden mb-2 w-full rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-600 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-slate-700">
+                    Mark As Babysitter
+                </button>
+                <button type="button" id="details-modal-remove-babysitter"
+                    class="hidden mb-2 w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-amber-600">
+                    Return To Parent Schedule
+                </button>
                 <button type="button" id="details-modal-close"
                     class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                     Close
@@ -276,6 +299,42 @@
             </div>
         </div>
       </div>
+    </div>
+</div>
+
+<!-- Babysitter Name Modal -->
+<div id="babysitter-modal" class="relative z-10 hidden" aria-labelledby="babysitter-modal-title" role="dialog"
+    aria-modal="true">
+    <div id="babysitter-modal-backdrop"
+        class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div id="babysitter-modal-panel"
+                class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+                <div>
+                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="babysitter-modal-title">Set
+                        Babysitter</h3>
+                    <div class="mt-3">
+                        <label for="babysitter-name-input"
+                            class="block text-sm font-medium text-slate-700 mb-1">Babysitter name</label>
+                        <input id="babysitter-name-input" type="text" maxlength="80"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            placeholder="e.g. Dawn" />
+                        <p id="babysitter-modal-error" class="hidden mt-2 text-xs text-red-600"></p>
+                    </div>
+                </div>
+                <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="babysitter-modal-confirm"
+                        class="inline-flex w-full justify-center rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-600 sm:ml-3 sm:w-auto">
+                        Save Babysitter
+                    </button>
+                    <button type="button" id="babysitter-modal-cancel"
+                        class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -337,6 +396,51 @@
 {{end}}
 
 {{define "scripts"}}
+<!-- Unlock / Recalculate Loading Modal -->
+<div id="unlock-loading-modal" class="relative z-10 hidden" aria-label="Recalculating Schedule" role="dialog" aria-modal="true">
+    <div id="unlock-loading-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div id="unlock-loading-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+            <div class="text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 mb-4">
+                    <svg class="h-6 w-6 text-indigo-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Recalculating Schedule</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-500">Please wait while we unlock the event and recalculate the schedule...</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Babysitter Set / Recalculate Loading Modal -->
+<div id="babysitter-loading-modal" class="relative z-10 hidden" aria-label="Setting Babysitter" role="dialog" aria-modal="true">
+    <div id="babysitter-loading-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div id="babysitter-loading-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+            <div class="text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-4">
+                    <svg class="h-6 w-6 text-slate-700 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Setting Babysitter</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-500">Please wait while we save the babysitter and recalculate the schedule...</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+</div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Function to format date as YYYY-MM-DD (local timezone)
@@ -367,9 +471,10 @@
 
                 e.stopPropagation();
                 const assignmentId = cell.dataset.assignmentId;
+                const caregiverType = cell.dataset.caregiverType || 'parent';
                 
                 // Check if this is an overridden cell (has priority)
-                if (cell.classList.contains('overridden')) {
+                if (cell.classList.contains('overridden') && caregiverType !== 'babysitter') {
                     if (assignmentId) {
                         showUnlockModal(assignmentId);
                     }
@@ -404,6 +509,8 @@
                 assignmentParent: day.assignmentParent || '',
                 assignmentReason: day.assignmentReason || '',
                 isOverridden: day.isOverridden || false,
+                caregiverType: day.caregiverType || 'parent',
+                babysitterName: day.babysitterName || '',
                 classes: day.cssClasses || ''
             }));
             
@@ -481,6 +588,10 @@
                     if (day.assignmentId) {
                         td.setAttribute('data-assignment-id', day.assignmentId);
                     }
+                    td.setAttribute('data-caregiver-type', day.caregiverType || 'parent');
+                    if (day.babysitterName) {
+                        td.setAttribute('data-babysitter-name', day.babysitterName);
+                    }
 
                     // Build aria-label for accessibility
                     const dateObj = new Date(day.dateStr + 'T00:00:00');
@@ -492,6 +603,9 @@
                     });
                     if (day.assignmentParent) {
                         ariaLabel += ` - ${day.assignmentParent} assigned`;
+                        if (day.caregiverType === 'babysitter') {
+                            ariaLabel += ' (babysitter)';
+                        }
                         if (day.isOverridden) {
                             ariaLabel += ' - Locked (manually overridden)';
                         }
@@ -514,6 +628,13 @@
                         parentSpan.className = 'block text-xs font-semibold';
                         parentSpan.textContent = day.assignmentParent;
                         td.appendChild(parentSpan);
+
+                        if (day.caregiverType === 'babysitter') {
+                            const babysitterLabel = document.createElement('span');
+                            babysitterLabel.className = 'block text-xs text-slate-700 mt-1';
+                            babysitterLabel.textContent = 'Babysitter';
+                            td.appendChild(babysitterLabel);
+                        }
                     }
 
                     if (day.assignmentReason) {
@@ -548,7 +669,8 @@
                             const assignmentId = this.getAttribute('data-assignment-id');
                             if (assignmentId) {
                                 // Check if overridden
-                                if (this.classList.contains('overridden')) {
+                                const caregiverType = this.getAttribute('data-caregiver-type') || 'parent';
+                                if (this.classList.contains('overridden') && caregiverType !== 'babysitter') {
                                     showUnlockModal(assignmentId);
                                 } else {
                                     showDetailsModal(assignmentId, this);
@@ -659,31 +781,74 @@
             currentAssignmentId = null;
         }
 
-        function unlockAssignment() {
-            if (currentAssignmentId) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/unlock';
+        // Unlock loading modal management
+        const unlockLoadingModal = document.getElementById('unlock-loading-modal');
+        const unlockLoadingModalBackdrop = document.getElementById('unlock-loading-modal-backdrop');
+        const unlockLoadingModalPanel = document.getElementById('unlock-loading-modal-panel');
 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'assignment_id';
-                input.value = currentAssignmentId;
-
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
+        function showUnlockLoadingModal() {
+            if (!unlockLoadingModal) return;
+            unlockLoadingModal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    unlockLoadingModalBackdrop.classList.remove('opacity-0');
+                    unlockLoadingModalBackdrop.classList.add('opacity-100');
+                    unlockLoadingModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                    unlockLoadingModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                });
+            });
         }
 
+        function hideUnlockLoadingModal() {
+            if (!unlockLoadingModal) return;
+            unlockLoadingModalBackdrop.classList.remove('opacity-100');
+            unlockLoadingModalBackdrop.classList.add('opacity-0');
+            unlockLoadingModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            unlockLoadingModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+            unlockLoadingModalPanel.addEventListener('transitionend', function () {
+                unlockLoadingModal.classList.add('hidden');
+            }, { once: true });
+        }
+
+        function unlockAssignment(assignmentId) {
+            if (!assignmentId) return;
+            // Show loading modal while the server processes the unlock + schedule recalculation
+            showUnlockLoadingModal();
+
+            const formData = new URLSearchParams();
+            formData.append('assignment_id', String(assignmentId));
+
+            fetch('/unlock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                },
+                body: formData.toString()
+            })
+                .then((response) => {
+                    // Server redirects to /?success=... or /?error=...;
+                    // navigate to that URL so feedback banners are visible.
+                    if (response && response.url) {
+                        window.location.href = response.url;
+                        return;
+                    }
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Unlock error:', error);
+                    hideUnlockLoadingModal();
+                    window.location.reload();
+                });
+        }
         // Unlock modal event listeners
         if (unlockModalCancel) {
             unlockModalCancel.addEventListener('click', hideUnlockModal);
         }
         if (unlockModalConfirm) {
             unlockModalConfirm.addEventListener('click', function () {
-                unlockAssignment();
+                const assignmentId = currentAssignmentId;
                 hideUnlockModal();
+                unlockAssignment(assignmentId);
             });
         }
 
@@ -692,8 +857,22 @@
         const detailsModalBackdrop = document.getElementById('details-modal-backdrop');
         const detailsModalPanel = document.getElementById('details-modal-panel');
         const detailsModalClose = document.getElementById('details-modal-close');
+            const detailsModalMarkBabysitter = document.getElementById('details-modal-mark-babysitter');
+            const detailsModalRemoveBabysitter = document.getElementById('details-modal-remove-babysitter');
         const detailsModalContent = document.getElementById('details-modal-content');
+            const babysitterModal = document.getElementById('babysitter-modal');
+            const babysitterModalBackdrop = document.getElementById('babysitter-modal-backdrop');
+            const babysitterModalPanel = document.getElementById('babysitter-modal-panel');
+            const babysitterModalCancel = document.getElementById('babysitter-modal-cancel');
+            const babysitterModalConfirm = document.getElementById('babysitter-modal-confirm');
+            const babysitterNameInput = document.getElementById('babysitter-name-input');
+            const babysitterModalError = document.getElementById('babysitter-modal-error');
+            const babysitterLoadingModal = document.getElementById('babysitter-loading-modal');
+            const babysitterLoadingModalBackdrop = document.getElementById('babysitter-loading-modal-backdrop');
+            const babysitterLoadingModalPanel = document.getElementById('babysitter-loading-modal-panel');
         let isLoadingDetails = false;
+            let currentDetailsAssignmentId = null;
+            let currentDetailsCaregiverType = 'parent';
 
         function openDetailsModal() {
             detailsModal.classList.remove('hidden');
@@ -711,6 +890,30 @@
         function buildDetailsContent(data) {
             const container = document.createElement('div');
             container.className = 'space-y-3';
+
+            if (data.caregiver_type === 'babysitter') {
+                const infoSection = document.createElement('div');
+                infoSection.className = 'bg-slate-100 rounded-lg p-4 text-center';
+
+                const title = document.createElement('p');
+                title.className = 'text-xs text-slate-700 uppercase tracking-wide font-semibold mb-2';
+                title.textContent = 'Caregiver';
+
+                const name = document.createElement('p');
+                name.className = 'text-lg font-bold text-slate-900';
+                name.textContent = data.babysitter_name || 'Babysitter';
+
+                const subtitle = document.createElement('p');
+                subtitle.className = 'text-sm text-slate-600 mt-1';
+                subtitle.textContent = 'This day is currently handled by a babysitter and is excluded from parent fairness totals.';
+
+                infoSection.appendChild(title);
+                infoSection.appendChild(name);
+                infoSection.appendChild(subtitle);
+                container.appendChild(infoSection);
+
+                return container;
+            }
 
             // Calculation date section
             const dateSection = document.createElement('div');
@@ -868,9 +1071,145 @@
             return container;
         }
 
+            function updateDetailsActionButtons() {
+                if (!detailsModalMarkBabysitter || !detailsModalRemoveBabysitter) {
+                    return;
+                }
+
+                detailsModalMarkBabysitter.classList.add('hidden');
+                detailsModalRemoveBabysitter.classList.add('hidden');
+
+                if (currentDetailsCaregiverType === 'babysitter') {
+                    detailsModalRemoveBabysitter.classList.remove('hidden');
+                    return;
+                }
+
+                detailsModalMarkBabysitter.classList.remove('hidden');
+            }
+
+            function showBabysitterModal() {
+                if (!babysitterModal) {
+                    return;
+                }
+
+                babysitterNameInput.value = '';
+                babysitterModalError.textContent = '';
+                babysitterModalError.classList.add('hidden');
+
+                babysitterModal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        babysitterModalBackdrop.classList.remove('opacity-0');
+                        babysitterModalBackdrop.classList.add('opacity-100');
+                        babysitterModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                        babysitterModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                    });
+                });
+
+                setTimeout(() => babysitterNameInput.focus(), 100);
+            }
+
+            function hideBabysitterModal() {
+                if (!babysitterModal) {
+                    return;
+                }
+
+                babysitterModalBackdrop.classList.remove('opacity-100');
+                babysitterModalBackdrop.classList.add('opacity-0');
+                babysitterModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+                babysitterModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+                babysitterModalPanel.addEventListener('transitionend', function () {
+                    babysitterModal.classList.add('hidden');
+                }, { once: true });
+            }
+
+            function showBabysitterLoadingModal() {
+                if (!babysitterLoadingModal) {
+                    return;
+                }
+
+                babysitterLoadingModal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        babysitterLoadingModalBackdrop.classList.remove('opacity-0');
+                        babysitterLoadingModalBackdrop.classList.add('opacity-100');
+                        babysitterLoadingModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                        babysitterLoadingModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                    });
+                });
+            }
+
+            function hideBabysitterLoadingModal() {
+                if (!babysitterLoadingModal) {
+                    return;
+                }
+
+                babysitterLoadingModalBackdrop.classList.remove('opacity-100');
+                babysitterLoadingModalBackdrop.classList.add('opacity-0');
+                babysitterLoadingModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+                babysitterLoadingModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+                babysitterLoadingModalPanel.addEventListener('transitionend', function () {
+                    babysitterLoadingModal.classList.add('hidden');
+                }, { once: true });
+            }
+
+            function setAssignmentBabysitter(assignmentId, name) {
+                const trimmedName = (name || '').trim();
+                if (!trimmedName) {
+                    babysitterModalError.textContent = 'Please enter a babysitter name.';
+                    babysitterModalError.classList.remove('hidden');
+                    return;
+                }
+
+                showBabysitterLoadingModal();
+
+                fetch('/api/assignment-babysitter', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        assignment_id: Number(assignmentId),
+                        babysitter_name: trimmedName
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to set babysitter');
+                    }
+                    window.location.reload();
+                }).catch(error => {
+                    console.error('Error setting babysitter:', error);
+                    hideBabysitterLoadingModal();
+                    showBabysitterModal();
+                    babysitterNameInput.value = trimmedName;
+                    babysitterModalError.textContent = 'Failed to set babysitter. Please try again.';
+                    babysitterModalError.classList.remove('hidden');
+                });
+            }
+
+            function submitBabysitterUpdate() {
+                if (!currentDetailsAssignmentId) {
+                    return;
+                }
+
+                const babysitterName = (babysitterNameInput.value || '').trim();
+                if (!babysitterName) {
+                    babysitterModalError.textContent = 'Please enter a babysitter name.';
+                    babysitterModalError.classList.remove('hidden');
+                    return;
+                }
+
+                const assignmentId = currentDetailsAssignmentId;
+                hideBabysitterModal();
+                setAssignmentBabysitter(assignmentId, babysitterName);
+            }
+
         function showDetailsModal(assignmentId, sourceElement) {
             if (isLoadingDetails) return;
             isLoadingDetails = true;
+            currentDetailsAssignmentId = assignmentId;
 
             // Show loading spinner on the source calendar cell
             let loadingOverlay = null;
@@ -896,6 +1235,8 @@
                 .then(data => {
                     if (loadingOverlay) loadingOverlay.remove();
                     isLoadingDetails = false;
+                    currentDetailsCaregiverType = data.caregiver_type || 'parent';
+                    updateDetailsActionButtons();
                     detailsModalContent.replaceChildren(buildDetailsContent(data));
                     openDetailsModal();
                 })
@@ -923,12 +1264,31 @@
             detailsModalPanel.addEventListener('transitionend', function() {
                 detailsModal.classList.add('hidden');
             }, { once: true });
+
+            currentDetailsAssignmentId = null;
+            currentDetailsCaregiverType = 'parent';
         }
 
         // Details modal event listeners
         if (detailsModalClose) {
             detailsModalClose.addEventListener('click', hideDetailsModal);
         }
+            if (detailsModalMarkBabysitter) {
+                detailsModalMarkBabysitter.addEventListener('click', function () {
+                    if (currentDetailsAssignmentId) {
+                        showBabysitterModal();
+                    }
+                });
+            }
+            if (detailsModalRemoveBabysitter) {
+                detailsModalRemoveBabysitter.addEventListener('click', function () {
+                    if (currentDetailsAssignmentId) {
+                        const assignmentId = currentDetailsAssignmentId;
+                        hideDetailsModal();
+                        showUnlockModal(assignmentId);
+                    }
+                });
+            }
 
         // Close modals on backdrop click
         if (unlockModal) {
@@ -964,8 +1324,35 @@
                         hideSyncModal();
                     }
                 }
+                if (babysitterModal && !babysitterModal.classList.contains('hidden')) {
+                    hideBabysitterModal();
+                }
             }
         });
+
+                    if (babysitterModalCancel) {
+                        babysitterModalCancel.addEventListener('click', hideBabysitterModal);
+                    }
+                    if (babysitterModalConfirm) {
+                        babysitterModalConfirm.addEventListener('click', function () {
+                            submitBabysitterUpdate();
+                        });
+                    }
+                    if (babysitterNameInput) {
+                        babysitterNameInput.addEventListener('keydown', function (e) {
+                            if (e.key === 'Enter' && currentDetailsAssignmentId) {
+                                e.preventDefault();
+                                submitBabysitterUpdate();
+                }
+            });
+            }
+            if (babysitterModal) {
+                babysitterModal.addEventListener('click', function (e) {
+                    if (!babysitterModalPanel.contains(e.target)) {
+                        hideBabysitterModal();
+                    }
+                });
+            }
 
         // Sync Modal Management
         const syncBtn = document.getElementById('sync-btn');

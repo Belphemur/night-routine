@@ -1,6 +1,6 @@
 # Features
 
-Night Routine Scheduler offers a comprehensive set of features designed to make managing parental night routine duties simple, fair, and automated.
+Night Routine Scheduler offers a comprehensive set of features designed to make managing parental night routine duties simple, fair, and automated. It also supports optional babysitter assignments for nights when neither parent is handling the routine.
 
 ## Core Scheduling
 
@@ -22,6 +22,17 @@ The application uses a sophisticated multi-criteria fairness algorithm to ensure
 - **Manual Sync on Startup** - Optionally synchronize schedules when the application starts (enabled by default)
 - **On-Demand Synchronization** - Trigger manual schedule updates via the web interface
 
+### Babysitter Assignments
+
+In addition to the two-parent fairness algorithm, the application supports assigning specific dates to named babysitters:
+
+- **Manual Assignment** - Click any assignment on the calendar and assign a babysitter by name
+- **Excluded from Fairness** - Babysitter assignments are completely excluded from parent fairness calculations
+- **Separate Statistics** - Babysitter usage is tracked and displayed in its own section on the statistics page
+- **Automatic Lock** - Babysitter assignments are automatically locked as overrides, preventing the algorithm from reassigning them
+- **Schedule Recalculation** - Setting a babysitter triggers automatic recalculation of surrounding assignments to maintain parent fairness
+- **Reversible** - Babysitter assignments can be unlocked, reverting them to normal parent scheduling
+
 ## Google Calendar Integration
 
 ### OAuth2 Authentication
@@ -34,9 +45,10 @@ The application uses a sophisticated multi-criteria fairness algorithm to ensure
 
 All calendar events are created with:
 
-- **Consistent Naming** - Events follow the format: `[ParentName] 🌃👶Routine`
+- **Consistent Naming** - All events follow the format: `[Name] 🌃👶Routine` for both parents and babysitters
 - **All-Day Events** - Events span the entire day for simplicity
 - **Decision Reasons** - Event descriptions include the reason for the assignment
+- **Babysitter Distinction** - Babysitter event descriptions indicate the night is handled by a babysitter
 - **No Reminders** - Events are created without reminders to avoid notification fatigue
 - **Intelligent Updates** - Existing events are updated rather than deleted and recreated
 
@@ -48,7 +60,7 @@ All calendar events are created with:
 
 ### Manual Override Support
 
-Users can override assignments by editing event titles directly in Google Calendar:
+Users can override assignments by editing event titles directly in Google Calendar or by assigning a babysitter via the web interface:
 
 - **Configurable Threshold** - Only accepts changes for events within a specified timeframe (default: 5 days in the past)
 - **Automatic Recalculation** - Future assignments are recalculated to maintain fairness after manual overrides
@@ -77,7 +89,7 @@ _Modern home dashboard with streamlined navigation, gradient background, and car
 - **Dashboard View** - Central hub for all night routine management
 - **Authentication Status Card** - Prominent display of Google Calendar connection status
 - **Visual Monthly Assignment Calendar**:
-  - Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B)
+  - Gradient-colored assignments (blue/indigo for Parent A, amber/orange for Parent B, slate/gray for babysitter)
   - Subtle today highlight with yellow background
   - Rounded corners and modern table design
   - Assignment decision reasons (elegant tooltips on desktop, inline on mobile)
@@ -106,6 +118,7 @@ The modal displays:
 - **Parent A Statistics** - Total assignments and last 30-day count at decision time
 - **Parent B Statistics** - Total assignments and last 30-day count at decision time
 - **Decision Explanation** - How the algorithm compared these statistics to ensure balanced distribution
+- **Babysitter Option** - Assign the date to a named babysitter directly from the modal
 
 This transparency feature helps users understand and trust the automated assignment process by providing complete visibility into the fairness calculations.
 
@@ -134,6 +147,7 @@ This transparency feature helps users understand and trust the automated assignm
 - **Monthly Assignment Counts** - Color-coded badges for each count
 - **12-Month History** - Displays data for the last 12 months
 - **Fair Distribution Verification** - Helps verify equitable distribution over time
+- **Babysitter Statistics** - Separate section showing babysitter assignment counts per month
 - **Empty State Design** - Friendly message when no data is available
 
 ### Responsive Design
@@ -150,7 +164,8 @@ This transparency feature helps users understand and trust the automated assignm
 
 The application uses SQLite for persistent storage with the following features:
 
-- **Assignment History** - Complete record of all assignments with decision reasons
+- **Assignment History** - Complete record of all assignments with decision reasons and caregiver type
+- **Caregiver Tracking** - Distinguishes between parent and babysitter assignments
 - **OAuth2 Tokens** - Securely stored tokens with automatic refresh capability
 - **Calendar Configuration** - Selected Google Calendar settings
 - **Notification Channels** - Management of webhook notification channels
@@ -174,7 +189,7 @@ Every assignment includes a tracked decision reason:
 - **Recent Count** - Parent had fewer recent assignments
 - **Consecutive Limit** - Assignment made to avoid too many consecutive duties
 - **Alternating** - Maintains fair alternating pattern
-- **Manual Override** - User manually changed the assignment via Google Calendar
+- **Manual Override** - User manually changed the assignment via Google Calendar or assigned a babysitter
 
 ## Operations & Deployment
 

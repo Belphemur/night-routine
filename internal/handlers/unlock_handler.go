@@ -1,24 +1,35 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/belphemur/night-routine/internal/calendar"
+	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness"
+	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 )
 
 // UnlockHandler manages unlocking of overridden assignments by removing the override flag,
 // allowing them to be re-evaluated by the scheduler.
 type UnlockHandler struct {
 	*BaseHandler
-	Tracker fairness.TrackerInterface
+	Tracker         fairness.TrackerInterface
+	Scheduler       Scheduler.SchedulerInterface
+	CalendarService calendar.CalendarService
+	ConfigStore     config.ConfigStoreInterface
 }
 
 // NewUnlockHandler creates a new unlock handler
-func NewUnlockHandler(baseHandler *BaseHandler, tracker fairness.TrackerInterface) *UnlockHandler {
+func NewUnlockHandler(baseHandler *BaseHandler, tracker fairness.TrackerInterface, sched Scheduler.SchedulerInterface, calSvc calendar.CalendarService, configStore config.ConfigStoreInterface) *UnlockHandler {
 	return &UnlockHandler{
-		BaseHandler: baseHandler,
-		Tracker:     tracker,
+		BaseHandler:     baseHandler,
+		Tracker:         tracker,
+		Scheduler:       sched,
+		CalendarService: calSvc,
+		ConfigStore:     configStore,
 	}
 }
 
@@ -93,6 +104,26 @@ func (h *UnlockHandler) handleUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlerLogger.Info().Msg("Assignment unlocked successfully")
+	handlerLogger.Info().Msg("Assignment unlocked successfully, triggering schedule recalculation")
+
+	// Recalculate and sync the schedule so the calendar reflects the removal of the override.
+	if err := h.recalculateSchedule(r.Context(), assignment.Date); err != nil {
+		// Log but don't fail the redirect — the DB is already correct.
+		handlerLogger.Error().Err(err).Msg("Failed to recalculate schedule after unlock")
+	}
+
 	http.Redirect(w, r, "/?success="+SuccessCodeAssignmentUnlocked, http.StatusSeeOther)
+}
+
+// recalculateSchedule regenerates and syncs the schedule starting from the given date.
+func (h *UnlockHandler) recalculateSchedule(ctx context.Context, fromDate time.Time) error {
+	return recalculateScheduleAndSync(
+		ctx,
+		h.logger,
+		h.Tracker,
+		h.Scheduler,
+		h.CalendarService,
+		h.ConfigStore,
+		fromDate,
+	)
 }

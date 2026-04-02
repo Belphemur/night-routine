@@ -50,13 +50,15 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 	defer cancel()
 
 	_, err := t.db.Conn().ExecContext(ctx, `
-	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
-	VALUES (?, ?, ?, ?)
+	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason, caregiver_type, babysitter_name)
+	VALUES (?, ?, ?, ?, ?, NULL)
 	ON CONFLICT(assignment_date) DO UPDATE SET 
 		parent_name = excluded.parent_name,
 		override = excluded.override,
-		decision_reason = excluded.decision_reason
-		`, parent, date.Format(dateFormat), override, decisionReason.String())
+		decision_reason = excluded.decision_reason,
+		caregiver_type = excluded.caregiver_type,
+		babysitter_name = NULL
+		`, parent, date.Format(dateFormat), override, decisionReason.String(), CaregiverTypeParent.String())
 
 	if err != nil {
 		if err == context.DeadlineExceeded {
@@ -77,6 +79,46 @@ func (t *Tracker) RecordAssignment(parent string, date time.Time, override bool,
 	return assignment, nil
 }
 
+// RecordBabysitterAssignment records a babysitter assignment for a given day.
+func (t *Tracker) RecordBabysitterAssignment(name string, date time.Time, override bool) (*Assignment, error) {
+	recordLogger := t.logger.With().
+		Str("date", date.Format(dateFormat)).
+		Str("babysitter", name).
+		Bool("override", override).
+		Logger()
+	recordLogger.Debug().Msg("Recording babysitter assignment details")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	_, err := t.db.Conn().ExecContext(ctx, `
+	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason, caregiver_type, babysitter_name)
+	VALUES (?, ?, ?, ?, ?, ?)
+	ON CONFLICT(assignment_date) DO UPDATE SET
+		parent_name = excluded.parent_name,
+		override = excluded.override,
+		decision_reason = excluded.decision_reason,
+		caregiver_type = excluded.caregiver_type,
+		babysitter_name = excluded.babysitter_name
+	`, name, date.Format(dateFormat), override, DecisionReasonOverride.String(), CaregiverTypeBabysitter.String(), name)
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			recordLogger.Error().Err(err).Msg("Database upsert for babysitter assignment timed out")
+			return nil, fmt.Errorf("database upsert timed out: %w", err)
+		}
+		recordLogger.Error().Err(err).Msg("Failed to upsert babysitter assignment")
+		return nil, fmt.Errorf("failed to record babysitter assignment: %w", err)
+	}
+
+	assignment, err := t.GetAssignmentByDate(date)
+	if err != nil {
+		recordLogger.Debug().Err(err).Msg("Failed to get the upserted babysitter assignment")
+		return nil, fmt.Errorf("failed to get assignment by date: %w", err)
+	}
+	recordLogger.Debug().Int64("assignment_id", assignment.ID).Msg("Babysitter assignment upserted successfully")
+	return assignment, nil
+}
+
 // No deprecated methods here - we've consolidated to a single RecordAssignment method
 
 // scanAssignment scans a row into an Assignment struct
@@ -88,6 +130,8 @@ func (t *Tracker) scanAssignment(scanner interface {
 	var createdAt, updatedAt time.Time
 	var googleEventID sql.NullString
 	var decisionReason sql.NullString
+	var caregiverType sql.NullString
+	var babysitterName sql.NullString
 
 	err := scanner.Scan(
 		&a.ID,
@@ -96,6 +140,8 @@ func (t *Tracker) scanAssignment(scanner interface {
 		&a.Override,
 		&googleEventID,
 		&decisionReason,
+		&caregiverType,
+		&babysitterName,
 		&createdAt,
 		&updatedAt,
 	)
@@ -112,6 +158,16 @@ func (t *Tracker) scanAssignment(scanner interface {
 
 	if decisionReason.Valid {
 		a.DecisionReason = DecisionReason(decisionReason.String)
+	}
+
+	if caregiverType.Valid {
+		a.CaregiverType = CaregiverType(caregiverType.String)
+	} else {
+		a.CaregiverType = CaregiverTypeParent
+	}
+
+	if babysitterName.Valid {
+		a.BabysitterName = babysitterName.String
 	}
 
 	date, err := time.Parse(dateFormat, dateStr)
@@ -135,7 +191,7 @@ func (t *Tracker) GetAssignmentByID(id int64) (*Assignment, error) {
 	defer cancel()
 
 	row := t.db.Conn().QueryRowContext(ctx, `
-		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
+		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, babysitter_name, created_at, updated_at
 		FROM assignments
 		WHERE id = ?
 	`, id)
@@ -198,8 +254,9 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
 	defer cancel()
 
-	query := `UPDATE assignments SET parent_name = ?, override = ?, updated_at = CURRENT_TIMESTAMP`
+	query := `UPDATE assignments SET parent_name = ?, override = ?, caregiver_type = ?, babysitter_name = NULL, updated_at = CURRENT_TIMESTAMP`
 	args := []interface{}{parent, override}
+	args = append(args, CaregiverTypeParent.String())
 
 	if override {
 		// When overriding, also update the decision reason
@@ -225,6 +282,43 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	return nil
 }
 
+// UpdateAssignmentToBabysitter sets an assignment to a named babysitter and marks it as override.
+func (t *Tracker) UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error {
+	updateLogger := t.logger.With().
+		Int64("assignment_id", id).
+		Str("babysitter_name", babysitterName).
+		Bool("override", override).
+		Logger()
+	updateLogger.Debug().Msg("Updating assignment to babysitter")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	// parent_name stores the display name shown in the UI and calendar;
+	// babysitter_name is the separate canonical field for babysitter identity.
+	query := `UPDATE assignments SET parent_name = ?, babysitter_name = ?, caregiver_type = ?, override = ?, updated_at = CURRENT_TIMESTAMP`
+	args := []interface{}{babysitterName, babysitterName, CaregiverTypeBabysitter.String(), override}
+	if override {
+		query += ", decision_reason = ?"
+		args = append(args, DecisionReasonOverride)
+	}
+	query += " WHERE id = ?"
+	args = append(args, id)
+
+	_, err := t.db.Conn().ExecContext(ctx, query, args...)
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			updateLogger.Error().Err(err).Msg("Database update timed out")
+			return fmt.Errorf("database update timed out: %w", err)
+		}
+		updateLogger.Error().Err(err).Msg("Failed to execute babysitter update query")
+		return fmt.Errorf("failed to update assignment to babysitter: %w", err)
+	}
+
+	updateLogger.Debug().Msg("Assignment babysitter update saved in DB")
+	return nil
+}
+
 // UnlockAssignment removes the override flag from an assignment
 func (t *Tracker) UnlockAssignment(id int64) error {
 	updateLogger := t.logger.With().Int64("assignment_id", id).Logger()
@@ -234,12 +328,17 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 	defer cancel()
 
 	return t.db.WithTransaction(ctx, func(tx *sql.Tx) error {
-		// Set override to false.
+		// Set override to false and clear any babysitter marker so the assignment
+		// is treated as a parent assignment again.
 		result, err := tx.ExecContext(ctx, `
 		UPDATE assignments
-		SET override = 0, decision_reason = NULL, updated_at = CURRENT_TIMESTAMP
+		SET override = 0,
+		    decision_reason = NULL,
+		    caregiver_type = ?,
+		    babysitter_name = NULL,
+		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
-		`, id)
+		`, CaregiverTypeParent, id)
 
 		if err != nil {
 			if err == context.DeadlineExceeded {
@@ -278,7 +377,7 @@ func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment
 	defer cancel()
 
 	rows, err := t.db.Conn().QueryContext(ctx, `
-SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
+SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, babysitter_name, created_at, updated_at
 FROM assignments
 WHERE assignment_date < ?
 ORDER BY assignment_date DESC
@@ -322,7 +421,7 @@ func (t *Tracker) GetAssignmentByDate(date time.Time) (*Assignment, error) {
 	defer cancel()
 
 	row := t.db.Conn().QueryRowContext(ctx, `
-		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
+		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, babysitter_name, created_at, updated_at
 		FROM assignments
 		WHERE assignment_date = ?
 		ORDER BY id DESC
@@ -358,7 +457,7 @@ func (t *Tracker) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assignm
 	defer cancel()
 
 	row := t.db.Conn().QueryRowContext(ctx, `
-		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
+		SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, babysitter_name, created_at, updated_at
 		FROM assignments
 		WHERE google_calendar_event_id = ?
 	`, eventID)
@@ -400,7 +499,7 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 	defer cancel()
 
 	rows, err := t.db.Conn().QueryContext(ctx, `
-	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, created_at, updated_at
+	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, babysitter_name, created_at, updated_at
 	FROM assignments
 	WHERE assignment_date >= ? AND assignment_date <= ?
 	ORDER BY assignment_date ASC
@@ -451,8 +550,9 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	SUM(CASE WHEN assignment_date >= ? AND assignment_date < ? THEN 1 ELSE 0 END) as last_30_days
 	FROM assignments
 	WHERE assignment_date < ?
+	AND caregiver_type = ?
 	GROUP BY parent_name
-	`, thirtyDaysBeforeUntil, untilStr, untilStr)
+	`, thirtyDaysBeforeUntil, untilStr, untilStr, CaregiverTypeParent.String())
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			queryLogger.Error().Err(err).Msg("Database query for parent stats timed out")
@@ -554,11 +654,12 @@ func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, n
 			COUNT(*) as count
 		FROM assignments
 		WHERE assignment_date >= ? AND assignment_date <= ?
+		AND caregiver_type = ?
 		GROUP BY month_str, parent_name
 		ORDER BY month_str ASC, parent_name ASC
 	`
 	// Query up to the provided referenceTime
-	rows, err := t.db.Conn().QueryContext(ctx, query, startDate.Format(dateFormat), referenceTime.Format(dateFormat))
+	rows, err := t.db.Conn().QueryContext(ctx, query, startDate.Format(dateFormat), referenceTime.Format(dateFormat), CaregiverTypeParent.String())
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			queryLogger.Error().Err(err).Msg("Database query for parent monthly stats timed out")
@@ -584,6 +685,62 @@ func (t *Tracker) GetParentMonthlyStatsForLastNMonths(referenceTime time.Time, n
 	}
 
 	queryLogger.Debug().Int("count", len(stats)).Msg("Fetched parent monthly stats successfully")
+	return stats, nil
+}
+
+// GetBabysitterMonthlyStatsForLastNMonths fetches and aggregates babysitter assignment counts per babysitter per month,
+// relative to the given referenceTime.
+func (t *Tracker) GetBabysitterMonthlyStatsForLastNMonths(referenceTime time.Time, nMonths int) ([]MonthlyStatRow, error) {
+	queryLogger := t.logger.With().
+		Time("reference_time", referenceTime).
+		Int("n_months", nMonths).
+		Logger()
+	queryLogger.Debug().Msg("Fetching babysitter monthly stats")
+
+	startOfCurrentMonth := time.Date(referenceTime.Year(), referenceTime.Month(), 1, 0, 0, 0, 0, referenceTime.Location())
+	startDate := startOfCurrentMonth.AddDate(0, -nMonths+1, 0)
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	query := `
+		SELECT
+			strftime('%Y-%m', assignment_date) as month_str,
+			COALESCE(NULLIF(babysitter_name, ''), parent_name) as babysitter_label,
+			COUNT(*) as count
+		FROM assignments
+		WHERE assignment_date >= ? AND assignment_date <= ?
+		AND caregiver_type = ?
+		GROUP BY month_str, babysitter_label
+		ORDER BY month_str ASC, babysitter_label ASC
+	`
+
+	rows, err := t.db.Conn().QueryContext(ctx, query, startDate.Format(dateFormat), referenceTime.Format(dateFormat), CaregiverTypeBabysitter.String())
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			queryLogger.Error().Err(err).Msg("Database query for babysitter monthly stats timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		queryLogger.Error().Err(err).Msg("Failed to query babysitter monthly stats")
+		return nil, fmt.Errorf("failed to query babysitter stats: %w", err)
+	}
+	defer rows.Close()
+
+	var stats []MonthlyStatRow
+	for rows.Next() {
+		var row MonthlyStatRow
+		if err := rows.Scan(&row.MonthYear, &row.ParentName, &row.Count); err != nil {
+			queryLogger.Debug().Err(err).Msg("Failed to scan babysitter monthly stats row")
+			return nil, fmt.Errorf("failed to scan babysitter stats: %w", err)
+		}
+		stats = append(stats, row)
+	}
+	if err := rows.Err(); err != nil {
+		queryLogger.Debug().Err(err).Msg("Error iterating babysitter monthly stats rows")
+		return nil, fmt.Errorf("failed during row iteration: %w", err)
+	}
+
+	queryLogger.Debug().Int("count", len(stats)).Msg("Fetched babysitter monthly stats successfully")
 	return stats, nil
 }
 
@@ -691,6 +848,8 @@ func (t *Tracker) GetAssignmentDetails(assignmentID int64) (*AssignmentDetails, 
 type Assignment struct {
 	ID                    int64
 	Parent                string
+	CaregiverType         CaregiverType
+	BabysitterName        string
 	Date                  time.Time
 	Override              bool
 	GoogleCalendarEventID string

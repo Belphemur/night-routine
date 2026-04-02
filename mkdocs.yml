@@ -1,5 +1,5 @@
 site_name: Night Routine Scheduler
-site_description: A Go application that manages night routine scheduling between two parents with Google Calendar integration
+site_description: A Go application that manages night routine scheduling between two parents with Google Calendar integration and babysitter support
 site_author: Belphemur
 site_url: https://belphemur.github.io/night-routine/
 
