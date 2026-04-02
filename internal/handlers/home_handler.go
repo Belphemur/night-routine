@@ -36,6 +36,8 @@ type CalendarDayJSON struct {
 	IsCurrentMonth   bool   `json:"isCurrentMonth"`
 	AssignmentID     int64  `json:"assignmentId,omitempty"`
 	AssignmentParent string `json:"assignmentParent,omitempty"`
+	BabysitterName   string `json:"babysitterName,omitempty"`
+	CaregiverType    string `json:"caregiverType,omitempty"`
 	AssignmentReason string `json:"assignmentReason,omitempty"`
 	IsOverridden     bool   `json:"isOverridden"`
 	CSSClasses       string `json:"cssClasses"`
@@ -123,6 +125,8 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 			if day.Assignment != nil {
 				dayJSON.AssignmentID = day.Assignment.ID
 				dayJSON.AssignmentParent = day.Assignment.Parent
+				dayJSON.BabysitterName = day.Assignment.BabysitterName
+				dayJSON.CaregiverType = day.Assignment.CaregiverType.String()
 				dayJSON.AssignmentReason = string(day.Assignment.DecisionReason)
 				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"
 
@@ -133,6 +137,8 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 					classes = append(classes, "bg-linear-to-br", "from-blue-50", "to-indigo-100", "text-indigo-900", "border-indigo-200", "hover:from-blue-100", "hover:to-indigo-200")
 				} else if day.Assignment.ParentType.String() == "ParentB" {
 					classes = append(classes, "bg-linear-to-br", "from-amber-50", "to-orange-100", "text-orange-900", "border-orange-200", "hover:from-amber-100", "hover:to-orange-200")
+				} else if day.Assignment.ParentType.String() == "Babysitter" {
+					classes = append(classes, "bg-linear-to-br", "from-slate-100", "to-zinc-200", "text-slate-900", "border-slate-300", "hover:from-slate-200", "hover:to-zinc-300")
 				}
 
 				if dayJSON.IsOverridden {

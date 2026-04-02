@@ -19,9 +19,10 @@ type ParentStatsForTemplate struct {
 // StatisticsPageData contains data for the statistics page template.
 type StatisticsPageData struct {
 	BasePageData
-	ErrorMessage string
-	ParentsStats []ParentStatsForTemplate
-	MonthHeaders []string // Sorted list of "YYYY-MM" for table columns, e.g., ["2023-06", "2023-07"]
+	ErrorMessage    string
+	ParentsStats    []ParentStatsForTemplate
+	BabysitterStats []ParentStatsForTemplate
+	MonthHeaders    []string // Sorted list of "YYYY-MM" for table columns, e.g., ["2023-06", "2023-07"]
 }
 
 // StatisticsHandler manages statistics page functionality.
@@ -68,7 +69,15 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if len(rawStats) == 0 {
+	rawBabysitterStats, err := h.Tracker.GetBabysitterMonthlyStatsForLastNMonths(nowForStats, 12)
+	if err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to get babysitter monthly stats from tracker")
+		data.ErrorMessage = "Could not retrieve statistics data. Please try again later."
+		h.RenderTemplate(w, "statistics.html", data)
+		return
+	}
+
+	if len(rawStats) == 0 && len(rawBabysitterStats) == 0 {
 		// No data from the database, so show "No statistics data available"
 		// data.ParentsStats is already nil, data.MonthHeaders is empty.
 		handlerLogger.Info().Msg("No raw statistics data found. Rendering page with 'No data available'.")
@@ -87,11 +96,27 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		statsLookupMap[stat.ParentName][stat.MonthYear] = stat.Count
 	}
 
+	babysitterLookupMap := make(map[string]map[string]int)
+	babysitterNamesSet := make(map[string]struct{})
+	for _, stat := range rawBabysitterStats {
+		babysitterNamesSet[stat.ParentName] = struct{}{}
+		if _, ok := babysitterLookupMap[stat.ParentName]; !ok {
+			babysitterLookupMap[stat.ParentName] = make(map[string]int)
+		}
+		babysitterLookupMap[stat.ParentName][stat.MonthYear] = stat.Count
+	}
+
 	var sortedParentNames []string
 	for name := range parentNamesSet {
 		sortedParentNames = append(sortedParentNames, name)
 	}
 	sort.Strings(sortedParentNames)
+
+	var sortedBabysitterNames []string
+	for name := range babysitterNamesSet {
+		sortedBabysitterNames = append(sortedBabysitterNames, name)
+	}
+	sort.Strings(sortedBabysitterNames)
 
 	// 2. Generate all 12 potential month headers for the last 12 months
 	allPossibleMonthHeaders := []string{}
@@ -117,6 +142,18 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 				}
 			}
 		}
+
+		if !hasDataForThisMonth {
+			for _, babysitterName := range sortedBabysitterNames {
+				if babysitterData, ok := babysitterLookupMap[babysitterName]; ok {
+					if count, ok2 := babysitterData[monthStr]; ok2 && count > 0 {
+						hasDataForThisMonth = true
+						break
+					}
+				}
+			}
+		}
+
 		if hasDataForThisMonth {
 			finalMonthHeaders = append(finalMonthHeaders, monthStr)
 		}
@@ -162,8 +199,26 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 		data.ParentsStats = append(data.ParentsStats, parentStat)
 	}
 
+	for _, babysitterName := range sortedBabysitterNames {
+		babysitterStat := ParentStatsForTemplate{
+			ParentName:    babysitterName,
+			MonthlyCounts: make(map[string]int),
+		}
+		for _, monthHeader := range data.MonthHeaders {
+			count := 0
+			if babysitterMonthlyData, exists := babysitterLookupMap[babysitterName]; exists {
+				if monthCount, monthExists := babysitterMonthlyData[monthHeader]; monthExists {
+					count = monthCount
+				}
+			}
+			babysitterStat.MonthlyCounts[monthHeader] = count
+		}
+		data.BabysitterStats = append(data.BabysitterStats, babysitterStat)
+	}
+
 	handlerLogger.Debug().
 		Int("parent_count", len(data.ParentsStats)).
+		Int("babysitter_count", len(data.BabysitterStats)).
 		Int("month_header_count", len(data.MonthHeaders)).
 		Str("stats_order", statsOrder.String()).
 		Msg("Processed statistics data for template")

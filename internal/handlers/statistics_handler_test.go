@@ -247,3 +247,23 @@ func TestStatisticsHandler_MultipleParents(t *testing.T) {
 	assert.Contains(t, body, "TestParentA")
 	assert.Contains(t, body, "TestParentB")
 }
+
+func TestStatisticsHandler_IncludesBabysitterSection(t *testing.T) {
+	handler, _, _, tracker, cleanup := setupTestStatisticsHandler(t, constants.StatsOrderDesc)
+	defer cleanup()
+
+	baseDate := time.Date(2025, 10, 15, 0, 0, 0, 0, time.UTC)
+	_, err := tracker.RecordAssignment("TestParentA", baseDate, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordBabysitterAssignment("Dawn", baseDate.AddDate(0, 0, 1), true)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/statistics", nil)
+	w := httptest.NewRecorder()
+	handler.handleStatisticsPage(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := w.Body.String()
+	assert.Contains(t, body, "Babysitter Days")
+	assert.Contains(t, body, "Dawn")
+}
