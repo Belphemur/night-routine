@@ -7,10 +7,13 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/night-routine/main.go",
-      "args": ["-config", "${workspaceFolder}/configs/routine.toml"],
+      "args": [
+        "-config",
+        "${workspaceFolder}/configs/routine.toml"
+      ],
       "envFile": "${workspaceFolder}/.env",
       "env": {
-        "CGO_ENABLED": "1"
+        "CGO_ENABLED": "0"
       },
       "cwd": "${workspaceFolder}"
     }
