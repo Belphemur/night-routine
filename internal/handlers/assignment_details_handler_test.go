@@ -161,7 +161,7 @@ func TestHandleGetAssignmentDetails_BabysitterAssignment(t *testing.T) {
 	err = json.NewDecoder(w.Body).Decode(&response)
 	assert.NoError(t, err)
 	assert.Equal(t, fairness.CaregiverTypeBabysitter.String(), response.CaregiverType)
-	assert.Equal(t, "Dawn", response.BabysitterName)
+	assert.Equal(t, "Dawn", response.ParentName)
 }
 
 func TestHandleGetAssignmentDetails_NotFound(t *testing.T) {

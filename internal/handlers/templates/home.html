@@ -146,7 +146,6 @@
                         data-date="{{.Date.Format "2006-01-02"}}" 
                         {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
                         {{if .Assignment}}data-caregiver-type="{{.Assignment.CaregiverType}}"{{end}}
-                        {{if .Assignment.BabysitterName}}data-babysitter-name="{{.Assignment.BabysitterName}}"{{end}}
                         aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.ParentType.String "Babysitter"}} (babysitter){{end}}{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
                         <span class="block text-lg md:text-xl font-bold mb-1">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
@@ -510,7 +509,6 @@
                 assignmentReason: day.assignmentReason || '',
                 isOverridden: day.isOverridden || false,
                 caregiverType: day.caregiverType || 'parent',
-                babysitterName: day.babysitterName || '',
                 classes: day.cssClasses || ''
             }));
             
@@ -589,9 +587,6 @@
                         td.setAttribute('data-assignment-id', day.assignmentId);
                     }
                     td.setAttribute('data-caregiver-type', day.caregiverType || 'parent');
-                    if (day.babysitterName) {
-                        td.setAttribute('data-babysitter-name', day.babysitterName);
-                    }
 
                     // Build aria-label for accessibility
                     const dateObj = new Date(day.dateStr + 'T00:00:00');
@@ -901,7 +896,7 @@
 
                 const name = document.createElement('p');
                 name.className = 'text-lg font-bold text-slate-900';
-                name.textContent = data.babysitter_name || 'Babysitter';
+                name.textContent = data.parent_name || 'Babysitter';
 
                 const subtitle = document.createElement('p');
                 subtitle.className = 'text-sm text-slate-600 mt-1';

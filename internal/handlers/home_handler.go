@@ -36,7 +36,6 @@ type CalendarDayJSON struct {
 	IsCurrentMonth   bool   `json:"isCurrentMonth"`
 	AssignmentID     int64  `json:"assignmentId,omitempty"`
 	AssignmentParent string `json:"assignmentParent,omitempty"`
-	BabysitterName   string `json:"babysitterName,omitempty"`
 	CaregiverType    string `json:"caregiverType,omitempty"`
 	AssignmentReason string `json:"assignmentReason,omitempty"`
 	IsOverridden     bool   `json:"isOverridden"`
@@ -125,7 +124,6 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 			if day.Assignment != nil {
 				dayJSON.AssignmentID = day.Assignment.ID
 				dayJSON.AssignmentParent = day.Assignment.Parent
-				dayJSON.BabysitterName = day.Assignment.Parent
 				dayJSON.CaregiverType = day.Assignment.CaregiverType.String()
 				dayJSON.AssignmentReason = string(day.Assignment.DecisionReason)
 				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"
