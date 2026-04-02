@@ -24,3 +24,16 @@
 - Overrides are explicit user actions and should propagate their effects forward regardless of whether the affected days are in the past or future.
 
 **Implementation**: The assignment classification loop in `GenerateSchedule()` at `internal/fairness/scheduler/scheduler.go`. The `earliestOverrideStr != "" && assignmentDayStr > earliestOverrideStr → continue` branch was moved above the `assignmentDayStr < currentDayStr → fixed` branch. Regression test: `TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday` in `internal/fairness/scheduler/scheduler_babysitter_test.go`.
+
+## ConsecutiveAvoidance prevents unnecessary back-to-back assignments
+
+**Decision**: The `TotalCount` and `RecentCount` steps in the fairness cascade now check whether their chosen parent is the same as last night's parent. If assigning them would create a back-to-back consecutive and no recent unavailability caused the imbalance, the algorithm assigns the other parent instead with a new `ConsecutiveAvoidance` decision reason.
+
+**Rationale**:
+
+- At month boundaries (e.g. a 31-day month), one parent ends up with 16 assignments vs 15. Previously `TotalCount` would assign the same parent again to correct the imbalance, creating an unnecessary 2-in-a-row that users had to manually override.
+- Not all imbalances need the same correction: unavailability-caused imbalances (e.g. "Bob can't do Wednesdays") are structural and need consecutive assignments to stay balanced; month-boundary imbalances self-correct through natural alternation.
+- The `hasRecentUnavailability(lastAssignments, 2)` lookback distinguishes these cases: if either of the last 2 parent assignments was forced by `Unavailability`, the consecutive is allowed (the imbalance is real); otherwise `ConsecutiveAvoidance` fires.
+- The same logic is applied to the `RecentCount` step to prevent last-30-day differences from causing unnecessary consecutives.
+
+**Implementation**: `determineNextParent()` and `hasRecentUnavailability()` in `internal/fairness/scheduler/scheduler.go`. New `DecisionReasonConsecutiveAvoidance` constant in `internal/fairness/decision_reason.go`. Regression tests: `TestNoConsecutiveWithoutUnavailability` (30/31/59-day periods with no unavailability prove zero consecutives), `TestUnavailabilityExemptionAllowsConsecutive` (unavailability-caused imbalance still corrected), `TestConsecutiveAvoidanceAtMonthBoundary`, and `TestConsecutiveAvoidanceWithTotalCountImbalance` in `internal/fairness/scheduler/scheduler_test.go` and `internal/fairness/scheduler/secheduler_long_test.go`.

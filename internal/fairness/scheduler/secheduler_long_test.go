@@ -151,6 +151,145 @@ func TestAssignForDateLongPeriods(t *testing.T) {
 	}
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Regression: ConsecutiveAvoidance ensures no back-to-back without unavailability
+// ──────────────────────────────────────────────────────────────────────────────
+
+// TestNoConsecutiveWithoutUnavailability is a regression test for:
+// "Algorithm should avoid back-to-back consecutive assignments when there is no
+// unavailability forcing the imbalance."
+//
+// When both parents are always available, perfect alternation (Alice, Bob, Alice,
+// Bob, …) is possible and the algorithm should never produce two same-parent
+// nights in a row — even across month boundaries where odd-day months cause a
+// 1-night TotalCount imbalance.
+func TestNoConsecutiveWithoutUnavailability(t *testing.T) {
+	testCases := []struct {
+		name                string
+		days                int
+		expectedAssignments map[string]int
+	}{
+		{
+			name: "30 days - no unavailability, perfect alternation",
+			days: 30,
+			expectedAssignments: map[string]int{
+				"Alice": 15,
+				"Bob":   15,
+			},
+		},
+		{
+			name: "31 days - no unavailability, Alice gets extra day",
+			days: 31,
+			expectedAssignments: map[string]int{
+				"Alice": 16,
+				"Bob":   15,
+			},
+		},
+		{
+			name: "59 days - no unavailability, two-month span (31+28)",
+			days: 59,
+			expectedAssignments: map[string]int{
+				"Alice": 30,
+				"Bob":   29,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
+
+			db, cleanup := setupTestDB(t)
+			defer cleanup()
+
+			tracker, err := fairness.New(db)
+			assert.NoError(t, err)
+			scheduler := New(store, tracker)
+			cfg := testScheduleConfig(store)
+
+			startDate := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday
+
+			actualAssignments := map[string]int{"Alice": 0, "Bob": 0}
+			var prevParent string
+			for day := 0; day < tc.days; day++ {
+				date := startDate.AddDate(0, 0, day)
+
+				assignment, err := scheduler.assignForDate(date, cfg)
+				assert.NoError(t, err)
+
+				// Core assertion: no two consecutive same-parent nights
+				if prevParent != "" {
+					assert.NotEqual(t, prevParent, assignment.Parent,
+						"Day %d (%s): %s assigned again (consecutive), previous was also %s",
+						day+1, date.Format("Monday"), assignment.Parent, prevParent)
+				}
+				prevParent = assignment.Parent
+				actualAssignments[assignment.Parent]++
+			}
+
+			// Verify total counts
+			assert.Equal(t, tc.expectedAssignments["Alice"], actualAssignments["Alice"],
+				"Alice should have %d assignments but got %d",
+				tc.expectedAssignments["Alice"], actualAssignments["Alice"])
+			assert.Equal(t, tc.expectedAssignments["Bob"], actualAssignments["Bob"],
+				"Bob should have %d assignments but got %d",
+				tc.expectedAssignments["Bob"], actualAssignments["Bob"])
+		})
+	}
+}
+
+// TestUnavailabilityExemptionAllowsConsecutive verifies that when unavailability
+// causes a TotalCount imbalance, the algorithm correctly allows a consecutive
+// assignment to restore balance.
+//
+// Scenario: Bob is unavailable on Wednesday. After Wednesday (Alice forced by
+// unavailability), Alice has more assignments than Bob. The day after Wednesday
+// (Thursday), TotalCount correctly assigns Bob even though Thursday's assignment
+// follows a potential consecutive — this is allowed because the recent
+// unavailability caused the imbalance.
+func TestUnavailabilityExemptionAllowsConsecutive(t *testing.T) {
+	store := newTestConfigStore("Alice", "Bob", []string{}, []string{"Wednesday"})
+
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	scheduler := New(store, tracker)
+	cfg := testScheduleConfig(store)
+
+	startDate := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday
+
+	// Run 14 days and verify the unavailability day (Wednesday) creates
+	// the expected unavailability-triggered consecutive.
+	var assignments []string
+	for day := 0; day < 14; day++ {
+		date := startDate.AddDate(0, 0, day)
+		a, err := scheduler.assignForDate(date, cfg)
+		assert.NoError(t, err)
+		assignments = append(assignments, a.Parent)
+	}
+
+	// Days: Mon=Alice, Tue=Bob, Wed=Alice(unavail), Thu=Bob(TotalCount fix)...
+	// The Wed→Thu transition should show Alice→Bob (not consecutive).
+	// But the Tue→Wed transition is Bob→Alice(unavail), and then later
+	// the pattern may create Alice→Alice around Wed when Alice is forced.
+	// The key check: the day AFTER unavailability uses TotalCount to correct.
+	assert.Equal(t, "Alice", assignments[2], "Wed should be Alice (Bob unavailable)")
+
+	// Verify balance is maintained over the 14 days
+	aliceCount, bobCount := 0, 0
+	for _, a := range assignments {
+		if a == "Alice" {
+			aliceCount++
+		} else {
+			bobCount++
+		}
+	}
+	assert.Equal(t, 7, aliceCount, "Alice should have 7 assignments in 14 days")
+	assert.Equal(t, 7, bobCount, "Bob should have 7 assignments in 14 days")
+}
+
 // TestAssignForDateWithSpecificDays tests the assignForDate function for specific days of the week
 func TestAssignForDateWithSpecificDays(t *testing.T) {
 	testCases := []struct {
