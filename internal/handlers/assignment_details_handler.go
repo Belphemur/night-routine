@@ -236,6 +236,17 @@ func (h *AssignmentDetailsHandler) handleSetAssignmentBabysitter(w http.Response
 		return
 	}
 
+	const maxBabysitterNameLen = 80
+	if len(req.BabysitterName) > maxBabysitterNameLen {
+		handlerLogger.Warn().Int("name_len", len(req.BabysitterName)).Msg("Babysitter name exceeds maximum length")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "babysitter_name exceeds maximum length"}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode validation error response")
+		}
+		return
+	}
+
 	assignment, err := h.Tracker.GetAssignmentByID(req.AssignmentID)
 	if err != nil {
 		handlerLogger.Error().Err(err).Int64("assignment_id", req.AssignmentID).Msg("Failed to get assignment")
@@ -253,6 +264,37 @@ func (h *AssignmentDetailsHandler) handleSetAssignmentBabysitter(w http.Response
 		w.WriteHeader(http.StatusNotFound)
 		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Assignment not found"}); err != nil {
 			handlerLogger.Error().Err(err).Msg("Failed to encode not found response")
+		}
+		return
+	}
+
+	// Enforce the same past-event threshold used by the webhook handler to prevent
+	// modification of historical assignments that should remain fixed for fairness.
+	_, _, thresholdDays, _, schedErr := h.ConfigStore.GetSchedule()
+	if schedErr != nil {
+		handlerLogger.Error().Err(schedErr).Msg("Failed to get schedule configuration for threshold check")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(map[string]string{"error": "Failed to validate assignment date"}); encErr != nil {
+			handlerLogger.Error().Err(encErr).Msg("Failed to encode server error response")
+		}
+		return
+	}
+
+	now := time.Now()
+	thresholdDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -thresholdDays)
+	y, m, d := assignment.Date.Date()
+	assignmentDate := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+
+	if assignmentDate.Before(thresholdDate) {
+		handlerLogger.Warn().
+			Int("threshold_days", thresholdDays).
+			Str("assignment_date", assignmentDate.Format("2006-01-02")).
+			Msg("Rejecting babysitter assignment for past assignment outside threshold")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Assignment is too far in the past to modify"}); err != nil {
+			handlerLogger.Error().Err(err).Msg("Failed to encode threshold error response")
 		}
 		return
 	}

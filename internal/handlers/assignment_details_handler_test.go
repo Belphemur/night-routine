@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -260,7 +261,7 @@ func TestHandleSetAssignmentBabysitter_Success(t *testing.T) {
 	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
 	defer cleanup()
 
-	date := time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
+	date := time.Now().Truncate(24 * time.Hour) // Use today to stay within threshold
 	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
 
@@ -365,4 +366,44 @@ func TestHandleSetAssignmentBabysitter_NotFound(t *testing.T) {
 
 	handler.handleSetAssignmentBabysitter(w, req)
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_NameTooLong(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	longName := strings.Repeat("a", 81)
+	payload := []byte(`{"assignment_id":1,"babysitter_name":"` + longName + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err := json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "maximum length")
+}
+
+func TestHandleSetAssignmentBabysitter_PastThreshold(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	// Create an assignment far in the past (beyond the default 7-day threshold)
+	oldDate := time.Now().AddDate(0, 0, -30)
+	assignment, err := tracker.RecordAssignment("Alice", oldDate, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "too far in the past")
 }
