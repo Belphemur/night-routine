@@ -6,6 +6,14 @@
 * **fairness:** filter babysitter assignments from last-assignments query ([8d0dfd3](https://github.com/Belphemur/night-routine/commit/8d0dfd33da6afc92c0b546ddd293c98f1d95210a))
 * **fairness:** plan to filter babysitter from last assignments query ([711b6b1](https://github.com/Belphemur/night-routine/commit/711b6b11cb8f8002743e3f6770f5f3dd9800b21b))
 
+## [0.27.1](https://github.com/Belphemur/night-routine/compare/v0.27.0...v0.27.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* **fairness:** filter babysitter assignments from last-assignments query ([8d0dfd3](https://github.com/Belphemur/night-routine/commit/8d0dfd33da6afc92c0b546ddd293c98f1d95210a))
+* **fairness:** plan to filter babysitter from last assignments query ([711b6b1](https://github.com/Belphemur/night-routine/commit/711b6b11cb8f8002743e3f6770f5f3dd9800b21b))
+
 # [0.27.0](https://github.com/Belphemur/night-routine/compare/v0.26.2...v0.27.0) (2026-04-02)
 
 
