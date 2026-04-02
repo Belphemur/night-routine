@@ -89,7 +89,7 @@ source:
 # https://goreleaser.com/customization/gomod/
 gomod:
   # Uses the Go module proxy to download dependencies.
-  proxy: true
+  proxy: false
 
 # Change the digests filename for attestation
 # https://goreleaser.com/customization/docker_digest/
