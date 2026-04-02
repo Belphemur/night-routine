@@ -387,31 +387,28 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	return nil
 }
 
-func formatEventSummary(assignment *scheduler.Assignment) string {
-	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter {
-		name := assignment.BabysitterName
-		if name == "" {
-			name = assignment.Parent
-		}
-		return fmt.Sprintf("%s - Babysitter", name)
+// displayName returns the name to show in calendar events.
+// For babysitter assignments it prefers BabysitterName, falling back to Parent.
+func displayName(assignment *scheduler.Assignment) string {
+	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter && assignment.BabysitterName != "" {
+		return assignment.BabysitterName
 	}
+	return assignment.Parent
+}
 
-	return fmt.Sprintf("[%s] 🌃👶Routine", assignment.Parent)
+func formatEventSummary(assignment *scheduler.Assignment) string {
+	return fmt.Sprintf("[%s] 🌃👶Routine", displayName(assignment))
 }
 
 // formatEventDescription formats the event description string.
 func formatEventDescription(assignment *scheduler.Assignment) string {
+	name := displayName(assignment)
 	if assignment.CaregiverType == fairness.CaregiverTypeBabysitter {
-		name := assignment.BabysitterName
-		if name == "" {
-			name = assignment.Parent
-		}
-		return fmt.Sprintf("Night routine duty assigned to babysitter %s. Reason: %s [%s]",
+		return fmt.Sprintf("Night routine handled by babysitter %s. Reason: %s [%s]",
 			name, assignment.DecisionReason.String(), constants.NightRoutineIdentifier)
 	}
-
 	return fmt.Sprintf("Night routine duty assigned to %s. Reason: %s [%s]",
-		assignment.Parent, assignment.DecisionReason.String(), constants.NightRoutineIdentifier)
+		name, assignment.DecisionReason.String(), constants.NightRoutineIdentifier)
 }
 
 // setNoReminders disables all reminders for an event.
