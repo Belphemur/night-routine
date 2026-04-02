@@ -308,3 +308,61 @@ func TestHandleSetAssignmentBabysitter_TriggersScheduleRecalculation(t *testing.
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 1, recordingSvc.syncCalls, "setting babysitter should trigger schedule recalculation/sync")
 }
+
+func TestHandleSetAssignmentBabysitter_Unauthenticated(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, false)
+	defer cleanup()
+
+	payload := []byte(`{"assignment_id":1,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_WrongMethod(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/assignment-babysitter", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_MissingFields(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{"zero assignment_id", `{"assignment_id":0,"babysitter_name":"Dawn"}`},
+		{"empty babysitter_name", `{"assignment_id":1,"babysitter_name":""}`},
+		{"whitespace babysitter_name", `{"assignment_id":1,"babysitter_name":"   "}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewBufferString(tt.payload))
+			w := httptest.NewRecorder()
+			handler.handleSetAssignmentBabysitter(w, req)
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+		})
+	}
+}
+
+func TestHandleSetAssignmentBabysitter_NotFound(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	payload := []byte(`{"assignment_id":99999,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}

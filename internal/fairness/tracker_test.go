@@ -712,3 +712,141 @@ func TestSaveAssignmentDetailsUpsert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, count, "Should only have one record after upsert")
 }
+
+func TestRecordBabysitterAssignment(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	t.Run("Insert new babysitter assignment", func(t *testing.T) {
+		date := time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC)
+		assignment, err := tracker.RecordBabysitterAssignment("Dawn", date, true)
+		assert.NoError(t, err)
+		assert.NotNil(t, assignment)
+		assert.Equal(t, "Dawn", assignment.Parent)
+		assert.Equal(t, "Dawn", assignment.BabysitterName)
+		assert.Equal(t, CaregiverTypeBabysitter, assignment.CaregiverType)
+		assert.True(t, assignment.Override)
+		assert.Equal(t, DecisionReasonOverride, assignment.DecisionReason)
+		assert.Equal(t, date.Format("2006-01-02"), assignment.Date.Format("2006-01-02"))
+	})
+
+	t.Run("Upsert overwrites existing parent assignment", func(t *testing.T) {
+		date := time.Date(2025, 4, 2, 0, 0, 0, 0, time.UTC)
+		// First record a parent
+		original, err := tracker.RecordAssignment("Alice", date, false, DecisionReasonTotalCount)
+		assert.NoError(t, err)
+		assert.Equal(t, CaregiverTypeParent, original.CaregiverType)
+
+		// Now record babysitter on same date
+		updated, err := tracker.RecordBabysitterAssignment("Dawn", date, true)
+		assert.NoError(t, err)
+		assert.Equal(t, original.ID, updated.ID, "should be the same row via upsert")
+		assert.Equal(t, CaregiverTypeBabysitter, updated.CaregiverType)
+		assert.Equal(t, "Dawn", updated.BabysitterName)
+	})
+}
+
+func TestGetLastAssignmentDate(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	t.Run("No assignments returns zero time", func(t *testing.T) {
+		date, err := tracker.GetLastAssignmentDate()
+		assert.NoError(t, err)
+		assert.True(t, date.IsZero())
+	})
+
+	t.Run("Returns latest assignment date", func(t *testing.T) {
+		_, err := tracker.RecordAssignment("Alice", time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC), false, DecisionReasonTotalCount)
+		assert.NoError(t, err)
+		_, err = tracker.RecordAssignment("Bob", time.Date(2025, 3, 15, 0, 0, 0, 0, time.UTC), false, DecisionReasonAlternating)
+		assert.NoError(t, err)
+
+		date, err := tracker.GetLastAssignmentDate()
+		assert.NoError(t, err)
+		assert.Equal(t, "2025-03-15", date.Format("2006-01-02"))
+	})
+}
+
+func TestGetBabysitterMonthlyStatsForLastNMonths(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	// Seed data: some parent + babysitter assignments across months
+	refTime := time.Date(2025, 5, 15, 0, 0, 0, 0, time.UTC)
+	monthsAgo := func(n int) time.Time {
+		return time.Date(refTime.Year(), refTime.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -n, 5)
+	}
+
+	// Parent assignments (should NOT appear in babysitter stats)
+	_, err = tracker.RecordAssignment("Alice", monthsAgo(0), false, DecisionReasonTotalCount)
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", monthsAgo(1), false, DecisionReasonAlternating)
+	assert.NoError(t, err)
+
+	// Babysitter assignments
+	_, err = tracker.RecordBabysitterAssignment("Dawn", monthsAgo(0).AddDate(0, 0, 1), true)
+	assert.NoError(t, err)
+	_, err = tracker.RecordBabysitterAssignment("Dawn", monthsAgo(0).AddDate(0, 0, 2), true)
+	assert.NoError(t, err)
+	_, err = tracker.RecordBabysitterAssignment("Eve", monthsAgo(2), true)
+	assert.NoError(t, err)
+
+	t.Run("Returns only babysitter stats", func(t *testing.T) {
+		stats, err := tracker.GetBabysitterMonthlyStatsForLastNMonths(refTime, 12)
+		assert.NoError(t, err)
+
+		resultsMap := make(map[string]map[string]int)
+		for _, s := range stats {
+			if _, ok := resultsMap[s.ParentName]; !ok {
+				resultsMap[s.ParentName] = make(map[string]int)
+			}
+			resultsMap[s.ParentName][s.MonthYear] = s.Count
+		}
+
+		currentMonth := refTime.Format("2006-01")
+		assert.Equal(t, 2, resultsMap["Dawn"][currentMonth], "Dawn should have 2 babysitter assignments in current month")
+		_, aliceExists := resultsMap["Alice"]
+		assert.False(t, aliceExists, "parent-only assignments should not appear")
+		_, bobExists := resultsMap["Bob"]
+		assert.False(t, bobExists, "parent-only assignments should not appear")
+	})
+
+	t.Run("Lookback for 1 month excludes older entries", func(t *testing.T) {
+		stats, err := tracker.GetBabysitterMonthlyStatsForLastNMonths(refTime, 1)
+		assert.NoError(t, err)
+
+		for _, s := range stats {
+			assert.NotEqual(t, "Eve", s.ParentName, "Eve's assignment is older and should not appear in 1-month lookback")
+		}
+	})
+
+	t.Run("No babysitter assignments returns empty", func(t *testing.T) {
+		// Query a narrow range that only contains parent assignments
+		parentOnlyRef := time.Date(2020, 1, 15, 0, 0, 0, 0, time.UTC)
+		stats, err := tracker.GetBabysitterMonthlyStatsForLastNMonths(parentOnlyRef, 1)
+		assert.NoError(t, err)
+		assert.Empty(t, stats)
+	})
+}
+
+func TestUnlockAssignment_NotFound(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	err = tracker.UnlockAssignment(99999)
+	assert.Error(t, err, "unlocking a nonexistent assignment should fail")
+	assert.Contains(t, err.Error(), "assignment not found")
+}
