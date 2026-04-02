@@ -212,8 +212,8 @@ func run(ctx context.Context) error {
 	syncHandler := handlers.NewSyncHandler(baseHandler, sched, tokenManager, calSvc, configAdapter)
 	settingsHandler := handlers.NewSettingsHandler(baseHandler, configStore, sched, tokenManager, calSvc)
 	statisticsHandler := handlers.NewStatisticsHandler(baseHandler, configStore)
-	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker)
-	assignmentDetailsHandler := handlers.NewAssignmentDetailsHandler(baseHandler, tracker)
+	unlockHandler := handlers.NewUnlockHandler(baseHandler, tracker, sched, calSvc, configAdapter)
+	assignmentDetailsHandler := handlers.NewAssignmentDetailsHandler(baseHandler, tracker, sched, calSvc, configAdapter)
 
 	// Register routes
 	staticHandler.RegisterRoutes()

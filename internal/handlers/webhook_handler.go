@@ -14,6 +14,7 @@ import (
 	"github.com/belphemur/night-routine/internal/calendar"
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/constants"
+	"github.com/belphemur/night-routine/internal/fairness"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/belphemur/night-routine/internal/token"
@@ -169,6 +170,12 @@ func (h *WebhookHandler) processEventChanges(ctx context.Context, calendarID str
 // processEvents processes a batch of calendar events and updates assignments accordingly
 func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.Event, procLogger zerolog.Logger) error {
 	var processingErrors []error
+	parentA, parentB, err := h.ConfigStore.GetParents()
+	if err != nil {
+		procLogger.Warn().Err(err).Msg("Failed to get parent names from config store, falling back to summary-only parsing")
+		parentA = ""
+		parentB = ""
+	}
 
 	// Read the past-event threshold live from the database so that UI setting
 	// changes take effect immediately without requiring an application restart.
@@ -199,15 +206,16 @@ func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.
 		}
 		eventLogger.Debug().Msg("Event identified as managed by Night Routine")
 
-		// Extract the parent name from the event summary
-		// Format: "[Parent] 🌃👶Routine"
-		parentName := extractParentName(event.Summary)
-		if parentName == "" {
-			eventLogger.Warn().Str("summary", event.Summary).Msg("Could not extract parent name from event summary, skipping")
+		assignee, ok := parseManagedEventAssignee(event.Summary, parentA, parentB)
+		if !ok {
+			eventLogger.Warn().Str("summary", event.Summary).Msg("Could not parse managed assignee from event summary, skipping")
 			continue
 		}
-		eventLogger = eventLogger.With().Str("event_parent", parentName).Logger()
-		eventLogger.Debug().Msg("Extracted parent name from event summary")
+		eventLogger = eventLogger.With().
+			Str("event_assignee", assignee.Name).
+			Str("event_caregiver_type", assignee.CaregiverType.String()).
+			Logger()
+		eventLogger.Debug().Msg("Extracted managed assignee from event summary")
 
 		// Find the assignment by Google Calendar event ID
 		assignment, err := h.Scheduler.GetAssignmentByGoogleCalendarEventID(event.Id)
@@ -230,15 +238,34 @@ func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.
 		eventLogger.Debug().Msg("Found matching assignment")
 
 		// If parent name hasn't changed in the summary, skip
-		if assignment.Parent == parentName {
+		if assignment.CaregiverType == assignee.CaregiverType {
+			if assignee.CaregiverType == fairness.CaregiverTypeBabysitter {
+				currentName := assignment.BabysitterName
+				if currentName == "" {
+					currentName = assignment.Parent
+				}
+				if currentName == assignee.Name {
+					eventLogger.Debug().Msg("Event summary babysitter matches assignment babysitter, no update needed")
+					continue
+				}
+			} else if assignment.Parent == assignee.Name {
+				eventLogger.Debug().Msg("Event summary parent matches assignment parent, no update needed")
+				continue
+			}
+		}
+
+		if assignment.CaregiverType != fairness.CaregiverTypeBabysitter && assignment.Parent == assignee.Name {
 			eventLogger.Debug().Msg("Event summary parent matches assignment parent, no update needed")
 			continue
 		}
 
 		// Check if the private property already reflects the change (maybe updated by another process)
-		if currentParentProp, ok := event.ExtendedProperties.Private["parent"]; ok && currentParentProp == parentName {
-			eventLogger.Debug().Msg("Event private property 'parent' already matches summary parent, skipping update")
-			continue
+		if currentAssigneeProp, ok := event.ExtendedProperties.Private["parent"]; ok {
+			currentTypeProp := event.ExtendedProperties.Private["caregiverType"]
+			if currentAssigneeProp == assignee.Name && currentTypeProp == assignee.CaregiverType.String() {
+				eventLogger.Debug().Msg("Event private properties already match summary assignee, skipping update")
+				continue
+			}
 		}
 
 		// Check if the assignment is within the configurable past event threshold
@@ -263,24 +290,32 @@ func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.
 			Int("threshold_days", thresholdDays).
 			Msg("Assignment date is within threshold, proceeding with update")
 
-		// Update the assignment with the new parent name and set override flag
-		eventLogger.Info().Msg("Updating assignment parent due to event change (override)")
-		if err := h.Scheduler.UpdateAssignmentParent(assignment.ID, parentName, true); err != nil {
-			eventLogger.Error().Err(err).Msg("Error updating assignment parent in database")
-			processingErrors = append(processingErrors, err) // Collect error
-			continue
+		if assignee.CaregiverType == fairness.CaregiverTypeBabysitter {
+			eventLogger.Info().Msg("Updating assignment to babysitter due to event change (override)")
+			if err := h.Scheduler.UpdateAssignmentToBabysitter(assignment.ID, assignee.Name, true); err != nil {
+				eventLogger.Error().Err(err).Msg("Error updating assignment to babysitter in database")
+				processingErrors = append(processingErrors, err)
+				continue
+			}
+		} else {
+			eventLogger.Info().Msg("Updating assignment parent due to event change (override)")
+			if err := h.Scheduler.UpdateAssignmentParent(assignment.ID, assignee.Name, true); err != nil {
+				eventLogger.Error().Err(err).Msg("Error updating assignment parent in database")
+				processingErrors = append(processingErrors, err)
+				continue
+			}
 		}
-		eventLogger.Info().Msg("Successfully updated assignment parent in database")
+
+		eventLogger.Info().Msg("Successfully updated assignment in database")
 
 		// Recalculate the schedule for future days starting from the modified assignment's date
 		eventLogger.Info().Msg("Recalculating schedule due to override")
 		if err := h.recalculateSchedule(ctx, assignment.Date); err != nil {
 			eventLogger.Error().Err(err).Msg("Error recalculating schedule after override")
 			processingErrors = append(processingErrors, err) // Collect error
-			// Continue processing other events even if recalculation fails for one
-		} else {
-			eventLogger.Info().Msg("Successfully recalculated schedule")
+			continue
 		}
+		eventLogger.Info().Msg("Successfully recalculated schedule")
 	}
 
 	// Join multiple errors if they occurred
@@ -296,75 +331,55 @@ func (h *WebhookHandler) processEvents(ctx context.Context, events []*gcalendar.
 
 // recalculateSchedule regenerates the schedule from the given date
 func (h *WebhookHandler) recalculateSchedule(ctx context.Context, fromDate time.Time) error {
-	recalcLogger := h.logger.With().Str("from_date", fromDate.Format("2006-01-02")).Logger()
-	recalcLogger.Info().Msg("Recalculating schedule")
-
-	// Get the last assignment date from the database
-	lastAssignmentDate, err := h.Tracker.GetLastAssignmentDate()
-	if err != nil {
-		recalcLogger.Error().Err(err).Msg("Failed to get last assignment date from tracker")
-		return fmt.Errorf("failed to get last assignment date: %w", err)
-	}
-	recalcLogger.Debug().Time("last_assignment_date", lastAssignmentDate).Msg("Retrieved last assignment date")
-
-	// If there are no assignments in the database, use the default look-ahead period
-	endDate := lastAssignmentDate
-	if endDate.IsZero() || endDate.Before(fromDate) {
-		// Read look-ahead days live from the database so that UI setting changes
-		// take effect immediately without requiring an application restart.
-		_, lookAheadDays, _, _, err := h.ConfigStore.GetSchedule()
-		if err != nil {
-			recalcLogger.Error().Err(err).Msg("Failed to get schedule configuration for look-ahead days")
-			return fmt.Errorf("failed to get schedule configuration: %w", err)
-		}
-		// Use the same look-ahead period as defined in the config, starting from 'fromDate'
-		endDate = fromDate.AddDate(0, 0, lookAheadDays)
-		recalcLogger.Debug().Int("look_ahead_days", lookAheadDays).Time("end_date", endDate).Msg("Calculated end date based on look-ahead days")
-	} else {
-		recalcLogger.Debug().Time("end_date", endDate).Msg("Using last assignment date as end date for recalculation")
-	}
-
-	// Generate a new schedule
-	recalcLogger.Debug().Msg("Generating new schedule")
-	assignments, err := h.Scheduler.GenerateSchedule(fromDate, endDate, time.Now())
-	if err != nil {
-		recalcLogger.Error().Err(err).Msg("Failed to generate schedule during recalculation")
-		return fmt.Errorf("failed to generate schedule: %w", err)
-	}
-	recalcLogger.Info().Int("assignments_generated", len(assignments)).Msg("New schedule generated")
-
-	// Filter assignments to only include those with Google Calendar event IDs
-	// We don't want to push more event than needed
-	var assignmentsWithEventIDs []*Scheduler.Assignment
-	for _, assignment := range assignments {
-		if assignment.GoogleCalendarEventID != "" {
-			assignmentsWithEventIDs = append(assignmentsWithEventIDs, assignment)
-		}
-	}
-	recalcLogger.Info().Int("assignments_with_event_ids", len(assignmentsWithEventIDs)).Msg("Filtered assignments with Google Calendar event IDs")
-
-	// Sync only assignments that have Google Calendar event IDs
-	recalcLogger.Debug().Msg("Syncing recalculated schedule with Google Calendar")
-	if err := h.CalendarService.SyncSchedule(ctx, assignmentsWithEventIDs); err != nil {
-		recalcLogger.Error().Err(err).Msg("Failed to sync recalculated schedule")
-		return fmt.Errorf("failed to sync schedule: %w", err)
-	}
-
-	recalcLogger.Info().Msg("Schedule recalculation and sync completed successfully")
-	return nil
+	return recalculateScheduleAndSync(
+		ctx,
+		h.logger,
+		h.Tracker,
+		h.Scheduler,
+		h.CalendarService,
+		h.ConfigStore,
+		fromDate,
+	)
 }
 
-// extractParentName extracts the parent name from the event summary
-func extractParentName(summary string) string {
-	// Format: "[Parent] 🌃👶Routine"
-	if len(summary) < 3 || !strings.HasPrefix(summary, "[") {
-		return ""
+type parsedManagedAssignee struct {
+	Name          string
+	CaregiverType fairness.CaregiverType
+}
+
+func parseManagedEventAssignee(summary, parentA, parentB string) (parsedManagedAssignee, bool) {
+	trimmedSummary := strings.TrimSpace(summary)
+	if trimmedSummary == "" {
+		return parsedManagedAssignee{}, false
 	}
 
-	endBracket := strings.Index(summary, "]")
-	if endBracket <= 1 {
-		return ""
+	if strings.HasPrefix(trimmedSummary, "[") {
+		endBracket := strings.Index(trimmedSummary, "]")
+		if endBracket > 1 {
+			name := strings.TrimSpace(trimmedSummary[1:endBracket])
+			if name == "" {
+				return parsedManagedAssignee{}, false
+			}
+
+			if parentA == "" && parentB == "" {
+				return parsedManagedAssignee{Name: name, CaregiverType: fairness.CaregiverTypeParent}, true
+			}
+
+			if name == parentA || name == parentB {
+				return parsedManagedAssignee{Name: name, CaregiverType: fairness.CaregiverTypeParent}, true
+			}
+
+			return parsedManagedAssignee{Name: name, CaregiverType: fairness.CaregiverTypeBabysitter}, true
+		}
 	}
 
-	return summary[1:endBracket]
+	if strings.HasSuffix(trimmedSummary, " - Babysitter") {
+		name := strings.TrimSpace(strings.TrimSuffix(trimmedSummary, " - Babysitter"))
+		if name == "" {
+			return parsedManagedAssignee{}, false
+		}
+		return parsedManagedAssignee{Name: name, CaregiverType: fairness.CaregiverTypeBabysitter}, true
+	}
+
+	return parsedManagedAssignee{}, false
 }

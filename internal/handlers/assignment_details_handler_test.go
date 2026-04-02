@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -8,13 +10,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/database"
 	"github.com/belphemur/night-routine/internal/fairness"
+	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )
+
+type recordingCalendarService struct {
+	noopCalendarService
+	syncCalls int
+}
+
+func (r *recordingCalendarService) SyncSchedule(_ context.Context, _ []*Scheduler.Assignment) error {
+	r.syncCalls++
+	return nil
+}
 
 func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*AssignmentDetailsHandler, *fairness.Tracker, *database.DB, func()) {
 	// Create test database
@@ -65,8 +79,12 @@ func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*Assig
 	baseHandler, err := NewBaseHandler(configAdapter, tokenStore, tokenManager, tracker, "test-version", "test-logo-version")
 	require.NoError(t, err)
 
-	// Create assignment details handler
-	handler := NewAssignmentDetailsHandler(baseHandler, tracker)
+	// Create assignment details handler with scheduler and no-op external integrations.
+	fileConfig := &config.Config{
+		Parents: config.ParentsConfig{ParentA: "Alice", ParentB: "Bob"},
+	}
+	sched := Scheduler.New(fileConfig, tracker)
+	handler := NewAssignmentDetailsHandler(baseHandler, tracker, sched, &noopCalendarService{}, &noopConfigStore{})
 
 	cleanup := func() {
 		db.Close()
@@ -113,6 +131,29 @@ func TestHandleGetAssignmentDetails_Success(t *testing.T) {
 	assert.Equal(t, "Bob", response.ParentBName)
 	assert.Equal(t, 7, response.ParentBTotalCount)
 	assert.Equal(t, 4, response.ParentBLast30Days)
+	assert.Equal(t, fairness.CaregiverTypeParent.String(), response.CaregiverType)
+}
+
+func TestHandleGetAssignmentDetails_BabysitterAssignment(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	date := time.Date(2025, 1, 16, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonAlternating)
+	require.NoError(t, err)
+	require.NoError(t, tracker.UpdateAssignmentToBabysitter(assignment.ID, "Dawn", true))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/assignment-details?assignment_id="+strconv.FormatInt(assignment.ID, 10), nil)
+	w := httptest.NewRecorder()
+
+	handler.handleGetAssignmentDetails(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response AssignmentDetailsResponse
+	err = json.NewDecoder(w.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Equal(t, fairness.CaregiverTypeBabysitter.String(), response.CaregiverType)
+	assert.Equal(t, "Dawn", response.BabysitterName)
 }
 
 func TestHandleGetAssignmentDetails_NotFound(t *testing.T) {
@@ -213,4 +254,57 @@ func TestHandleGetAssignmentDetails_WrongMethod(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_Success(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	date := time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	updated, err := tracker.GetAssignmentByID(assignment.ID)
+	require.NoError(t, err)
+	assert.Equal(t, fairness.CaregiverTypeBabysitter, updated.CaregiverType)
+	assert.Equal(t, "Dawn", updated.BabysitterName)
+}
+
+func TestHandleSetAssignmentBabysitter_InvalidPayload(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewBufferString("bad json"))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandleSetAssignmentBabysitter_TriggersScheduleRecalculation(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	recordingSvc := &recordingCalendarService{}
+	handler.CalendarService = recordingSvc
+
+	date := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"babysitter_name":"Dawn"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-babysitter", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSetAssignmentBabysitter(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 1, recordingSvc.syncCalls, "setting babysitter should trigger schedule recalculation/sync")
 }
