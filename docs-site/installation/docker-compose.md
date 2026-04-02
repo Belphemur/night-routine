@@ -28,8 +28,8 @@ For easier self-hosting, you can use Docker Compose to manage the Night Routine 
         ports:
           - "8080:8080"
         environment:
-          - GOOGLE_OAUTH_CLIENT_ID=your-client-id-here
-          - GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret-here
+          - NR_OAUTH__CLIENT_ID=your-client-id-here
+          - NR_OAUTH__CLIENT_SECRET=your-client-secret-here
           - CONFIG_FILE=/app/config/routine.toml
           - ENV=production
         volumes:
@@ -81,8 +81,8 @@ For easier self-hosting, you can use Docker Compose to manage the Night Routine 
 
     Update these lines with your actual credentials:
     ```yaml
-    - GOOGLE_OAUTH_CLIENT_ID=your-actual-client-id
-    - GOOGLE_OAUTH_CLIENT_SECRET=your-actual-client-secret
+    - NR_OAUTH__CLIENT_ID=your-actual-client-id
+    - NR_OAUTH__CLIENT_SECRET=your-actual-client-secret
     ```
 
 5. **Edit the configuration file to match your needs:**
@@ -159,8 +159,8 @@ Create a `.env` file for your environment variables:
 
 ```bash
 cat > .env << 'EOF'
-GOOGLE_OAUTH_CLIENT_ID=your-client-id-here
-GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret-here
+NR_OAUTH__CLIENT_ID=your-client-id-here
+NR_OAUTH__CLIENT_SECRET=your-client-secret-here
 CONFIG_FILE=/app/config/routine.toml
 ENV=production
 PORT=8080

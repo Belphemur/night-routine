@@ -1,23 +1,44 @@
+# Night Routine Scheduler - Configuration
+#
+# Every setting below can be overridden by an environment variable using the
+# NR_SECTION__FIELD naming convention (prefix NR_, double underscore between
+# section and field name, all uppercase).
+#
+# Examples:
+#   NR_APP__PORT=9090
+#   NR_APP__APP_URL=http://localhost:9090
+#   NR_SERVICE__LOG_LEVEL=debug
+#   NR_PARENTS__PARENT_A=Alice
+#   NR_AVAILABILITY__PARENT_A_UNAVAILABLE=Monday,Wednesday
+#   NR_SCHEDULE__UPDATE_FREQUENCY=daily
+#
+# OAuth credentials have no TOML equivalent — provide them via env vars:
+#   NR_OAUTH__CLIENT_ID=...        (or legacy GOOGLE_OAUTH_CLIENT_ID)
+#   NR_OAUTH__CLIENT_SECRET=...    (or legacy GOOGLE_OAUTH_CLIENT_SECRET)
+#
+# Legacy env vars PORT, GOOGLE_OAUTH_CLIENT_ID, and GOOGLE_OAUTH_CLIENT_SECRET
+# remain supported for backwards compatibility but NR_* takes precedence.
+
 [parents]
-parent_a = "Antoine"  # First parent name
-parent_b = "Taina"   # Second parent name
+parent_a = "Antoine"  # NR_PARENTS__PARENT_A
+parent_b = "Taina"    # NR_PARENTS__PARENT_B
 
 [availability]
-parent_a_unavailable = ["Wednesday"]  # Days when parent A can't do the routine
-parent_b_unavailable = ["Tuesday", "Thursday"]     # Days when parent B can't do the routine
+parent_a_unavailable = ["Wednesday"]                  # NR_AVAILABILITY__PARENT_A_UNAVAILABLE (comma-separated)
+parent_b_unavailable = ["Tuesday", "Thursday"]        # NR_AVAILABILITY__PARENT_B_UNAVAILABLE (comma-separated)
 
 [schedule]
-update_frequency = "weekly"  # How often to update the calendar
-look_ahead_days = 7        # How many days to schedule in advance
-past_event_threshold_days = 5  # How many days in the past to accept event changes (default: 5)
-stats_order = "desc"  # Sort order for statistics page: "desc" (newest first) or "asc" (oldest first)
+update_frequency = "weekly"           # NR_SCHEDULE__UPDATE_FREQUENCY  (daily|weekly|monthly)
+look_ahead_days = 7                   # NR_SCHEDULE__LOOK_AHEAD_DAYS
+past_event_threshold_days = 5         # NR_SCHEDULE__PAST_EVENT_THRESHOLD_DAYS (default: 5)
+stats_order = "desc"                  # NR_SCHEDULE__STATS_ORDER  (desc|asc)
 
 [service]
-state_file = "data/state.db"  # SQLite database file for state tracking
-log_level = "info"             # Possible values: trace, debug, info, warn, error, fatal, panic
-manual_sync_on_startup = false # Optional: Perform a schedule sync immediately on startup if a token exists (defaults to true)
+state_file = "data/state.db"          # NR_SERVICE__STATE_FILE
+log_level = "info"                    # NR_SERVICE__LOG_LEVEL  (trace|debug|info|warn|error|fatal|panic)
+manual_sync_on_startup = false        # NR_SERVICE__MANUAL_SYNC_ON_STARTUP (default: true)
 
 [app]
-port = 8888  # The port to run the application on
-app_url = "http://localhost:8888"  # Internal application URL used for OAuth and general application routes
-public_url = "http://localhost:8888"  # Public URL used for webhooks and external integrations
+port = 8888                           # NR_APP__PORT  (also overridable by legacy PORT env var)
+app_url = "http://localhost:8888"     # NR_APP__APP_URL   — used for OAuth callback
+public_url = "http://localhost:8888"  # NR_APP__PUBLIC_URL — used for webhooks

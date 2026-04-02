@@ -10,9 +10,8 @@ docker pull ghcr.io/belphemur/night-routine:latest
 
 # Run the container
 docker run \
-  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
-  -e PORT=8080 \
+  -e NR_OAUTH__CLIENT_ID=your-client-id \
+  -e NR_OAUTH__CLIENT_SECRET=your-client-secret \
   -e CONFIG_FILE=/app/config/routine.toml \
   -v /path/to/config:/app/config \
   -v /path/to/data:/app/data \
@@ -36,11 +35,15 @@ When running with Docker, you must provide the following environment variables:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_OAUTH_CLIENT_ID` | Yes | OAuth2 Client ID from Google Cloud Console |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Yes | OAuth2 Client Secret from Google Cloud Console |
+| `NR_OAUTH__CLIENT_ID` | Yes | OAuth2 Client ID from Google Cloud Console |
+| `NR_OAUTH__CLIENT_SECRET` | Yes | OAuth2 Client Secret from Google Cloud Console |
 | `CONFIG_FILE` | Yes | Path to TOML configuration file (e.g., `/app/config/routine.toml`) |
-| `PORT` | No | Override port from TOML configuration (default: 8080) |
+| `NR_APP__PORT` | No | Override port from TOML configuration (default: `8888`) |
 | `ENV` | No | Set to `production` for JSON logging, otherwise pretty console logging |
+
+!!! info "Legacy variables"
+    The legacy `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and `PORT` variables are still supported for backwards compatibility, but `NR_*` variables are recommended and take precedence.
+    See the [Environment Variables reference](../configuration/environment.md) for all available `NR_*` overrides.
 
 ## Volume Mounts
 
@@ -87,8 +90,8 @@ EOF
 # Run the container
 docker run -d \
   --name night-routine \
-  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
+  -e NR_OAUTH__CLIENT_ID=your-client-id \
+  -e NR_OAUTH__CLIENT_SECRET=your-client-secret \
   -e CONFIG_FILE=/app/config/routine.toml \
   -v ~/night-routine/config:/app/config \
   -v ~/night-routine/data:/app/data \
@@ -150,8 +153,8 @@ docker pull ghcr.io/belphemur/night-routine:latest
 # Start a new container with the same configuration
 docker run -d \
   --name night-routine \
-  -e GOOGLE_OAUTH_CLIENT_ID=your-client-id \
-  -e GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret \
+  -e NR_OAUTH__CLIENT_ID=your-client-id \
+  -e NR_OAUTH__CLIENT_SECRET=your-client-secret \
   -e CONFIG_FILE=/app/config/routine.toml \
   -v ~/night-routine/config:/app/config \
   -v ~/night-routine/data:/app/data \
