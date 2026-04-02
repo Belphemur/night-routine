@@ -261,9 +261,10 @@ func TestUnlockHandler_HandleUnlock_BabysitterOverrideSuccess(t *testing.T) {
 	updatedAssignment, err := tracker.GetAssignmentByID(assignment.ID)
 	require.NoError(t, err)
 	// UnlockAssignment clears override, babysitter metadata, and restores parent caregiver type.
+	// The subsequent schedule recalculation overwrites parent_name with a real parent.
 	assert.False(t, updatedAssignment.Override)
 	assert.Equal(t, fairness.CaregiverTypeParent, updatedAssignment.CaregiverType)
 	assert.Empty(t, updatedAssignment.BabysitterName)
-	// parent_name was "ParentA" before the babysitter override; UnlockAssignment preserves it.
-	assert.Equal(t, "Dawn", updatedAssignment.Parent) // Dawn was written to parent_name by UpdateAssignmentToBabysitter
+	// After unlock + recalculation, parent_name is reassigned by the scheduler (not the stale babysitter name).
+	assert.Equal(t, "ParentA", updatedAssignment.Parent)
 }

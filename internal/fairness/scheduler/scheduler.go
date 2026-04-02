@@ -90,7 +90,6 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 	// timezones: a server in UTC-4 at 20:00 local = 00:00 UTC next day, making
 	// Truncate identify tomorrow as "today".  Date strings (formatted in the time's
 	// own location) are always consistent with the DB which stores local date strings.
-	currentDayStr := currentTime.Format("2006-01-02")
 
 	// First pass: find the earliest override in the range.
 	// Days after this override that are on or after currentDay need recalculation.
@@ -111,11 +110,13 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 
 	// Second pass: map assignments that are fixed
 	// Fixed assignments are:
-	// 1. Assignments strictly before today's local date (in the past) - these cannot be changed
+	// 1. Assignments strictly before today AND strictly before the start date (truly past)
 	// 2. Override assignments (always fixed - user explicitly set them)
 	// NOT fixed (will be recalculated):
+	// - Non-override assignments at the start date (the caller explicitly requested recalculation from here)
 	// - Non-override assignments on or after currentDay that are after an override
-	// - Non-override assignments strictly after currentDay (future, no override) - existing behavior
+	startDayStr := start.Format("2006-01-02")
+	currentDayStr := currentTime.Format("2006-01-02")
 	assignmentFixedInTime := make(map[string]*fairness.Assignment)
 	fixedCount := 0
 	for _, a := range existingAssignments {
@@ -125,6 +126,12 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		if a.Override {
 			assignmentFixedInTime[assignmentDayStr] = a
 			fixedCount++
+			continue
+		}
+
+		// The start date is never fixed — the caller explicitly requested
+		// recalculation from this point (e.g. after an unlock or babysitter removal).
+		if assignmentDayStr == startDayStr {
 			continue
 		}
 
