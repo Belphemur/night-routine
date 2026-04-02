@@ -1,3 +1,10 @@
+# [0.26.0](https://github.com/Belphemur/night-routine/compare/v0.25.4...v0.26.0) (2026-04-02)
+
+
+### Features
+
+* **config:** full env var override support via koanf ([#282](https://github.com/Belphemur/night-routine/issues/282)) ([71daae2](https://github.com/Belphemur/night-routine/commit/71daae2420acd83e57f4fb3a4e7377c1cf6c083b))
+
 ## [0.25.4](https://github.com/Belphemur/night-routine/compare/v0.25.3...v0.25.4) (2026-04-01)
 
 
