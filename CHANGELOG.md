@@ -1,3 +1,10 @@
+## [0.27.4](https://github.com/Belphemur/night-routine/compare/v0.27.3...v0.27.4) (2026-04-02)
+
+
+### Bug Fixes
+
+* **database:** remove `babysitter_name` column, add performance indexes, and clean up response fields ([#296](https://github.com/Belphemur/night-routine/issues/296)) ([d46225d](https://github.com/Belphemur/night-routine/commit/d46225d843f30b8ac677a6cb1dd30417f569c19c))
+
 ## [0.27.3](https://github.com/Belphemur/night-routine/compare/v0.27.2...v0.27.3) (2026-04-02)
 
 
