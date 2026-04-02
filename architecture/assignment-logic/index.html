@@ -1174,10 +1174,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-recent-count-balance" class="md-nav__link">
+  <a href="#3-consecutive-limit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Recent Count Balance
+        3. Consecutive Limit
       
     </span>
   </a>
@@ -1185,10 +1185,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-consecutive-limit" class="md-nav__link">
+  <a href="#4-recent-count-balance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Consecutive Limit
+        4. Recent Count Balance
       
     </span>
   </a>
@@ -1257,10 +1257,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#recent-count-window" class="md-nav__link">
+  <a href="#consecutive-limit-logic" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recent Count Window
+        Consecutive Limit Logic
       
     </span>
   </a>
@@ -1268,10 +1268,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#consecutive-limit-logic" class="md-nav__link">
+  <a href="#recent-count-window" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consecutive Limit Logic
+        Recent Count Window
       
     </span>
   </a>
@@ -1804,10 +1804,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-recent-count-balance" class="md-nav__link">
+  <a href="#3-consecutive-limit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Recent Count Balance
+        3. Consecutive Limit
       
     </span>
   </a>
@@ -1815,10 +1815,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-consecutive-limit" class="md-nav__link">
+  <a href="#4-recent-count-balance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Consecutive Limit
+        4. Recent Count Balance
       
     </span>
   </a>
@@ -1887,10 +1887,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#recent-count-window" class="md-nav__link">
+  <a href="#consecutive-limit-logic" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recent Count Window
+        Consecutive Limit Logic
       
     </span>
   </a>
@@ -1898,10 +1898,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#consecutive-limit-logic" class="md-nav__link">
+  <a href="#recent-count-window" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Consecutive Limit Logic
+        Recent Count Window
       
     </span>
   </a>
@@ -2183,15 +2183,15 @@
     BothAvail --&gt; CheckTotal[Compare Total Assignment Counts]
     CheckTotal --&gt; TotalDiff{Significant&lt;br/&gt;Difference?}
     TotalDiff --&gt;|Yes| AssignFewer[Assign Parent with Fewer&lt;br/&gt;Reason: Total Count]
-    TotalDiff --&gt;|No| CheckRecent[Compare Recent Assignment Counts]
-
-    CheckRecent --&gt; RecentDiff{Significant&lt;br/&gt;Difference?}
-    RecentDiff --&gt;|Yes| AssignFewerRecent[Assign Parent with Fewer Recent&lt;br/&gt;Reason: Recent Count]
-    RecentDiff --&gt;|No| CheckConsec[Check Consecutive Assignments]
+    TotalDiff --&gt;|No| CheckConsec[Check Consecutive Assignments]
 
     CheckConsec --&gt; TooMany{Too Many&lt;br/&gt;Consecutive?}
     TooMany --&gt;|Yes| AssignOther[Assign Other Parent&lt;br/&gt;Reason: Consecutive Limit]
-    TooMany --&gt;|No| Alternate[Apply Alternating Pattern&lt;br/&gt;Reason: Alternating]
+    TooMany --&gt;|No| CheckRecent[Compare Recent Assignment Counts]
+
+    CheckRecent --&gt; RecentDiff{Significant&lt;br/&gt;Difference?}
+    RecentDiff --&gt;|Yes| AssignFewerRecent[Assign Parent with Fewer Recent&lt;br/&gt;Reason: Recent Count]
+    RecentDiff --&gt;|No| Alternate[Apply Alternating Pattern&lt;br/&gt;Reason: Alternating]
 
     AssignAvail --&gt; End[Assignment Complete]
     AssignFewer --&gt; End
@@ -2203,62 +2203,82 @@
 <h3 id="1-unavailability">1. Unavailability<a class="headerlink" href="#1-unavailability" title="Permanent link">&para;</a></h3>
 <p><strong>Highest Priority</strong></p>
 <p>If one parent is unavailable on a given day (configured in <code>availability</code> section), the other parent is automatically assigned.</p>
-<p><strong>Configuration:</strong>
+<p><strong>Configuration:</strong></p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[availability]</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">]</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">parent_b_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Monday&quot;</span><span class="p">]</span>
-</span></code></pre></div></p>
-<p><strong>Example:</strong>
-- Monday: Parent A assigned (Parent B unavailable)
-- Wednesday: Parent B assigned (Parent A unavailable)</p>
+</span></code></pre></div>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Monday: Parent A assigned (Parent B unavailable)</li>
+<li>Wednesday: Parent B assigned (Parent A unavailable)</li>
+</ul>
 <p><strong>Decision Reason:</strong> <code>Unavailability</code></p>
 <h3 id="2-total-count-balance">2. Total Count Balance<a class="headerlink" href="#2-total-count-balance" title="Permanent link">&para;</a></h3>
 <p>If both parents are available, compare their total lifetime assignment counts.</p>
-<p><strong>Logic:</strong>
-- Count all assignments for each parent
-- If one parent has significantly fewer assignments (typically 2+ fewer), assign that parent</p>
-<p><strong>Example:</strong>
-- Parent A: 50 total assignments
-- Parent B: 48 total assignments
-- Difference is small (2), continue to next criterion</p>
+<p><strong>Logic:</strong></p>
+<ul>
+<li>Count all assignments for each parent</li>
+<li>If one parent has significantly fewer assignments (typically 2+ fewer), assign that parent</li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Parent A: 50 total assignments</li>
+<li>Parent B: 48 total assignments</li>
+<li>Difference is small (2), continue to next criterion</li>
+</ul>
 <p><strong>Decision Reason:</strong> <code>Total Count</code></p>
-<h3 id="3-recent-count-balance">3. Recent Count Balance<a class="headerlink" href="#3-recent-count-balance" title="Permanent link">&para;</a></h3>
-<p>Compare assignment counts from the recent period (last 30 days).</p>
-<p><strong>Logic:</strong>
-- Count recent assignments (last 30 days) for each parent
-- If one parent has fewer recent assignments, assign that parent</p>
-<p><strong>Example:</strong>
-- Parent A: 3 assignments in last 30 days
-- Parent B: 6 assignments in last 30 days
-- Assign Parent A</p>
-<p><strong>Decision Reason:</strong> <code>Recent Count</code></p>
-<h3 id="4-consecutive-limit">4. Consecutive Limit<a class="headerlink" href="#4-consecutive-limit" title="Permanent link">&para;</a></h3>
-<p>Prevent one parent from having too many consecutive night assignments.</p>
-<p><strong>Logic:</strong>
-- Check how many consecutive nights the current parent has been assigned
-- If limit reached (2 consecutive nights), switch to the other parent</p>
-<p><strong>Example:</strong>
-- Last 2 nights: Parent A, Parent A
-- Tonight: Assign Parent B (consecutive limit reached)</p>
+<h3 id="3-consecutive-limit">3. Consecutive Limit<a class="headerlink" href="#3-consecutive-limit" title="Permanent link">&para;</a></h3>
+<p>Prevent one parent from having too many consecutive night assignments. This takes priority over recent count balance to ensure babysitter insertions properly shift the schedule.</p>
+<p><strong>Logic:</strong></p>
+<ul>
+<li>Check how many consecutive nights the current parent has been assigned (babysitter days are transparent)</li>
+<li>If limit reached (2 consecutive nights), switch to the other parent</li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Last 2 nights: Parent A, Parent A</li>
+<li>Tonight: Assign Parent B (consecutive limit reached)</li>
+</ul>
 <p><strong>Decision Reason:</strong> <code>Consecutive Limit</code></p>
+<h3 id="4-recent-count-balance">4. Recent Count Balance<a class="headerlink" href="#4-recent-count-balance" title="Permanent link">&para;</a></h3>
+<p>Compare assignment counts from the recent period (last 30 days).</p>
+<p><strong>Logic:</strong></p>
+<ul>
+<li>Count recent assignments (last 30 days) for each parent</li>
+<li>If one parent has fewer recent assignments, assign that parent</li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Parent A: 3 assignments in last 30 days</li>
+<li>Parent B: 6 assignments in last 30 days</li>
+<li>Assign Parent A</li>
+</ul>
+<p><strong>Decision Reason:</strong> <code>Recent Count</code></p>
 <h3 id="5-alternating-pattern">5. Alternating Pattern<a class="headerlink" href="#5-alternating-pattern" title="Permanent link">&para;</a></h3>
 <p><strong>Default Behavior</strong></p>
 <p>When all other criteria are equal, maintain a simple alternating pattern.</p>
-<p><strong>Logic:</strong>
-- Check who was assigned yesterday
-- Assign the other parent</p>
-<p><strong>Example:</strong>
-- Yesterday: Parent A
-- Tonight: Parent B
-- Tomorrow: Parent A</p>
+<p><strong>Logic:</strong></p>
+<ul>
+<li>Check who was assigned yesterday</li>
+<li>Assign the other parent</li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Yesterday: Parent A</li>
+<li>Tonight: Parent B</li>
+<li>Tomorrow: Parent A</li>
+</ul>
 <p><strong>Decision Reason:</strong> <code>Alternating</code></p>
 <h3 id="6-manual-override">6. Manual Override<a class="headerlink" href="#6-manual-override" title="Permanent link">&para;</a></h3>
 <p>When you manually change an event title in Google Calendar, the system records this as an override.</p>
-<p><strong>Detection:</strong>
-- Google Calendar sends webhook notification
-- Application detects parent name change
-- Internal database is updated
-- Future assignments recalculated to maintain fairness</p>
+<p><strong>Detection:</strong></p>
+<ul>
+<li>Google Calendar sends webhook notification</li>
+<li>Application detects parent name change</li>
+<li>Internal database is updated</li>
+<li>Future assignments recalculated to maintain fairness</li>
+</ul>
 <p><strong>Decision Reason:</strong> <code>Override</code></p>
 <h3 id="7-babysitter-assignment">7. Babysitter Assignment<a class="headerlink" href="#7-babysitter-assignment" title="Permanent link">&para;</a></h3>
 <p>Babysitter assignments are a special type of override where a named babysitter is assigned to a specific date via the web interface.</p>
@@ -2288,84 +2308,90 @@
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><strong>Threshold:</strong> Typically 1-2 assignments</p>
-<h3 id="recent-count-window">Recent Count Window<a class="headerlink" href="#recent-count-window" title="Permanent link">&para;</a></h3>
-<p>Recent counts use a sliding window of 30 days:</p>
-<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nx">recentCountA</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">countAssignments</span><span class="p">(</span><span class="nx">ParentA</span><span class="p">,</span><span class="w"> </span><span class="nx">last30Days</span><span class="p">)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nx">recentCountB</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">countAssignments</span><span class="p">(</span><span class="nx">ParentB</span><span class="p">,</span><span class="w"> </span><span class="nx">last30Days</span><span class="p">)</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">if</span><span class="w"> </span><span class="nx">recentCountA</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">recentCountB</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nx">assign</span><span class="p">(</span><span class="nx">ParentA</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Recent Count&quot;</span><span class="p">)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">recentCountB</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">recentCountA</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nx">assign</span><span class="p">(</span><span class="nx">ParentB</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Recent Count&quot;</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">}</span>
-</span></code></pre></div>
 <h3 id="consecutive-limit-logic">Consecutive Limit Logic<a class="headerlink" href="#consecutive-limit-logic" title="Permanent link">&para;</a></h3>
-<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nx">consecutiveCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">1</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">lastAssignments</span><span class="p">);</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">lastAssignments</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">parent</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">lastParent</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">        </span><span class="nx">consecutiveCount</span><span class="o">++</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">        </span><span class="k">break</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="k">if</span><span class="w"> </span><span class="nx">consecutiveCount</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nx">assign</span><span class="p">(</span><span class="nx">otherParent</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Consecutive Limit&quot;</span><span class="p">)</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">}</span>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nx">consecutiveCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">1</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">lastAssignments</span><span class="p">);</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">lastAssignments</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">parent</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">lastParent</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">        </span><span class="nx">consecutiveCount</span><span class="o">++</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">        </span><span class="k">break</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">}</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">if</span><span class="w"> </span><span class="nx">consecutiveCount</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nx">assign</span><span class="p">(</span><span class="nx">otherParent</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Consecutive Limit&quot;</span><span class="p">)</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">}</span>
 </span></code></pre></div>
 <p><strong>Limit:</strong> 2 consecutive assignments</p>
+<h3 id="recent-count-window">Recent Count Window<a class="headerlink" href="#recent-count-window" title="Permanent link">&para;</a></h3>
+<p>Recent counts use a sliding window of 30 days:</p>
+<div class="language-go highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nx">recentCountA</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">countAssignments</span><span class="p">(</span><span class="nx">ParentA</span><span class="p">,</span><span class="w"> </span><span class="nx">last30Days</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nx">recentCountB</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">countAssignments</span><span class="p">(</span><span class="nx">ParentB</span><span class="p">,</span><span class="w"> </span><span class="nx">last30Days</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">if</span><span class="w"> </span><span class="nx">recentCountA</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">recentCountB</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nx">assign</span><span class="p">(</span><span class="nx">ParentA</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Recent Count&quot;</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">recentCountB</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">recentCountA</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nx">assign</span><span class="p">(</span><span class="nx">ParentB</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Recent Count&quot;</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
+</span></code></pre></div>
 <h2 id="example-scenarios">Example Scenarios<a class="headerlink" href="#example-scenarios" title="Permanent link">&para;</a></h2>
 <h3 id="scenario-1-basic-alternating">Scenario 1: Basic Alternating<a class="headerlink" href="#scenario-1-basic-alternating" title="Permanent link">&para;</a></h3>
-<p><strong>Setup:</strong>
-- No unavailable days
-- Equal total counts
-- No recent imbalance</p>
-<p><strong>Result:</strong>
+<p><strong>Setup:</strong></p>
+<ul>
+<li>No unavailable days</li>
+<li>Equal total counts</li>
+<li>No recent imbalance</li>
+</ul>
+<p><strong>Result:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Mon: Parent A (Alternating)
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Tue: Parent B (Alternating)
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>Wed: Parent A (Alternating)
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>Thu: Parent B (Alternating)
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="scenario-2-unavailability">Scenario 2: Unavailability<a class="headerlink" href="#scenario-2-unavailability" title="Permanent link">&para;</a></h3>
-<p><strong>Setup:</strong>
+<p><strong>Setup:</strong></p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">parent_a_unavailable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Friday&quot;</span><span class="p">]</span>
-</span></code></pre></div></p>
-<p><strong>Result:</strong>
+</span></code></pre></div>
+<p><strong>Result:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Mon: Parent A (Alternating)
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Tue: Parent B (Alternating)
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Wed: Parent B (Unavailability - A unavailable)
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>Thu: Parent A (Alternating)
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>Fri: Parent B (Unavailability - A unavailable)
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>Sat: Parent A (Alternating)
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="scenario-3-imbalanced-counts">Scenario 3: Imbalanced Counts<a class="headerlink" href="#scenario-3-imbalanced-counts" title="Permanent link">&para;</a></h3>
-<p><strong>Setup:</strong>
-- Parent A: 45 total assignments
-- Parent B: 50 total assignments</p>
-<p><strong>Result:</strong>
+<p><strong>Setup:</strong></p>
+<ul>
+<li>Parent A: 45 total assignments</li>
+<li>Parent B: 50 total assignments</li>
+</ul>
+<p><strong>Result:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Mon: Parent A (Total Count - fewer overall)
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Tue: Parent A (Total Count - still fewer overall)
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Wed: Parent A (Total Count - catching up)
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>Thu: Parent B (Now balanced)
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>Fri: Parent A (Alternating)
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="scenario-4-consecutive-limit">Scenario 4: Consecutive Limit<a class="headerlink" href="#scenario-4-consecutive-limit" title="Permanent link">&para;</a></h3>
-<p><strong>Setup:</strong>
-- Last 2 nights: Parent A
-- Consecutive limit: 2</p>
-<p><strong>Result:</strong>
+<p><strong>Setup:</strong></p>
+<ul>
+<li>Last 2 nights: Parent A</li>
+<li>Consecutive limit: 2</li>
+</ul>
+<p><strong>Result:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Thu: Parent B (Consecutive Limit - A had 2 in a row)
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Fri: Parent A (Alternating)
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Sat: Parent B (Alternating)
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="scenario-5-manual-override">Scenario 5: Manual Override<a class="headerlink" href="#scenario-5-manual-override" title="Permanent link">&para;</a></h3>
 <p><strong>Action:</strong> Manually change Monday from Parent A to Parent B in Google Calendar</p>
-<p><strong>Result:</strong>
+<p><strong>Result:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Mon: Parent B (Override - manually changed)
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Tue: Parent A (Total Count - compensating for override)
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>Wed: Parent B (Alternating)
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>Thu: Parent A (Alternating)
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h2 id="configuration-impact">Configuration Impact<a class="headerlink" href="#configuration-impact" title="Permanent link">&para;</a></h2>
 <h3 id="update-frequency">Update Frequency<a class="headerlink" href="#update-frequency" title="Permanent link">&para;</a></h3>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">[schedule]</span>
@@ -2413,9 +2439,11 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Healthy Distribution:</strong>
-- Difference of 0-1 for months with even days
-- Difference of 1 for months with odd days</p>
+<p><strong>Healthy Distribution:</strong></p>
+<ul>
+<li>Difference of 0-1 for months with even days</li>
+<li>Difference of 1 for months with odd days</li>
+</ul>
 <h3 id="decision-reason-tracking">Decision Reason Tracking<a class="headerlink" href="#decision-reason-tracking" title="Permanent link">&para;</a></h3>
 <p>Every assignment includes its decision reason, viewable in:</p>
 <ul>
@@ -2431,28 +2459,36 @@
 <p><strong>Recommendation:</strong> Avoid configuring overlapping unavailability.</p>
 <h3 id="starting-from-scratch">Starting from Scratch<a class="headerlink" href="#starting-from-scratch" title="Permanent link">&para;</a></h3>
 <p><strong>Scenario:</strong> No historical assignments exist</p>
-<p><strong>Behavior:</strong>
-- First assignment uses alternating pattern (starts with Parent A)
-- Subsequent assignments build fairness tracking from there</p>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>First assignment uses alternating pattern (starts with Parent A)</li>
+<li>Subsequent assignments build fairness tracking from there</li>
+</ul>
 <h3 id="long-gaps">Long Gaps<a class="headerlink" href="#long-gaps" title="Permanent link">&para;</a></h3>
 <p><strong>Scenario:</strong> Application not used for months, then restarted</p>
-<p><strong>Behavior:</strong>
-- Historical assignments remain in database
-- New assignments calculated based on existing fairness state
-- Old assignments beyond look-ahead window aren't deleted</p>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Historical assignments remain in database</li>
+<li>New assignments calculated based on existing fairness state</li>
+<li>Old assignments beyond look-ahead window aren't deleted</li>
+</ul>
 <h2 id="advanced-customizing-the-algorithm">Advanced: Customizing the Algorithm<a class="headerlink" href="#advanced-customizing-the-algorithm" title="Permanent link">&para;</a></h2>
 <p>The fairness logic is in <code>internal/fairness/</code> and can be customized if needed:</p>
-<p><strong>Key files:</strong>
-- <code>scheduler/</code> - Core scheduling algorithm (schedule generation, fairness criteria)
-- <code>tracker.go</code> - Assignment CRUD and statistics queries
-- <code>decision_reason.go</code> - Decision reason types and constants
-- <code>caregiver_type.go</code> - Caregiver type enum (parent, babysitter)
-- <code>interface.go</code> - Interfaces for tracker and scheduler</p>
-<p><strong>To customize:</strong>
-1. Modify the decision criteria in <code>scheduler/</code>
-2. Adjust thresholds and weights
-3. Rebuild the application
-4. Test thoroughly with various scenarios</p>
+<p><strong>Key files:</strong></p>
+<ul>
+<li><code>scheduler/</code> - Core scheduling algorithm (schedule generation, fairness criteria)</li>
+<li><code>tracker.go</code> - Assignment CRUD and statistics queries</li>
+<li><code>decision_reason.go</code> - Decision reason types and constants</li>
+<li><code>caregiver_type.go</code> - Caregiver type enum (parent, babysitter)</li>
+<li><code>interface.go</code> - Interfaces for tracker and scheduler</li>
+</ul>
+<p><strong>To customize:</strong></p>
+<ol>
+<li>Modify the decision criteria in <code>scheduler/</code></li>
+<li>Adjust thresholds and weights</li>
+<li>Rebuild the application</li>
+<li>Test thoroughly with various scenarios</li>
+</ol>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../database/">Understand the database structure</a></li>
