@@ -576,6 +576,94 @@ func TestAssignmentDetailsCascadeDelete(t *testing.T) {
 	assert.Nil(t, details)
 }
 
+func TestUpdateAssignmentToBabysitter(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	date := time.Date(2025, 2, 10, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, false, DecisionReasonAlternating)
+	assert.NoError(t, err)
+
+	err = tracker.UpdateAssignmentToBabysitter(assignment.ID, "Dawn", true)
+	assert.NoError(t, err)
+
+	updated, err := tracker.GetAssignmentByID(assignment.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, updated)
+	assert.Equal(t, CaregiverTypeBabysitter, updated.CaregiverType)
+	assert.Equal(t, "Dawn", updated.BabysitterName)
+	assert.Equal(t, "Dawn", updated.Parent)
+	assert.True(t, updated.Override)
+	assert.Equal(t, DecisionReasonOverride, updated.DecisionReason)
+
+	err = tracker.UpdateAssignmentParent(assignment.ID, "Bob", true)
+	assert.NoError(t, err)
+
+	updated, err = tracker.GetAssignmentByID(assignment.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, CaregiverTypeParent, updated.CaregiverType)
+	assert.Empty(t, updated.BabysitterName)
+	assert.Equal(t, "Bob", updated.Parent)
+}
+
+func TestGetParentStatsUntil_ExcludesBabysitterAssignments(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	until := time.Date(2025, 3, 20, 0, 0, 0, 0, time.UTC)
+
+	_, err = tracker.RecordAssignment("Alice", until.AddDate(0, 0, -10), false, DecisionReasonTotalCount)
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", until.AddDate(0, 0, -8), false, DecisionReasonAlternating)
+	assert.NoError(t, err)
+	_, err = tracker.RecordBabysitterAssignment("Dawn", until.AddDate(0, 0, -5), true)
+	assert.NoError(t, err)
+
+	stats, err := tracker.GetParentStatsUntil(until)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, stats["Alice"].TotalAssignments)
+	assert.Equal(t, 1, stats["Alice"].Last30Days)
+	assert.Equal(t, 1, stats["Bob"].TotalAssignments)
+	assert.Equal(t, 1, stats["Bob"].Last30Days)
+	_, exists := stats["Dawn"]
+	assert.False(t, exists, "babysitter should not be part of fairness parent stats")
+}
+
+func TestUnlockAssignment_ClearsBabysitterState(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	date := time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC)
+	assignment, err := tracker.RecordAssignment("Alice", date, true, DecisionReasonOverride)
+	assert.NoError(t, err)
+
+	err = tracker.UpdateAssignmentToBabysitter(assignment.ID, "Dawn", true)
+	assert.NoError(t, err)
+
+	err = tracker.UnlockAssignment(assignment.ID)
+	assert.NoError(t, err)
+
+	updated, err := tracker.GetAssignmentByID(assignment.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, updated)
+	assert.False(t, updated.Override)
+	assert.Equal(t, CaregiverTypeParent, updated.CaregiverType)
+	assert.Empty(t, updated.BabysitterName)
+	// parent_name retains the babysitter name after unlock (the scheduler
+	// will overwrite it when it regenerates the schedule in the handler).
+	assert.Equal(t, "Dawn", updated.Parent)
+	assert.Equal(t, DecisionReason(""), updated.DecisionReason)
+}
+
 // TestSaveAssignmentDetailsUpsert tests that SaveAssignmentDetails can update existing records
 func TestSaveAssignmentDetailsUpsert(t *testing.T) {
 	db, cleanup := setupTestDB(t)
