@@ -477,14 +477,49 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
-// determineNextParent applies fairness rules to select the next parent
+// hasRecentUnavailability checks whether any of the last n assignments (up to
+// lookback) was forced by an unavailability rule.  This is used to distinguish
+// imbalances caused by unavailability (which need correction via consecutive
+// assignments) from natural fluctuations (which self-correct through
+// alternation).
+func hasRecentUnavailability(lastAssignments []*fairness.Assignment, lookback int) bool {
+	for i := 0; i < len(lastAssignments) && i < lookback; i++ {
+		if lastAssignments[i].DecisionReason == fairness.DecisionReasonUnavailability {
+			return true
+		}
+	}
+	return false
+}
+
+// otherParentOf returns the other parent given the current parent.
+func otherParentOf(current, parentA, parentB string) string {
+	if current == parentA {
+		return parentB
+	}
+	return parentA
+}
+
+// determineNextParent applies fairness rules to select the next parent.
+//
+// Decision cascade (first match wins):
+//  1. No prior assignments → parent with fewer (or equal) total assignments (TotalCount)
+//  2. TotalCount — parent with fewer total assignments, but only if it does NOT
+//     create a back-to-back consecutive with the last parent. When it would,
+//     the algorithm checks whether recent history includes an unavailability-forced
+//     assignment: if so the imbalance is real and the consecutive is allowed
+//     (TotalCount); otherwise the other parent is chosen (ConsecutiveAvoidance).
+//  3. ConsecutiveLimit — when totals are tied and the same parent has 2+
+//     consecutive assignments, force a switch.
+//  4. RecentCount — parent with fewer last-30-day assignments, again avoiding
+//     a consecutive when possible (ConsecutiveAvoidance).
+//  5. Alternating — default: alternate from the last parent.
 func (s *Scheduler) determineNextParent(parentA, parentB string, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason) {
-	fairnessLogger := s.logger.With().Interface("stats", stats).Logger() // Add stats context
+	fairnessLogger := s.logger.With().Interface("stats", stats).Logger()
 	fairnessLogger.Debug().Msg("Applying fairness rules to determine next parent")
 
+	// ── 1. No prior assignments ──────────────────────────────────────────
 	if len(lastAssignments) == 0 {
 		fairnessLogger.Info().Msg("No previous assignments, assigning based on total counts")
-		// First assignment ever, assign to the parent with fewer total assignments
 		if stats[parentA].TotalAssignments <= stats[parentB].TotalAssignments {
 			fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer/equal total)")
 			return parentA, fairness.DecisionReasonTotalCount
@@ -493,25 +528,49 @@ func (s *Scheduler) determineNextParent(parentA, parentB string, lastAssignments
 		return parentB, fairness.DecisionReasonTotalCount
 	}
 
-	// Prioritize the parent with fewer total assignments
+	lastParent := lastAssignments[0].Parent
+	other := otherParentOf(lastParent, parentA, parentB)
+
 	statsA := stats[parentA]
 	statsB := stats[parentB]
+
+	// ── 2. TotalCount with consecutive avoidance ─────────────────────────
 	fairnessLogger.Debug().
 		Int("parent_a_total", statsA.TotalAssignments).
 		Int("parent_b_total", statsB.TotalAssignments).
-		Msg("Comparing total assignments")
+		Str("last_parent", lastParent).
+		Msg("Comparing total assignments (consecutive-aware)")
 
-	if statsA.TotalAssignments < statsB.TotalAssignments {
-		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer total)")
-		return parentA, fairness.DecisionReasonTotalCount
-	} else if statsB.TotalAssignments < statsA.TotalAssignments {
-		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer total)")
-		return parentB, fairness.DecisionReasonTotalCount
+	if statsA.TotalAssignments != statsB.TotalAssignments {
+		fewerParent := parentA
+		if statsB.TotalAssignments < statsA.TotalAssignments {
+			fewerParent = parentB
+		}
+
+		if fewerParent != lastParent {
+			// No conflict: the parent with fewer assignments is different from last night.
+			fairnessLogger.Debug().Str("assigned_parent", fewerParent).Msg("Assigning parent with fewer total (no consecutive conflict)")
+			return fewerParent, fairness.DecisionReasonTotalCount
+		}
+
+		// Assigning the fewer parent would create a back-to-back consecutive.
+		// Allow it only when the imbalance was caused by a recent unavailability;
+		// otherwise prefer the other parent to avoid two in a row.
+		if hasRecentUnavailability(lastAssignments, 2) {
+			fairnessLogger.Info().
+				Str("fewer_parent", fewerParent).
+				Msg("Allowing consecutive: recent unavailability caused the imbalance")
+			return fewerParent, fairness.DecisionReasonTotalCount
+		}
+
+		fairnessLogger.Info().
+			Str("fewer_parent", fewerParent).
+			Str("assigned_parent", other).
+			Msg("Avoiding consecutive: assigning other parent instead of fewer-total parent")
+		return other, fairness.DecisionReasonConsecutiveAvoidance
 	}
 
-	// Avoid more than two consecutive assignments (takes priority over recent count
-	// to prevent streaks, e.g. when a babysitter day is inserted between assignments)
-	lastParent := lastAssignments[0].Parent
+	// ── 3. ConsecutiveLimit (totals tied, 2+ streak) ─────────────────────
 	consecutiveCount := 1
 	for i := 1; i < len(lastAssignments) && lastAssignments[i].Parent == lastParent; i++ {
 		consecutiveCount++
@@ -520,34 +579,37 @@ func (s *Scheduler) determineNextParent(parentA, parentB string, lastAssignments
 
 	if consecutiveCount >= 2 {
 		fairnessLogger.Info().Msg("Forcing switch due to consecutive assignments limit")
-		// Force switch to the other parent
-		if lastParent == parentA {
-			fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (forced switch)")
-			return parentB, fairness.DecisionReasonConsecutiveLimit
-		}
-		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (forced switch)")
-		return parentA, fairness.DecisionReasonConsecutiveLimit
+		fairnessLogger.Debug().Str("assigned_parent", other).Msg("Assigning other parent (forced switch)")
+		return other, fairness.DecisionReasonConsecutiveLimit
 	}
 
-	// If no consecutive streak, prioritize the parent with fewer recent assignments (last 30 days)
+	// ── 4. RecentCount with consecutive avoidance ────────────────────────
 	fairnessLogger.Debug().
 		Int("parent_a_last30", statsA.Last30Days).
 		Int("parent_b_last30", statsB.Last30Days).
 		Msg("Total assignments equal, comparing last 30 days")
-	if statsA.Last30Days < statsB.Last30Days {
-		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (fewer last 30 days)")
-		return parentA, fairness.DecisionReasonRecentCount
-	} else if statsB.Last30Days < statsA.Last30Days {
-		fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (fewer last 30 days)")
-		return parentB, fairness.DecisionReasonRecentCount
+
+	if statsA.Last30Days != statsB.Last30Days {
+		fewerRecentParent := parentA
+		if statsB.Last30Days < statsA.Last30Days {
+			fewerRecentParent = parentB
+		}
+
+		if fewerRecentParent != lastParent {
+			fairnessLogger.Debug().Str("assigned_parent", fewerRecentParent).Msg("Assigning parent with fewer recent (no consecutive conflict)")
+			return fewerRecentParent, fairness.DecisionReasonRecentCount
+		}
+
+		// Would create consecutive — avoid it.
+		fairnessLogger.Info().
+			Str("fewer_recent_parent", fewerRecentParent).
+			Str("assigned_parent", other).
+			Msg("Avoiding consecutive: assigning other parent instead of fewer-recent parent")
+		return other, fairness.DecisionReasonConsecutiveAvoidance
 	}
 
-	// Default to alternating if all else is equal
+	// ── 5. Alternating ───────────────────────────────────────────────────
 	fairnessLogger.Info().Msg("All fairness factors equal or within limits, defaulting to alternating")
-	if lastParent == parentB {
-		fairnessLogger.Debug().Str("assigned_parent", parentA).Msg("Assigning Parent A (alternating)")
-		return parentA, fairness.DecisionReasonAlternating
-	}
-	fairnessLogger.Debug().Str("assigned_parent", parentB).Msg("Assigning Parent B (alternating)")
-	return parentB, fairness.DecisionReasonAlternating
+	fairnessLogger.Debug().Str("assigned_parent", other).Msg("Assigning other parent (alternating)")
+	return other, fairness.DecisionReasonAlternating
 }

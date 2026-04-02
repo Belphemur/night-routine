@@ -12,6 +12,8 @@ const (
 	DecisionReasonRecentCount DecisionReason = "Recent Count"
 	// DecisionReasonConsecutiveLimit represents that a parent was assigned to avoid too many consecutive assignments
 	DecisionReasonConsecutiveLimit DecisionReason = "Consecutive Limit"
+	// DecisionReasonConsecutiveAvoidance represents that a parent was assigned to avoid back-to-back consecutive assignments
+	DecisionReasonConsecutiveAvoidance DecisionReason = "Consecutive Avoidance"
 	// DecisionReasonAlternating represents that a parent was assigned to maintain alternating pattern
 	DecisionReasonAlternating DecisionReason = "Alternating"
 	// DecisionReasonOverride represents that the assignment was manually overridden
