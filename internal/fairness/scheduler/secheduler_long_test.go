@@ -263,7 +263,7 @@ func TestUnavailabilityExemptionAllowsConsecutive(t *testing.T) {
 	// Run 14 days and verify the unavailability day (Wednesday) creates
 	// the expected unavailability-triggered consecutive.
 	var assignments []string
-	for day := 0; day < 14; day++ {
+	for day := range 14 {
 		date := startDate.AddDate(0, 0, day)
 		a, err := scheduler.assignForDate(date, cfg)
 		assert.NoError(t, err)

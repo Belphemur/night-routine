@@ -14,6 +14,10 @@ type TrackerInterface interface {
 	// Babysitter assignments are excluded so they don't affect consecutive/alternating scheduling logic.
 	GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
 
+	// GetLastAssignmentsUntil returns the last n assignments of all caregiver types up to a specific date.
+	// Used to detect babysitter nights and gaps that break consecutive-assignment chains.
+	GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
+
 	// GetParentStatsUntil returns statistics for each parent up to a specific date
 	GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 

@@ -247,7 +247,7 @@ func TestWithTransaction(t *testing.T) {
 
 		err := db.WithTransaction(ctx, func(tx *sql.Tx) error {
 			// Insert multiple records in the same transaction
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				_, err := tx.ExecContext(ctx, `
 					INSERT INTO assignments (parent_name, assignment_date, override, decision_reason)
 					VALUES (?, ?, ?, ?)

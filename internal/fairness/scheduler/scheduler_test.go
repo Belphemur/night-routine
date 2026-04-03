@@ -103,13 +103,13 @@ func TestDetermineAssignmentForDate(t *testing.T) {
 	cfg := testScheduleConfig(store)
 
 	// Monday: Alice is unavailable
-	parent, reason, err := scheduler.determineParentForDate(monday, lastAssignments, stats, cfg)
+	parent, reason, err := scheduler.determineParentForDate(monday, lastAssignments, lastAssignments, stats, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonUnavailability, reason)
 
 	// Thursday: Bob is unavailable
-	parent, reason, err = scheduler.determineParentForDate(thursday, lastAssignments, stats, cfg)
+	parent, reason, err = scheduler.determineParentForDate(thursday, lastAssignments, lastAssignments, stats, cfg)
 	assert.NoError(t, err)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonUnavailability, reason)
@@ -174,7 +174,7 @@ func TestDetermineNextParent(t *testing.T) {
 
 	// Alice should be chosen because she has fewer total assignments
 	scheduleDate := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	parent, reason := scheduler.determineNextParent(scheduleDate, "Alice", "Bob", []*fairness.Assignment{}, stats)
+	parent, reason := scheduler.determineNextParent(scheduleDate, "Alice", "Bob", []*fairness.Assignment{}, []*fairness.Assignment{}, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonTotalCount, reason)
 
@@ -183,14 +183,16 @@ func TestDetermineNextParent(t *testing.T) {
 	dayBefore := scheduleDate.AddDate(0, 0, -2)
 	twoDaysBefore := scheduleDate.AddDate(0, 0, -3)
 
-	lastAssignments := []*fairness.Assignment{
-		{Parent: "Alice", Date: yesterday},
-		{Parent: "Alice", Date: dayBefore},
-		{Parent: "Bob", Date: twoDaysBefore},
+	lastParentAssignments := []*fairness.Assignment{
+		{Parent: "Alice", Date: yesterday, CaregiverType: fairness.CaregiverTypeParent},
+		{Parent: "Alice", Date: dayBefore, CaregiverType: fairness.CaregiverTypeParent},
+		{Parent: "Bob", Date: twoDaysBefore, CaregiverType: fairness.CaregiverTypeParent},
 	}
+	// lastAllAssignments mirrors lastParentAssignments when there are no babysitter nights.
+	lastAllAssignments := lastParentAssignments
 
 	// Bob chosen: Alice has fewer total, but Alice == last parent → consecutive avoidance picks Bob.
-	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastAssignments, stats)
+	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastParentAssignments, lastAllAssignments, stats)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, reason)
 
@@ -199,12 +201,13 @@ func TestDetermineNextParent(t *testing.T) {
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 7}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
-	singleAssignment := []*fairness.Assignment{
-		{Parent: "Bob", Date: yesterday},
+	singleParent := []*fairness.Assignment{
+		{Parent: "Bob", Date: yesterday, CaregiverType: fairness.CaregiverTypeParent},
 	}
+	singleAll := singleParent
 
 	// Alice chosen: Bob has fewer recent, but Bob == last parent → consecutive avoidance assigns Alice.
-	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", singleAssignment, stats)
+	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", singleParent, singleAll, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, reason)
 
@@ -213,7 +216,7 @@ func TestDetermineNextParent(t *testing.T) {
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
 	// Alice chosen: Bob has fewer recent, but Bob == last parent → consecutive avoidance assigns Alice.
-	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", singleAssignment, stats)
+	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", singleParent, singleAll, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, reason)
 }
@@ -238,7 +241,7 @@ func TestBothParentsUnavailable(t *testing.T) {
 	cfg := testScheduleConfig(store)
 
 	// Should return an error when both parents are unavailable
-	_, _, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, stats, cfg)
+	_, _, err = scheduler.determineParentForDate(wednesday, []*fairness.Assignment{}, []*fairness.Assignment{}, stats, cfg)
 	assert.Error(t, err)
 }
 
@@ -262,21 +265,21 @@ func TestAlternatingAssignments(t *testing.T) {
 
 	// Last assignment was Alice
 	lastAssignments := []*fairness.Assignment{
-		{Parent: "Alice", Date: yesterday},
+		{Parent: "Alice", Date: yesterday, CaregiverType: fairness.CaregiverTypeParent},
 	}
 
 	// Next should be Bob
-	parent, reason := scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastAssignments, stats)
+	parent, reason := scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastAssignments, lastAssignments, stats)
 	assert.Equal(t, "Bob", parent)
 	assert.Equal(t, fairness.DecisionReasonAlternating, reason)
 
 	// Last assignment was Bob
 	lastAssignments = []*fairness.Assignment{
-		{Parent: "Bob", Date: yesterday},
+		{Parent: "Bob", Date: yesterday, CaregiverType: fairness.CaregiverTypeParent},
 	}
 
 	// Next should be Alice
-	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastAssignments, stats)
+	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastAssignments, lastAssignments, stats)
 	assert.Equal(t, "Alice", parent)
 	assert.Equal(t, fairness.DecisionReasonAlternating, reason)
 }

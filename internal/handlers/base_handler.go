@@ -47,7 +47,7 @@ func NewBaseHandler(configStore config.ConfigStoreInterface, tokenStore *databas
 		"add": func(a, b int) int {
 			return a + b
 		},
-		"js": func(v interface{}) template.JS {
+		"js": func(v any) template.JS {
 			a, _ := json.Marshal(v)
 			return template.JS(a)
 		},
@@ -74,7 +74,7 @@ func NewBaseHandler(configStore config.ConfigStoreInterface, tokenStore *databas
 }
 
 // RenderTemplate renders a template with the given data
-func (h *BaseHandler) RenderTemplate(w http.ResponseWriter, name string, data interface{}) {
+func (h *BaseHandler) RenderTemplate(w http.ResponseWriter, name string, data any) {
 	h.logger.Debug().Str("template_name", name).Msg("Executing template")
 
 	// Clone the base template (which contains layout.html)

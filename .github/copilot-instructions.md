@@ -39,6 +39,7 @@ night-routine/
 
 ### Formatting
 
+- **Always run `go fix`** on any Go files you modify before committing to apply canonical API migrations
 - **Always run `go fmt`** on any Go files you modify before committing
 - Use `gofmt -s` for simplified formatting where possible
 - Ensure consistent formatting across all Go source files
@@ -129,14 +130,15 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 1. **Understand the change**: Use gopls to explore related code
 2. **Write or modify Go code**: Follow Go best practices and idioms
 3. **Add/Update regression tests for bugs**: When fixing a bug, add or update a unit test that fails before the fix and passes after it
-4. **Format the code**: Run `go fmt ./...`
-5. **Check for issues**: Run `golangci-lint run`
-6. **Fix any linting issues**: Address all reported problems
-7. **Run tests**: Execute `go test ./...` to ensure nothing breaks
-8. **Generate assets**: If templates/CSS changed, run `go generate ./...`
-9. **Verify the build**: Build the application to ensure it compiles
-10. **Record design decisions**: If the change involves algorithm, business logic, or architectural trade-offs, use the `record-decision` skill to document it in `docs/design-decisions/`
-11. **Commit changes**: Use semantic/conventional commit format
+4. **Fix API migrations**: Run `go fix ./...`
+5. **Format the code**: Run `go fmt ./...`
+6. **Check for issues**: Run `golangci-lint run`
+7. **Fix any linting issues**: Address all reported problems
+8. **Run tests**: Execute `go test ./...` to ensure nothing breaks
+9. **Generate assets**: If templates/CSS changed, run `go generate ./...`
+10. **Verify the build**: Build the application to ensure it compiles
+11. **Record design decisions**: If the change involves algorithm, business logic, or architectural trade-offs, use the `record-decision` skill to document it in `docs/design-decisions/`
+12. **Commit changes**: Use semantic/conventional commit format
 
 ### Commit Messages
 

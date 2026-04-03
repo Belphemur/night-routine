@@ -121,7 +121,7 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	// 2. Generate all 12 potential month headers for the last 12 months
 	allPossibleMonthHeaders := []string{}
 	// Use the same nowForStats as used for fetching data, for consistency in month generation
-	for i := 0; i < 12; i++ {
+	for i := range 12 {
 		// This loop generates months in chronological order (ascending):
 		// i=0: -(11-0) = -11 (oldest month in range)
 		// ...

@@ -1019,6 +1019,7 @@
                 'Total Count': 'This parent had fewer total assignments overall, helping maintain long-term balance.',
                 'Recent Count': 'This parent had fewer assignments in the last 30 days, ensuring fair recent distribution.',
                 'Consecutive Limit': 'Prevents one parent from having too many consecutive night assignments (limit: 2).',
+                'Consecutive Avoidance': 'The other parent had fewer total or recent assignments, but assigning them would create an unnecessary back-to-back night. The algorithm assigned this parent instead to avoid the consecutive; the imbalance will self-correct through alternation.',
                 'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
                 'Override': 'This assignment was manually changed in Google Calendar by a user.'
             };
@@ -1047,9 +1048,9 @@
             explanationList.style.cssText = 'list-style-type: decimal; padding-left: 1.5rem;';
             const steps = [
                 'Parent availability',
-                'Total assignment counts',
+                'Total assignment counts (with consecutive avoidance)',
                 'Consecutive limit (max 2)',
-                'Recent counts (last 30 days)',
+                'Recent counts — last 30 days (with consecutive avoidance)',
                 'Alternating pattern'
             ];
             steps.forEach(step => {
