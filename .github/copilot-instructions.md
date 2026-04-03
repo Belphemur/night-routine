@@ -5,7 +5,7 @@
 Night Routine Scheduler is a Go application that manages night routine scheduling between two parents with Google Calendar integration and optional babysitter assignment support. The application features:
 
 - Fair distribution algorithm for parent assignments
-- Babysitter assignment support (manual override, excluded from fairness calculations)
+- Babysitter assignment support (manual override, treated as shift in fairness calculations)
 - Web-based settings UI with real-time updates
 - SQLite database for configuration and tracking
 - Google OAuth2 authentication and Calendar API integration
@@ -201,6 +201,12 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 - Considers total assignments, recent patterns, and availability
 - Provides transparent decision reasons for each assignment
 - Tracks assignment history in database
+- Babysitter nights are treated as "shifts" (+1 for both parents in stats)
+- **When changing the fairness algorithm**:
+  - Use the `change-fairness-algorithm` skill which guides you through all required touchpoints
+  - Decision reasons are displayed in the UI (calendar grid + details modal in `internal/handlers/templates/home.html`)
+  - Any change to decision reasons or algorithm behavior **must** update the UI explanations in the `explanations` object inside `home.html`
+  - Always update the design decisions doc via the `record-decision` skill
 
 ### HTTP Handlers
 
