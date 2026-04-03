@@ -1,3 +1,15 @@
+# [0.29.0](https://github.com/Belphemur/night-routine/compare/v0.28.0...v0.29.0) (2026-04-03)
+
+
+### Bug Fixes
+
+* **fairness:** address review feedback — seed parent names in stats, fix UI and docs ([7c07663](https://github.com/Belphemur/night-routine/commit/7c07663244ff1763362c72846e018902b5ff7efe))
+
+
+### Features
+
+* **ui,skills:** update UI explanations, add change-fairness-algorithm skill ([b2ac752](https://github.com/Belphemur/night-routine/commit/b2ac7524d96ff653317d07a1fe280067b48b61a2))
+
 # [0.28.0](https://github.com/Belphemur/night-routine/compare/v0.27.5...v0.28.0) (2026-04-03)
 
 
