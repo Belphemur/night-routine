@@ -575,8 +575,8 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	}
 
 	// 2. Babysitter shift count: each babysitter night counts as +1 for both parents
-	var babysitterTotal int
-	var babysitterLast30 int
+	var babysitterShiftTotal int
+	var babysitterShiftLast30 int
 	err = t.db.Conn().QueryRowContext(ctx, `
 	SELECT
 	COUNT(*) as total,
@@ -584,7 +584,7 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	FROM assignments
 	WHERE assignment_date < ?
 	AND caregiver_type = ?
-	`, thirtyDaysBeforeUntil, untilStr, untilStr, CaregiverTypeBabysitter.String()).Scan(&babysitterTotal, &babysitterLast30)
+	`, thirtyDaysBeforeUntil, untilStr, untilStr, CaregiverTypeBabysitter.String()).Scan(&babysitterShiftTotal, &babysitterShiftLast30)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			queryLogger.Error().Err(err).Msg("Database query for babysitter shift count timed out")
@@ -594,14 +594,14 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 		return nil, fmt.Errorf("failed to query babysitter shift count: %w", err)
 	}
 
-	if babysitterTotal > 0 || babysitterLast30 > 0 {
+	if babysitterShiftTotal > 0 || babysitterShiftLast30 > 0 {
 		queryLogger.Debug().
-			Int("babysitter_total", babysitterTotal).
-			Int("babysitter_last30", babysitterLast30).
+			Int("babysitter_shift_total", babysitterShiftTotal).
+			Int("babysitter_shift_last30", babysitterShiftLast30).
 			Msg("Adding babysitter shift counts to both parents")
 		for parentName, s := range stats {
-			s.TotalAssignments += babysitterTotal
-			s.Last30Days += babysitterLast30
+			s.TotalAssignments += babysitterShiftTotal
+			s.Last30Days += babysitterShiftLast30
 			stats[parentName] = s
 		}
 	}

@@ -513,7 +513,8 @@ func otherParentOf(current, parentA, parentB string) string {
 //
 // lastAssignments contains all caregiver types (parent + babysitter) in reverse
 // chronological order. Parent-only entries are derived via parentOnly() for
-// streak counting and lastParent detection.
+// streak counting and lastParent detection; babysitter nights are excluded from
+// these calculations but preserved in the full list for context.
 func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason) {
 	fairnessLogger := s.logger.With().Interface("stats", stats).Logger()
 	fairnessLogger.Debug().Msg("Applying fairness rules to determine next parent")
