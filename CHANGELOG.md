@@ -1,3 +1,17 @@
+# [0.28.0](https://github.com/Belphemur/night-routine/compare/v0.27.5...v0.28.0) (2026-04-03)
+
+
+### Bug Fixes
+
+* apply CodeRabbit auto-fixes ([3f9c9bc](https://github.com/Belphemur/night-routine/commit/3f9c9bc46f0ae8a61da602df4bcaa6ca126e77aa))
+
+
+### Features
+
+* **fairness:** add design decision doc and regression tests for ConsecutiveAvoidance ([7db41db](https://github.com/Belphemur/night-routine/commit/7db41dbd125e3c4f3d3d588db052dc2d86be2caf))
+* **fairness:** avoid unnecessary back-to-back consecutive assignments ([ac4c5de](https://github.com/Belphemur/night-routine/commit/ac4c5de91002f1a6fbbbb0f8038ecaa89400d84f))
+* **fairness:** Option B babysitter-aware consecutive avoidance + UI, docs, instructions ([fb0a3d4](https://github.com/Belphemur/night-routine/commit/fb0a3d41c1b4b0ecc0b9f077cd0c71060d6fa7b1))
+
 ## [0.27.5](https://github.com/Belphemur/night-routine/compare/v0.27.4...v0.27.5) (2026-04-03)
 
 
