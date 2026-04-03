@@ -244,9 +244,8 @@ func TestNoConsecutiveWithoutUnavailability(t *testing.T) {
 //
 // Scenario: Bob is unavailable on Wednesday. After Wednesday (Alice forced by
 // unavailability), Alice has more assignments than Bob. The day after Wednesday
-// (Thursday), TotalCount correctly assigns Bob even though Thursday's assignment
-// follows a potential consecutive — this is allowed because the recent
-// unavailability caused the imbalance.
+// (Thursday), TotalCount correctly assigns Bob — this is allowed because the
+// recent unavailability caused the imbalance.
 func TestUnavailabilityExemptionAllowsConsecutive(t *testing.T) {
 	store := newTestConfigStore("Alice", "Bob", []string{}, []string{"Wednesday"})
 
@@ -260,27 +259,35 @@ func TestUnavailabilityExemptionAllowsConsecutive(t *testing.T) {
 
 	startDate := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC) // Monday
 
-	// Run 14 days and verify the unavailability day (Wednesday) creates
-	// the expected unavailability-triggered consecutive.
-	var assignments []string
+	type dayResult struct {
+		Parent         string
+		DecisionReason fairness.DecisionReason
+	}
+
+	var results []dayResult
 	for day := range 14 {
 		date := startDate.AddDate(0, 0, day)
 		a, err := scheduler.assignForDate(date, cfg)
 		assert.NoError(t, err)
-		assignments = append(assignments, a.Parent)
+		results = append(results, dayResult{Parent: a.Parent, DecisionReason: a.DecisionReason})
 	}
 
-	// Days: Mon=Alice, Tue=Bob, Wed=Alice(unavail), Thu=Bob(TotalCount fix)...
-	// The Wed→Thu transition should show Alice→Bob (not consecutive).
-	// But the Tue→Wed transition is Bob→Alice(unavail), and then later
-	// the pattern may create Alice→Alice around Wed when Alice is forced.
-	// The key check: the day AFTER unavailability uses TotalCount to correct.
-	assert.Equal(t, "Alice", assignments[2], "Wed should be Alice (Bob unavailable)")
+	// Wednesday (day index 2) must be Alice via Unavailability (Bob is unavailable).
+	assert.Equal(t, "Alice", results[2].Parent, "Wed should be Alice (Bob unavailable)")
+	assert.Equal(t, fairness.DecisionReasonUnavailability, results[2].DecisionReason,
+		"Wed decision reason should be Unavailability")
+
+	// Thursday (day index 3) should be Bob. Because Wednesday was Unavailability-forced,
+	// the TotalCount imbalance is allowed to create a correction — the unavailability
+	// exemption permits the TotalCount assignment even though it might look like a
+	// back-to-back in other scenarios.
+	assert.Equal(t, "Bob", results[3].Parent,
+		"Thu should be Bob (TotalCount correction after unavailability)")
 
 	// Verify balance is maintained over the 14 days
 	aliceCount, bobCount := 0, 0
-	for _, a := range assignments {
-		if a == "Alice" {
+	for _, r := range results {
+		if r.Parent == "Alice" {
 			aliceCount++
 		} else {
 			bobCount++

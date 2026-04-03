@@ -354,58 +354,9 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 	})
 }
 
-// GetLastParentAssignmentsUntil returns the last n parent-only assignments up to a specific date.
-// Babysitter assignments are excluded so they don't affect consecutive/alternating scheduling logic.
-func (t *Tracker) GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
-	queryLogger := t.logger.With().
-		Int("limit", n).
-		Str("until_date", until.Format(dateFormat)).
-		Logger()
-	queryLogger.Debug().Msg("Fetching last assignments")
-	untilStr := until.Format(dateFormat)
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
-	defer cancel()
-
-	rows, err := t.db.Conn().QueryContext(ctx, `
-SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, created_at, updated_at
-FROM assignments
-WHERE assignment_date < ?
-AND caregiver_type = ?
-ORDER BY assignment_date DESC
-LIMIT ?
-`, untilStr, CaregiverTypeParent.String(), n)
-	if err != nil {
-		if err == context.DeadlineExceeded {
-			queryLogger.Error().Err(err).Msg("Database query for last assignments timed out")
-			return nil, fmt.Errorf("database query timed out: %w", err)
-		}
-		queryLogger.Error().Err(err).Msg("Failed to query last assignments")
-		return nil, fmt.Errorf("failed to query assignments: %w", err)
-	}
-	defer rows.Close()
-
-	var assignments []*Assignment
-	for rows.Next() {
-		a, err := t.scanAssignment(rows)
-		if err != nil {
-			queryLogger.Debug().Err(err).Msg("Failed to scan assignment row")
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-		assignments = append(assignments, a)
-	}
-	if err := rows.Err(); err != nil {
-		queryLogger.Debug().Err(err).Msg("Error iterating assignment rows")
-		return nil, fmt.Errorf("failed during row iteration: %w", err)
-	}
-
-	queryLogger.Debug().Int("count", len(assignments)).Msg("Fetched last assignments successfully")
-	return assignments, nil
-}
-
 // GetLastAssignmentsUntil returns the last n assignments of all caregiver types up to a specific date.
-// Unlike GetLastParentAssignmentsUntil, babysitter assignments are included so the caller can detect
-// gaps in parent assignments caused by babysitter nights.
+// Babysitter assignments are included so the caller can detect gaps in parent assignments
+// caused by babysitter nights. Parent-only entries can be derived by filtering on CaregiverType.
 func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
 	queryLogger := t.logger.With().
 		Int("limit", n).

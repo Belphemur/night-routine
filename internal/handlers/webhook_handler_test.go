@@ -41,11 +41,6 @@ func (m *MockTracker) RecordBabysitterAssignment(name string, date time.Time, ov
 	return args.Get(0).(*fairness.Assignment), args.Error(1)
 }
 
-func (m *MockTracker) GetLastParentAssignmentsUntil(n int, until time.Time) ([]*fairness.Assignment, error) {
-	args := m.Called(n, until)
-	return args.Get(0).([]*fairness.Assignment), args.Error(1)
-}
-
 func (m *MockTracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*fairness.Assignment, error) {
 	args := m.Called(n, until)
 	return args.Get(0).([]*fairness.Assignment), args.Error(1)

@@ -130,15 +130,16 @@ When working with Go code, **prefer using gopls (Go language server)** for navig
 1. **Understand the change**: Use gopls to explore related code
 2. **Write or modify Go code**: Follow Go best practices and idioms
 3. **Add/Update regression tests for bugs**: When fixing a bug, add or update a unit test that fails before the fix and passes after it
-4. **Fix API migrations**: Run `go fix ./...`
-5. **Format the code**: Run `go fmt ./...`
-6. **Check for issues**: Run `golangci-lint run`
-7. **Fix any linting issues**: Address all reported problems
-8. **Run tests**: Execute `go test ./...` to ensure nothing breaks
-9. **Generate assets**: If templates/CSS changed, run `go generate ./...`
-10. **Verify the build**: Build the application to ensure it compiles
-11. **Record design decisions**: If the change involves algorithm, business logic, or architectural trade-offs, use the `record-decision` skill to document it in `docs/design-decisions/`
-12. **Commit changes**: Use semantic/conventional commit format
+4. **Clean up dead code**: Remove any functions, methods, variables, or interface members made unused by your changes
+5. **Fix API migrations**: Run `go fix ./...`
+6. **Format the code**: Run `go fmt ./...`
+7. **Check for issues**: Run `golangci-lint run`
+8. **Fix any linting issues**: Address all reported problems
+9. **Run tests**: Execute `go test ./...` to ensure nothing breaks
+10. **Generate assets**: If templates/CSS changed, run `go generate ./...`
+11. **Verify the build**: Build the application to ensure it compiles
+12. **Record design decisions**: If the change involves algorithm, business logic, or architectural trade-offs, use the `record-decision` skill to document it in `docs/design-decisions/`
+13. **Commit changes**: Use semantic/conventional commit format
 
 ### Commit Messages
 
@@ -405,6 +406,16 @@ The app uses **koanf** with a 4-tier precedence system (lowest to highest):
 - Ensure all tests pass before committing
 - Use structured logging with zerolog for all output
 - Never use `fmt.Print` or `log.Print` - use zerolog instead
-- Keep the codebase DRY (Don't Repeat Yourself)
+- Keep the codebase **DRY** (Don't Repeat Yourself)
+- Keep the codebase **KISS** (Keep It Simple, Stupid) — prefer the simplest correct solution
+- Follow **SOLID** principles — single responsibility, clear interfaces, dependency injection
 - Prefer composition over inheritance
 - Write self-documenting code with clear names
+
+### Dead Code Cleanup
+
+- **Always remove dead code after refactoring** — unused functions, methods, variables, parameters, imports, and interface methods must be deleted, not left behind
+- After renaming or restructuring, verify that old names are not still referenced anywhere (grep the codebase)
+- Do not keep unused interface methods "for future use" — they can always be re-added when needed
+- Update mocks and test helpers to match interface changes — stale mock methods are dead code too
+- Run `golangci-lint` to catch unreferenced code the compiler doesn't flag

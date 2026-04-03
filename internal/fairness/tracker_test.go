@@ -59,37 +59,6 @@ func TestRecordAssignment(t *testing.T) {
 	assert.Equal(t, assignment.ID, assignment2.ID) // Should be the same assignment (updated)
 }
 
-// TestGetLastParentAssignmentsUntil tests the GetLastParentAssignmentsUntil method
-func TestGetLastParentAssignmentsUntil(t *testing.T) {
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	tracker, err := New(db)
-	assert.NoError(t, err)
-
-	// Create some test assignments
-	dates := []time.Time{
-		time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC),
-		time.Date(2025, 1, 3, 0, 0, 0, 0, time.UTC),
-	}
-
-	parents := []string{"Alice", "Bob", "Alice"}
-
-	for i, date := range dates {
-		_, err := tracker.RecordAssignment(parents[i], date, false, "Alternating")
-		assert.NoError(t, err)
-	}
-
-	// Test getting last 2 assignments until January 4th
-	until := time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC)
-	assignments, err := tracker.GetLastParentAssignmentsUntil(2, until)
-	assert.NoError(t, err)
-	assert.Len(t, assignments, 2)
-	assert.Equal(t, "Alice", assignments[0].Parent) // Most recent first
-	assert.Equal(t, "Bob", assignments[1].Parent)
-}
-
 // TestGetParentStatsUntil tests the GetParentStatsUntil method
 func TestGetParentStatsUntil(t *testing.T) {
 	db, cleanup := setupTestDB(t)
@@ -848,8 +817,7 @@ func TestUnlockAssignment_NotFound(t *testing.T) {
 }
 
 // TestGetLastAssignmentsUntil verifies that GetLastAssignmentsUntil returns all
-// caregiver types (parents and babysitters) while GetLastParentAssignmentsUntil
-// continues to exclude babysitter assignments.
+// caregiver types (parents and babysitters) in reverse chronological order.
 func TestGetLastAssignmentsUntil(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
@@ -878,11 +846,4 @@ func TestGetLastAssignmentsUntil(t *testing.T) {
 	assert.Equal(t, CaregiverTypeBabysitter, all[1].CaregiverType)
 	assert.Equal(t, "Alice", all[2].Parent)
 	assert.Equal(t, CaregiverTypeParent, all[2].CaregiverType)
-
-	// GetLastParentAssignmentsUntil should exclude the babysitter night.
-	parentOnly, err := tracker.GetLastParentAssignmentsUntil(5, until)
-	assert.NoError(t, err)
-	assert.Len(t, parentOnly, 2, "should exclude babysitter assignments")
-	assert.Equal(t, "Bob", parentOnly[0].Parent)
-	assert.Equal(t, "Alice", parentOnly[1].Parent)
 }

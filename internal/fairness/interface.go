@@ -10,12 +10,9 @@ type TrackerInterface interface {
 	// RecordBabysitterAssignment records a named babysitter assignment for a date.
 	RecordBabysitterAssignment(name string, date time.Time, override bool) (*Assignment, error)
 
-	// GetLastParentAssignmentsUntil returns the last n parent-only assignments up to a specific date.
-	// Babysitter assignments are excluded so they don't affect consecutive/alternating scheduling logic.
-	GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
-
 	// GetLastAssignmentsUntil returns the last n assignments of all caregiver types up to a specific date.
 	// Used to detect babysitter nights and gaps that break consecutive-assignment chains.
+	// Parent-only entries can be derived from this list by filtering on CaregiverType.
 	GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
 
 	// GetParentStatsUntil returns statistics for each parent up to a specific date
