@@ -271,7 +271,7 @@ func (s *Scheduler) assignForDate(date time.Time, cfg *scheduleConfig) (*Assignm
 
 	// Get parent stats for balanced distribution up to the given date
 	assignLogger.Debug().Msg("Fetching parent stats")
-	stats, err := s.tracker.GetParentStatsUntil(date)
+	stats, err := s.tracker.GetParentStatsUntil(date, parentAName, parentBName)
 	if err != nil {
 		assignLogger.Error().Err(err).Msg("Failed to get parent stats")
 		return nil, fmt.Errorf("failed to get parent stats: %w", err)

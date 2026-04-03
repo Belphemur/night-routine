@@ -33,7 +33,7 @@
 
 - ConsecutiveAvoidance was designed to prevent unnecessary 2-in-a-row at month boundaries, but in practice it caused persistent imbalances: the algorithm would never allow the "payback" double night needed to restore fairness after one parent accumulated extra assignments.
 - The unavailability exemption added complexity but didn't cover all edge cases — babysitter-related imbalances were not addressed.
-- Removing it simplifies the cascade to: `TotalCount → ConsecutiveLimit → RecentCount → Alternating`. TotalCount now always picks the parent with fewer total assignments. ConsecutiveLimit (2+ streak force switch) still prevents unbounded streaks.
+- Removing it simplifies the cascade to: `TotalCount → ConsecutiveLimit → RecentCount → Alternating`. TotalCount now always picks the parent with fewer total assignments, so the behind parent may be assigned repeatedly until totals converge. Once totals are equal, ConsecutiveLimit (2+ streak force switch) caps further streak growth before the algorithm falls through to recent-count balancing.
 - The simpler algorithm is easier to reason about and produces fairer schedules in real-world use.
 
 **Implementation**: `determineNextParent()` in `internal/fairness/scheduler/scheduler.go`. Dead code removed: `hasRecentUnavailability()`, `isLastAssignmentYesterday()`, `DecisionReasonConsecutiveAvoidance`. Tests updated: `TestTotalCountCorrectsImbalanceAtMonthBoundary`, `TestTotalCountWithImbalance`, `TestBalanceOverLongPeriods`, `TestUnavailabilityImbalanceCorrectedByTotalCount`.

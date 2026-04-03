@@ -592,7 +592,7 @@ func TestGetParentStatsUntil_BabysitterShiftCountsForBothParents(t *testing.T) {
 	_, err = tracker.RecordBabysitterAssignment("Dawn", until.AddDate(0, 0, -5), true)
 	assert.NoError(t, err)
 
-	stats, err := tracker.GetParentStatsUntil(until)
+	stats, err := tracker.GetParentStatsUntil(until, "Alice", "Bob")
 	assert.NoError(t, err)
 	// Babysitter shift adds +1 to both parents: Alice=1+1=2, Bob=1+1=2
 	assert.Equal(t, 2, stats["Alice"].TotalAssignments)
@@ -601,6 +601,37 @@ func TestGetParentStatsUntil_BabysitterShiftCountsForBothParents(t *testing.T) {
 	assert.Equal(t, 2, stats["Bob"].Last30Days)
 	_, exists := stats["Dawn"]
 	assert.False(t, exists, "babysitter should not appear as a separate parent in stats")
+}
+
+// TestGetParentStatsUntil_BabysitterShiftAppliedToZeroAssignmentParent verifies
+// that when one parent has zero parent assignments, they still receive the
+// babysitter shift increment (requires parent names to be seeded).
+func TestGetParentStatsUntil_BabysitterShiftAppliedToZeroAssignmentParent(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	until := time.Date(2025, 3, 20, 0, 0, 0, 0, time.UTC)
+
+	// Only Alice has parent assignments; Bob has none.
+	_, err = tracker.RecordAssignment("Alice", until.AddDate(0, 0, -10), false, DecisionReasonTotalCount)
+	assert.NoError(t, err)
+	_, err = tracker.RecordBabysitterAssignment("Dawn", until.AddDate(0, 0, -5), true)
+	assert.NoError(t, err)
+
+	// Pass both parent names so Bob is seeded even with 0 parent assignments.
+	stats, err := tracker.GetParentStatsUntil(until, "Alice", "Bob")
+	assert.NoError(t, err)
+
+	// Alice = 1 parent + 1 shift = 2
+	assert.Equal(t, 2, stats["Alice"].TotalAssignments)
+	assert.Equal(t, 2, stats["Alice"].Last30Days)
+
+	// Bob = 0 parent + 1 shift = 1
+	assert.Equal(t, 1, stats["Bob"].TotalAssignments)
+	assert.Equal(t, 1, stats["Bob"].Last30Days)
 }
 
 func TestUnlockAssignment_ClearsBabysitterState(t *testing.T) {

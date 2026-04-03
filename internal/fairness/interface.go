@@ -15,8 +15,11 @@ type TrackerInterface interface {
 	// Parent-only entries can be derived from this list by filtering on CaregiverType.
 	GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error)
 
-	// GetParentStatsUntil returns statistics for each parent up to a specific date
-	GetParentStatsUntil(until time.Time) (map[string]Stats, error)
+	// GetParentStatsUntil returns statistics for each parent up to a specific date.
+	// parentNames ensures that both configured parents appear in the result map
+	// even if they have zero parent assignments so far, so that babysitter shift
+	// counts are applied to both.
+	GetParentStatsUntil(until time.Time, parentNames ...string) (map[string]Stats, error)
 
 	// GetAssignmentByID retrieves an assignment by its ID
 	GetAssignmentByID(id int64) (*Assignment, error)

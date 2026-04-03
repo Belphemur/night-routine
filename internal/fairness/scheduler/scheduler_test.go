@@ -470,7 +470,7 @@ func TestOverrideOnPastDayRecalculatesFollowingDays(t *testing.T) {
 		"day4 should have TotalCount reason (Alice=1, Bob=2)")
 }
 
-// TestTotalCountCorrectesImbalanceAtMonthBoundary verifies that TotalCount
+// TestTotalCountCorrectsImbalanceAtMonthBoundary verifies that TotalCount
 // correctly assigns the parent with fewer total assignments, even if it creates
 // back-to-back assignments. This ensures imbalances are corrected promptly.
 func TestTotalCountCorrectsImbalanceAtMonthBoundary(t *testing.T) {

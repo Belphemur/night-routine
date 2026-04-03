@@ -54,7 +54,7 @@ The unavailability check happens in `determineParentForDate()` before `determine
 Database layer for assignment history and statistics.
 
 Key functions:
-- `GetParentStatsUntil(until)` — returns `TotalAssignments` and `Last30Days` per parent. **Babysitter nights count as +1 for both parents** (shift semantics).
+- `GetParentStatsUntil(until, parentNames...)` — returns `TotalAssignments` and `Last30Days` per parent. **Babysitter nights count as +1 for both parents** (shift semantics). Pass parent names to seed the map for parents with zero assignments.
 - `GetLastAssignmentsUntil(n, until)` — returns last N assignments (all caregiver types) for streak/gap detection.
 - `RecordAssignment()` / `RecordBabysitterAssignment()` — persist assignments.
 
@@ -117,6 +117,6 @@ When making changes, follow this checklist:
 
 - **KISS** — prefer the simplest correct solution
 - **Babysitter = shift** — babysitter nights count as +1 for both parents in stats
-- **ConsecutiveLimit** (2+ streak) prevents unbounded same-parent runs
-- **TotalCount always wins** when there's an imbalance — fairness correction is prioritized
+- **TotalCount** is prioritized when totals are imbalanced — fairness correction comes first
+- **ConsecutiveLimit** constrains long same-parent streaks once totals are tied
 - **Decision reasons must be transparent** — users see them in the UI calendar and details modal

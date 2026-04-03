@@ -529,7 +529,9 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 // Babysitter assignments are counted as +1 for both parents (they represent a
 // "shift" — the night still happened but was handled by a babysitter, so both
 // parents advance equally and no imbalance is created).
-func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error) {
+// parentNames seeds the result map so that parents with zero parent assignments
+// still receive the babysitter shift increment.
+func (t *Tracker) GetParentStatsUntil(until time.Time, parentNames ...string) (map[string]Stats, error) {
 	queryLogger := t.logger.With().Str("until_date", until.Format(dateFormat)).Logger()
 	queryLogger.Debug().Msg("Fetching parent statistics")
 	untilStr := until.Format(dateFormat)
@@ -559,7 +561,11 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	}
 	defer rows.Close()
 
-	stats := make(map[string]Stats)
+	stats := make(map[string]Stats, len(parentNames))
+	// Seed the map so parents with zero parent assignments are still present.
+	for _, name := range parentNames {
+		stats[name] = Stats{}
+	}
 	for rows.Next() {
 		var parentName string
 		var s Stats

@@ -1016,9 +1016,9 @@
             // Add explanation based on decision reason
             const explanations = {
                 'Unavailability': 'One parent was unavailable on this day based on configured schedule constraints.',
-                'Total Count': 'This parent had fewer total assignments overall, helping maintain long-term balance. Babysitter nights count as +1 for both parents (shift), so they don\'t create imbalances.',
-                'Recent Count': 'This parent had fewer assignments in the last 30 days, ensuring fair recent distribution. Babysitter nights count as +1 for both parents (shift).',
-                'Consecutive Limit': 'Prevents one parent from having too many consecutive night assignments (limit: 2).',
+                'Total Count': 'After availability checks, this parent had fewer total assignments overall, helping maintain long-term balance. Babysitter nights count as +1 for both parents (shift), so they don\'t create imbalances.',
+                'Recent Count': 'When total assignments were tied, this parent had fewer assignments in the last 30 days, ensuring fair recent distribution. Babysitter nights count as +1 for both parents (shift).',
+                'Consecutive Limit': 'Totals were tied, but one parent had too many consecutive night assignments (limit: 2). The algorithm switched to the other parent.',
                 'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
                 'Override': 'This assignment was manually changed in Google Calendar by a user.'
             };
@@ -1047,9 +1047,9 @@
             explanationList.style.cssText = 'list-style-type: decimal; padding-left: 1.5rem;';
             const steps = [
                 'Parent availability',
-                'Total assignment counts (with consecutive avoidance)',
-                'Consecutive limit (max 2)',
-                'Recent counts — last 30 days (with consecutive avoidance)',
+                'Total assignment counts',
+                'Consecutive limit (max 2 when totals are tied)',
+                'Recent counts — last 30 days',
                 'Alternating pattern'
             ];
             steps.forEach(step => {
