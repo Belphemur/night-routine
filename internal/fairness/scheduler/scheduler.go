@@ -478,12 +478,29 @@ func contains(slice []string, value string) bool {
 }
 
 // hasRecentUnavailability checks whether any of the most recent lookback
-// assignments were forced by an unavailability rule. This is used to
-// distinguish imbalances caused by unavailability (which need correction via
-// consecutive assignments) from natural fluctuations (which self-correct
-// through alternation).
+// assignments were forced by an unavailability rule, considering only
+// contiguous assignments. This is used to distinguish imbalances caused by
+// unavailability (which need correction via consecutive assignments) from
+// natural fluctuations (which self-correct through alternation).
+// When there are gaps (missing days) in the assignment history, only the
+// contiguous assignments from the most recent day are considered.
 func hasRecentUnavailability(lastAssignments []*fairness.Assignment, lookback int) bool {
+	if len(lastAssignments) == 0 {
+		return false
+	}
+
+	// Check assignments in reverse chronological order (most recent first)
+	// and stop at the first gap in dates to ensure we only check contiguous assignments
 	for i := 0; i < len(lastAssignments) && i < lookback; i++ {
+		// If this is not the first assignment, verify it's the day before the previous one
+		if i > 0 {
+			expectedDate := lastAssignments[i-1].Date.AddDate(0, 0, -1)
+			if lastAssignments[i].Date.Format("2006-01-02") != expectedDate.Format("2006-01-02") {
+				// Gap found - don't check further back
+				break
+			}
+		}
+
 		if lastAssignments[i].DecisionReason == fairness.DecisionReasonUnavailability {
 			return true
 		}
@@ -580,6 +597,8 @@ func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string,
 		// Assigning the fewer parent would create a back-to-back consecutive.
 		// Allow it only when the imbalance was caused by a recent unavailability;
 		// otherwise prefer the other parent to avoid two in a row.
+		// hasRecentUnavailability checks only contiguous assignments, ensuring
+		// that gaps (missing days) don't incorrectly trigger the exemption.
 		if hasRecentUnavailability(lastAssignments, 2) {
 			fairnessLogger.Info().
 				Str("fewer_parent", fewerParent).
