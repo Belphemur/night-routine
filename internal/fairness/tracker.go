@@ -525,7 +525,10 @@ func (t *Tracker) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, er
 	return assignments, nil
 }
 
-// GetParentStatsUntil returns statistics for each parent up to a specific date
+// GetParentStatsUntil returns statistics for each parent up to a specific date.
+// Babysitter assignments are counted as +1 for both parents (they represent a
+// "shift" — the night still happened but was handled by a babysitter, so both
+// parents advance equally and no imbalance is created).
 func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error) {
 	queryLogger := t.logger.With().Str("until_date", until.Format(dateFormat)).Logger()
 	queryLogger.Debug().Msg("Fetching parent statistics")
@@ -535,6 +538,7 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
 	defer cancel()
 
+	// 1. Parent-only stats
 	rows, err := t.db.Conn().QueryContext(ctx, `
 	SELECT
 	parent_name,
@@ -568,6 +572,38 @@ func (t *Tracker) GetParentStatsUntil(until time.Time) (map[string]Stats, error)
 	if err := rows.Err(); err != nil {
 		queryLogger.Debug().Err(err).Msg("Error iterating parent stats rows")
 		return nil, fmt.Errorf("failed during row iteration: %w", err)
+	}
+
+	// 2. Babysitter shift count: each babysitter night counts as +1 for both parents
+	var babysitterTotal int
+	var babysitterLast30 int
+	err = t.db.Conn().QueryRowContext(ctx, `
+	SELECT
+	COUNT(*) as total,
+	COALESCE(SUM(CASE WHEN assignment_date >= ? AND assignment_date < ? THEN 1 ELSE 0 END), 0) as last_30
+	FROM assignments
+	WHERE assignment_date < ?
+	AND caregiver_type = ?
+	`, thirtyDaysBeforeUntil, untilStr, untilStr, CaregiverTypeBabysitter.String()).Scan(&babysitterTotal, &babysitterLast30)
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			queryLogger.Error().Err(err).Msg("Database query for babysitter shift count timed out")
+			return nil, fmt.Errorf("database query timed out: %w", err)
+		}
+		queryLogger.Error().Err(err).Msg("Failed to query babysitter shift count")
+		return nil, fmt.Errorf("failed to query babysitter shift count: %w", err)
+	}
+
+	if babysitterTotal > 0 || babysitterLast30 > 0 {
+		queryLogger.Debug().
+			Int("babysitter_total", babysitterTotal).
+			Int("babysitter_last30", babysitterLast30).
+			Msg("Adding babysitter shift counts to both parents")
+		for parentName, s := range stats {
+			s.TotalAssignments += babysitterTotal
+			s.Last30Days += babysitterLast30
+			stats[parentName] = s
+		}
 	}
 
 	queryLogger.Debug().Interface("stats", stats).Msg("Fetched parent stats successfully")

@@ -1,0 +1,2 @@
+-- No-op: we cannot determine which assignments were originally 'Consecutive Avoidance'
+-- since the information was lost during the up migration.

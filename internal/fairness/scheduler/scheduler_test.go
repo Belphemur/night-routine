@@ -189,13 +189,13 @@ func TestDetermineNextParent(t *testing.T) {
 		{Parent: "Bob", Date: twoDaysBefore, CaregiverType: fairness.CaregiverTypeParent},
 	}
 
-	// Bob chosen: Alice has fewer total, but Alice == last parent → consecutive avoidance picks Bob.
+	// Bob chosen: Alice has fewer total, Alice == last parent → TotalCount still picks Alice (no avoidance).
 	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", lastAssignments, stats)
-	assert.Equal(t, "Bob", parent)
-	assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, reason)
+	assert.Equal(t, "Alice", parent)
+	assert.Equal(t, fairness.DecisionReasonTotalCount, reason)
 
 	// Test with recent count imbalance — fewer-recent parent equals last parent,
-	// so consecutive avoidance fires instead of RecentCount.
+	// TotalCount is tied so RecentCount picks the parent with fewer recent.
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 7}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
@@ -203,19 +203,19 @@ func TestDetermineNextParent(t *testing.T) {
 		{Parent: "Bob", Date: yesterday, CaregiverType: fairness.CaregiverTypeParent},
 	}
 
-	// Alice chosen: Bob has fewer recent, but Bob == last parent → consecutive avoidance assigns Alice.
+	// Bob chosen: totals tied, Bob has fewer recent → RecentCount → Bob.
 	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", singleAssignment, stats)
-	assert.Equal(t, "Alice", parent)
-	assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, reason)
+	assert.Equal(t, "Bob", parent)
+	assert.Equal(t, fairness.DecisionReasonRecentCount, reason)
 
-	// Test with significant monthly imbalance — still avoids consecutive
+	// Test with significant monthly imbalance — RecentCount picks fewer-recent parent
 	stats["Alice"] = fairness.Stats{TotalAssignments: 10, Last30Days: 9}
 	stats["Bob"] = fairness.Stats{TotalAssignments: 10, Last30Days: 5}
 
-	// Alice chosen: Bob has fewer recent, but Bob == last parent → consecutive avoidance assigns Alice.
+	// Bob chosen: totals tied, Bob has fewer recent → RecentCount → Bob.
 	parent, reason = scheduler.determineNextParent(scheduleDate, "Alice", "Bob", singleAssignment, stats)
-	assert.Equal(t, "Alice", parent)
-	assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, reason)
+	assert.Equal(t, "Bob", parent)
+	assert.Equal(t, fairness.DecisionReasonRecentCount, reason)
 }
 
 // TestBothParentsUnavailable tests the case when both parents are unavailable
@@ -470,99 +470,56 @@ func TestOverrideOnPastDayRecalculatesFollowingDays(t *testing.T) {
 		"day4 should have TotalCount reason (Alice=1, Bob=2)")
 }
 
-// TestConsecutiveAvoidanceAtMonthBoundary is a regression test for:
-// "Algorithm should avoid back-to-back consecutive assignments caused by TotalCount
-// correction at month boundaries."
-//
-// It covers both new branches introduced by ConsecutiveAvoidance:
-//   - ConsecutiveAvoidance fires when fewerParent == lastParent and no recent unavailability
-//   - Unavailability exemption allows the consecutive when unavailability caused the imbalance
-func TestConsecutiveAvoidanceAtMonthBoundary(t *testing.T) {
-	t.Run("avoids consecutive when no unavailability caused the imbalance", func(t *testing.T) {
-		store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-		db, cleanup := setupTestDB(t)
-		defer cleanup()
+// TestTotalCountCorrectesImbalanceAtMonthBoundary verifies that TotalCount
+// correctly assigns the parent with fewer total assignments, even if it creates
+// back-to-back assignments. This ensures imbalances are corrected promptly.
+func TestTotalCountCorrectsImbalanceAtMonthBoundary(t *testing.T) {
+	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
 
-		tracker, err := fairness.New(db)
-		assert.NoError(t, err)
-		sched := New(store, tracker)
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	sched := New(store, tracker)
 
-		// Build end-of-month state where fewerParent == lastParent.
-		// Record assignments so Alice=2, Bob=1, with Bob as the last assignment.
-		// This simulates an accumulated imbalance at a month boundary.
-		jan29 := time.Date(2026, 1, 29, 0, 0, 0, 0, time.UTC)
-		jan30 := time.Date(2026, 1, 30, 0, 0, 0, 0, time.UTC)
-		jan31 := time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC)
+	// Build end-of-month state where fewerParent == lastParent.
+	// Record assignments so Alice=2, Bob=1, with Bob as the last assignment.
+	jan29 := time.Date(2026, 1, 29, 0, 0, 0, 0, time.UTC)
+	jan30 := time.Date(2026, 1, 30, 0, 0, 0, 0, time.UTC)
+	jan31 := time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC)
 
-		_, err = tracker.RecordAssignment("Alice", jan29, false, fairness.DecisionReasonAlternating)
-		assert.NoError(t, err)
-		_, err = tracker.RecordAssignment("Alice", jan30, false, fairness.DecisionReasonAlternating)
-		assert.NoError(t, err)
-		_, err = tracker.RecordAssignment("Bob", jan31, false, fairness.DecisionReasonAlternating)
-		assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Alice", jan29, false, fairness.DecisionReasonAlternating)
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Alice", jan30, false, fairness.DecisionReasonAlternating)
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", jan31, false, fairness.DecisionReasonAlternating)
+	assert.NoError(t, err)
 
-		// State: Alice=2, Bob=1. Last = Bob (Jan 31).
-		// Feb 1: TotalCount wants Bob (fewer, 1). Bob == last → CONSECUTIVE CONFLICT.
-		// No recent unavailability → ConsecutiveAvoidance → Alice.
-		feb1 := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
-		feb3 := time.Date(2026, 2, 3, 0, 0, 0, 0, time.UTC)
+	// State: Alice=2, Bob=1. Last = Bob (Jan 31).
+	// Feb 1: TotalCount wants Bob (fewer, 1). Bob gets assigned (TotalCount).
+	feb1 := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	feb3 := time.Date(2026, 2, 3, 0, 0, 0, 0, time.UTC)
 
-		schedule, err := sched.GenerateSchedule(feb1, feb3, feb1)
-		assert.NoError(t, err)
-		assert.Len(t, schedule, 3)
+	schedule, err := sched.GenerateSchedule(feb1, feb3, feb1)
+	assert.NoError(t, err)
+	assert.Len(t, schedule, 3)
 
-		assert.Equal(t, "Alice", schedule[0].Parent, "Feb 1: Alice (ConsecutiveAvoidance)")
-		assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, schedule[0].DecisionReason)
+	// Feb 1: Bob (TotalCount — fewer total, imbalance corrected)
+	assert.Equal(t, "Bob", schedule[0].Parent, "Feb 1: Bob (TotalCount)")
+	assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
 
-		// Feb 2: Alice=3, Bob=1. TotalCount wants Bob (fewer). Bob != Alice → TotalCount.
-		assert.Equal(t, "Bob", schedule[1].Parent, "Feb 2: Bob (TotalCount)")
-		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[1].DecisionReason)
+	// Feb 2: Alice=2, Bob=2 → tied. ConsecutiveLimit: Bob had 2 consecutive → Alice
+	assert.Equal(t, "Alice", schedule[1].Parent, "Feb 2: Alice (ConsecutiveLimit)")
+	assert.Equal(t, fairness.DecisionReasonConsecutiveLimit, schedule[1].DecisionReason)
 
-		// Feb 3: Alice=3, Bob=2. TotalCount wants Bob (fewer). Bob == last(Bob) → ConsecutiveAvoidance.
-		assert.Equal(t, "Alice", schedule[2].Parent, "Feb 3: Alice (ConsecutiveAvoidance)")
-		assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, schedule[2].DecisionReason)
-	})
-
-	t.Run("allows consecutive when unavailability caused the imbalance", func(t *testing.T) {
-		store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-		db, cleanup := setupTestDB(t)
-		defer cleanup()
-
-		tracker, err := fairness.New(db)
-		assert.NoError(t, err)
-		sched := New(store, tracker)
-
-		// Alice=2, Bob=1, last=Bob, recent unavailability on Bob's last assignment.
-		day1 := time.Date(2026, 1, 29, 0, 0, 0, 0, time.UTC)
-		day2 := time.Date(2026, 1, 30, 0, 0, 0, 0, time.UTC)
-		day3 := time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC)
-
-		_, err = tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonAlternating)
-		assert.NoError(t, err)
-		_, err = tracker.RecordAssignment("Alice", day2, false, fairness.DecisionReasonAlternating)
-		assert.NoError(t, err)
-		_, err = tracker.RecordAssignment("Bob", day3, false, fairness.DecisionReasonUnavailability)
-		assert.NoError(t, err)
-
-		// State: Alice=2, Bob=1. Last = Bob (Jan 31, DecisionReasonUnavailability).
-		// Feb 1: TotalCount wants Bob (fewer, 1). Bob == last → CONSECUTIVE CONFLICT.
-		// BUT recent unavailability (Bob's assignment on Jan 31) → exemption → TotalCount → Bob.
-		feb1 := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
-		feb2 := time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC)
-
-		schedule, err := sched.GenerateSchedule(feb1, feb2, feb1)
-		assert.NoError(t, err)
-		assert.Len(t, schedule, 2)
-
-		assert.Equal(t, "Bob", schedule[0].Parent, "Feb 1: Bob (TotalCount, unavailability exemption)")
-		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
-	})
+	// Feb 3: Alice=3, Bob=2 → TotalCount → Bob
+	assert.Equal(t, "Bob", schedule[2].Parent, "Feb 3: Bob (TotalCount)")
+	assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[2].DecisionReason)
 }
 
-// TestConsecutiveAvoidanceWithTotalCountImbalance verifies that when TotalCount
-// would create a 2-in-a-row and there's no recent unavailability, the algorithm
-// avoids the consecutive by assigning the other parent instead.
-func TestConsecutiveAvoidanceWithTotalCountImbalance(t *testing.T) {
+// TestTotalCountWithImbalance verifies that TotalCount always picks the parent
+// with fewer total assignments, regardless of consecutive pattern.
+func TestTotalCountWithImbalance(t *testing.T) {
 	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
 
 	day1 := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
@@ -571,7 +528,7 @@ func TestConsecutiveAvoidanceWithTotalCountImbalance(t *testing.T) {
 	day4 := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC)
 	day5 := time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC)
 
-	t.Run("total count wins when it does not create a consecutive conflict", func(t *testing.T) {
+	t.Run("total count wins when fewer parent differs from last", func(t *testing.T) {
 		db, cleanup := setupTestDB(t)
 		defer cleanup()
 
@@ -588,18 +545,18 @@ func TestConsecutiveAvoidanceWithTotalCountImbalance(t *testing.T) {
 		assert.NoError(t, err)
 
 		// State: Alice=2, Bob=1. Last = Alice(day3).
-		// day4: TotalCount wants Bob (fewer). Bob != last(Alice). No conflict → Bob.
+		// day4: TotalCount wants Bob (fewer) → Bob.
 		// day5: Alice=2, Bob=2 → tied. Alternate from Bob → Alice.
 		schedule, err := sched.GenerateSchedule(day4, day5, day4)
 		assert.NoError(t, err)
 		assert.Len(t, schedule, 2)
 
-		assert.Equal(t, "Bob", schedule[0].Parent, "day4: Bob (TotalCount, no consecutive conflict)")
+		assert.Equal(t, "Bob", schedule[0].Parent, "day4: Bob (TotalCount)")
 		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
 		assert.Equal(t, "Alice", schedule[1].Parent, "day5: Alice (alternating)")
 	})
 
-	t.Run("consecutive avoidance overrides total count on conflict", func(t *testing.T) {
+	t.Run("total count corrects imbalance even when creating consecutive", func(t *testing.T) {
 		db, cleanup := setupTestDB(t)
 		defer cleanup()
 
@@ -616,13 +573,12 @@ func TestConsecutiveAvoidanceWithTotalCountImbalance(t *testing.T) {
 		assert.NoError(t, err)
 
 		// State: Alice=1, Bob=2. Last = Alice(day3).
-		// day4: TotalCount wants Alice (fewer). Alice == last → CONSECUTIVE!
-		// No recent unavailability → ConsecutiveAvoidance → Bob.
+		// day4: TotalCount wants Alice (fewer). Alice == last → consecutive allowed.
 		schedule, err := sched.GenerateSchedule(day4, day5, day4)
 		assert.NoError(t, err)
 		assert.Len(t, schedule, 2)
 
-		assert.Equal(t, "Bob", schedule[0].Parent, "day4: Bob (ConsecutiveAvoidance)")
-		assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, schedule[0].DecisionReason)
+		assert.Equal(t, "Alice", schedule[0].Parent, "day4: Alice (TotalCount — corrects imbalance)")
+		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
 	})
 }

@@ -479,56 +479,6 @@ func contains(slice []string, value string) bool {
 	return slices.Contains(slice, value)
 }
 
-// hasRecentUnavailability checks whether any of the most recent lookback
-// assignments were forced by an unavailability rule. It scans lastAssignments
-// (which includes babysitter nights) in reverse chronological order and stops at
-// the first date gap or babysitter entry — both indicate a break in the contiguous
-// parent-assignment chain. This is used to distinguish imbalances caused by
-// unavailability (which need correction via consecutive assignments) from
-// natural fluctuations (which self-correct through alternation).
-func hasRecentUnavailability(lastAssignments []*fairness.Assignment, lookback int) bool {
-	if len(lastAssignments) == 0 {
-		return false
-	}
-
-	// Check assignments in reverse chronological order (most recent first).
-	// Stop at any date gap or babysitter entry — both break the consecutive chain.
-	for i := 0; i < len(lastAssignments) && i < lookback; i++ {
-		// If this is not the first assignment, verify it's the day before the previous one
-		if i > 0 {
-			expectedDate := lastAssignments[i-1].Date.AddDate(0, 0, -1)
-			if lastAssignments[i].Date.Format("2006-01-02") != expectedDate.Format("2006-01-02") {
-				// Gap found - don't check further back
-				break
-			}
-		}
-
-		// A babysitter night breaks the parent consecutive chain — stop scanning.
-		if lastAssignments[i].CaregiverType == fairness.CaregiverTypeBabysitter {
-			break
-		}
-
-		if lastAssignments[i].DecisionReason == fairness.DecisionReasonUnavailability {
-			return true
-		}
-	}
-	return false
-}
-
-// isLastAssignmentYesterday returns true when the most recent assignment (of any
-// caregiver type) is from the calendar day immediately before date AND is a parent
-// assignment. A babysitter entry on yesterday means there is no true back-to-back
-// consecutive parent assignment; any gap (missing day or babysitter) returns false.
-func isLastAssignmentYesterday(date time.Time, lastAssignments []*fairness.Assignment) bool {
-	if len(lastAssignments) == 0 {
-		return false
-	}
-	yesterday := date.AddDate(0, 0, -1)
-	last := lastAssignments[0]
-	return last.Date.Format("2006-01-02") == yesterday.Format("2006-01-02") &&
-		last.CaregiverType == fairness.CaregiverTypeParent
-}
-
 // parentOnly returns a filtered slice containing only parent assignments,
 // preserving the original reverse-chronological order. This allows the
 // scheduler to work with a single all-types list while still extracting
@@ -555,24 +505,15 @@ func otherParentOf(current, parentA, parentB string) string {
 //
 // Decision cascade (first match wins):
 //  1. No prior parent assignments → parent with fewer (or equal) total assignments (TotalCount)
-//  2. TotalCount — parent with fewer total assignments, but only if it does NOT
-//     create a back-to-back consecutive with the last parent. When it would,
-//     the algorithm checks whether recent history includes an unavailability-forced
-//     assignment: if so the imbalance is real and the consecutive is allowed
-//     (TotalCount); otherwise the other parent is chosen (ConsecutiveAvoidance).
-//     The back-to-back check inspects lastAssignments[0] directly: if it was
-//     yesterday and is a parent, a true consecutive exists; a babysitter night
-//     there means no consecutive concern.
+//  2. TotalCount — parent with fewer total assignments.
 //  3. ConsecutiveLimit — when totals are tied and the same parent has 2+
 //     consecutive assignments, force a switch.
-//  4. RecentCount — parent with fewer last-30-day assignments, again avoiding
-//     a consecutive when possible (ConsecutiveAvoidance).
+//  4. RecentCount — parent with fewer last-30-day assignments.
 //  5. Alternating — default: alternate from the last parent.
 //
 // lastAssignments contains all caregiver types (parent + babysitter) in reverse
 // chronological order. Parent-only entries are derived via parentOnly() for
-// streak counting and lastParent detection; the full list is used for gap
-// detection and unavailability scanning.
+// streak counting and lastParent detection.
 func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string, lastAssignments []*fairness.Assignment, stats map[string]fairness.Stats) (string, fairness.DecisionReason) {
 	fairnessLogger := s.logger.With().Interface("stats", stats).Logger()
 	fairnessLogger.Debug().Msg("Applying fairness rules to determine next parent")
@@ -594,21 +535,15 @@ func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string,
 	lastParent := parents[0].Parent
 	other := otherParentOf(lastParent, parentA, parentB)
 
-	// Check whether the most recent overall assignment (any caregiver type) was
-	// a parent assignment from yesterday. A babysitter night yesterday means
-	// there is no true back-to-back consecutive, so we skip avoidance.
-	lastWasYesterday := isLastAssignmentYesterday(date, lastAssignments)
-
 	statsA := stats[parentA]
 	statsB := stats[parentB]
 
-	// ── 2. TotalCount with consecutive avoidance ─────────────────────────
+	// ── 2. TotalCount ───────────────────────────────────────────────────
 	fairnessLogger.Debug().
 		Int("parent_a_total", statsA.TotalAssignments).
 		Int("parent_b_total", statsB.TotalAssignments).
 		Str("last_parent", lastParent).
-		Bool("last_was_yesterday", lastWasYesterday).
-		Msg("Comparing total assignments (consecutive-aware)")
+		Msg("Comparing total assignments")
 
 	if statsA.TotalAssignments != statsB.TotalAssignments {
 		fewerParent := parentA
@@ -616,31 +551,8 @@ func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string,
 			fewerParent = parentB
 		}
 
-		if fewerParent != lastParent || !lastWasYesterday {
-			// No conflict: either the parent with fewer assignments is different
-			// from the last parent, or the last overall assignment was a babysitter
-			// or a missing day so there is no true back-to-back consecutive.
-			fairnessLogger.Debug().Str("assigned_parent", fewerParent).Msg("Assigning parent with fewer total (no consecutive conflict)")
-			return fewerParent, fairness.DecisionReasonTotalCount
-		}
-
-		// Assigning the fewer parent would create a back-to-back consecutive.
-		// Allow it only when the imbalance was caused by a recent unavailability;
-		// otherwise prefer the other parent to avoid two in a row.
-		// hasRecentUnavailability scans lastAssignments so babysitter nights
-		// naturally break the contiguous scan.
-		if hasRecentUnavailability(lastAssignments, 2) {
-			fairnessLogger.Info().
-				Str("fewer_parent", fewerParent).
-				Msg("Allowing consecutive: recent unavailability caused the imbalance")
-			return fewerParent, fairness.DecisionReasonTotalCount
-		}
-
-		fairnessLogger.Info().
-			Str("fewer_parent", fewerParent).
-			Str("assigned_parent", other).
-			Msg("Avoiding consecutive: assigning other parent instead of fewer-total parent")
-		return other, fairness.DecisionReasonConsecutiveAvoidance
+		fairnessLogger.Debug().Str("assigned_parent", fewerParent).Msg("Assigning parent with fewer total")
+		return fewerParent, fairness.DecisionReasonTotalCount
 	}
 
 	// ── 3. ConsecutiveLimit (totals tied, 2+ streak) ─────────────────────
@@ -656,7 +568,7 @@ func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string,
 		return other, fairness.DecisionReasonConsecutiveLimit
 	}
 
-	// ── 4. RecentCount with consecutive avoidance ────────────────────────
+	// ── 4. RecentCount ──────────────────────────────────────────────────
 	fairnessLogger.Debug().
 		Int("parent_a_last30", statsA.Last30Days).
 		Int("parent_b_last30", statsB.Last30Days).
@@ -668,20 +580,8 @@ func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string,
 			fewerRecentParent = parentB
 		}
 
-		if fewerRecentParent != lastParent || !lastWasYesterday {
-			fairnessLogger.Debug().Str("assigned_parent", fewerRecentParent).Msg("Assigning parent with fewer recent (no consecutive conflict)")
-			return fewerRecentParent, fairness.DecisionReasonRecentCount
-		}
-
-		// Would create consecutive — always avoid it for RecentCount.
-		// Unlike TotalCount, no unavailability exemption is applied here:
-		// RecentCount only fires when totals are equal, so the last-30-day
-		// difference is minor and will self-correct through alternation.
-		fairnessLogger.Info().
-			Str("fewer_recent_parent", fewerRecentParent).
-			Str("assigned_parent", other).
-			Msg("Avoiding consecutive: assigning other parent instead of fewer-recent parent")
-		return other, fairness.DecisionReasonConsecutiveAvoidance
+		fairnessLogger.Debug().Str("assigned_parent", fewerRecentParent).Msg("Assigning parent with fewer recent")
+		return fewerRecentParent, fairness.DecisionReasonRecentCount
 	}
 
 	// ── 5. Alternating ───────────────────────────────────────────────────

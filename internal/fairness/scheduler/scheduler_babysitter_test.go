@@ -60,7 +60,10 @@ func TestBabysitterOverrideIsFixed(t *testing.T) {
 // TestBabysitterExcludedFromTotalCount verifies that converting a parent
 // assignment to babysitter removes it from parent stats, causing the TotalCount
 // fairness path to pick the parent who now has fewer assignments.
-func TestBabysitterExcludedFromTotalCount(t *testing.T) {
+// TestBabysitterShiftCountsForBothParentsTotalCount verifies that when a parent
+// assignment is converted to a babysitter, it counts as +1 for both parents in
+// stats (babysitter = shift). This prevents imbalances from babysitter nights.
+func TestBabysitterShiftCountsForBothParentsTotalCount(t *testing.T) {
 	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
@@ -83,30 +86,30 @@ func TestBabysitterExcludedFromTotalCount(t *testing.T) {
 	assert.Equal(t, "Alice", initial[2].Parent)
 	assert.Equal(t, "Bob", initial[3].Parent)
 
-	// Convert day2 (Bob) to babysitter → parent stats: Alice=1(day1), Bob=0
+	// Convert day2 (Bob) to babysitter → parent stats: Alice=1(day1)+1(shift)=2, Bob=0+1(shift)=1
 	day2Assignment, err := tracker.GetAssignmentByDate(day2)
 	assert.NoError(t, err)
 	err = tracker.UpdateAssignmentToBabysitter(day2Assignment.ID, "Dawn", true)
 	assert.NoError(t, err)
 
-	// Regenerate: day3-day4 recalculate. Stats before day3: Alice=1(day1), Bob=0
+	// Regenerate: day3-day4 recalculate. Stats before day3: Alice=1+1shift=2, Bob=0+1shift=1
 	// day3 → Bob (TotalCount, fewer assignments)
 	recalc, err := sched.GenerateSchedule(day1, day4, day3)
 	assert.NoError(t, err)
 	assert.Len(t, recalc, 4)
 
-	assert.Equal(t, "Bob", recalc[2].Parent, "day3 should be Bob (TotalCount: Alice=1, Bob=0)")
+	assert.Equal(t, "Bob", recalc[2].Parent, "day3 should be Bob (TotalCount: Alice=2, Bob=1 with shift)")
 	assert.Equal(t, fairness.DecisionReasonTotalCount, recalc[2].DecisionReason)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 3. Babysitter excluded from RecentCount path
+// 3. Babysitter shift counts for both parents in RecentCount path
 // ──────────────────────────────────────────────────────────────────────────────
 
-// TestBabysitterExcludedFromRecentCount verifies that with tied total counts
-// but differing last-30-day counts (due to babysitter conversion), the
-// RecentCount path selects the correct parent.
-func TestBabysitterExcludedFromRecentCount(t *testing.T) {
+// TestBabysitterShiftCountsForBothParentsRecentCount verifies that with tied
+// total counts (including babysitter shift), the RecentCount path accounts for
+// the babysitter shift equally for both parents.
+func TestBabysitterShiftCountsForBothParentsRecentCount(t *testing.T) {
 	store := newBabysitterTestConfigStore()
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
@@ -136,9 +139,9 @@ func TestBabysitterExcludedFromRecentCount(t *testing.T) {
 	_, err = tracker.RecordAssignment("Bob", rDay2, false, fairness.DecisionReasonAlternating)
 	assert.NoError(t, err)
 
-	// Stats at rDay3: Alice total=2, Bob total=3 → not tied.
-	// Convert rDay2 (Bob) to babysitter → Bob total=2, tied with Alice=2
-	// Last30 at rDay3: Alice=0, Bob=1(rDay1) → Bob has more recent → Alice wins RecentCount
+	// Convert rDay2 (Bob) to babysitter.
+	// Parent stats: Alice total=2+1shift=3, Bob total=2(ancient2+rDay1)+1shift=3 → tied.
+	// Last30 at rDay3: Alice=0+1shift=1, Bob=1(rDay1)+1shift=2 → Bob has more recent → Alice wins RecentCount.
 	rDay2Assignment, err := tracker.GetAssignmentByDate(rDay2)
 	assert.NoError(t, err)
 	err = tracker.UpdateAssignmentToBabysitter(rDay2Assignment.ID, "Dawn", true)
@@ -149,12 +152,12 @@ func TestBabysitterExcludedFromRecentCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, recalc, 1)
 
-	assert.Equal(t, "Alice", recalc[0].Parent, "rDay3 should be Alice (RecentCount: Alice=0, Bob=1)")
+	assert.Equal(t, "Alice", recalc[0].Parent, "rDay3 should be Alice (RecentCount: Alice=1, Bob=2 with shift)")
 	assert.Equal(t, fairness.DecisionReasonRecentCount, recalc[0].DecisionReason)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 4. Babysitter excluded from ConsecutiveLimit path
+// 4. ConsecutiveLimit path with babysitter gap
 // ──────────────────────────────────────────────────────────────────────────────
 
 // TestConsecutiveLimitWithBabysitterGap verifies that the ConsecutiveLimit
@@ -171,7 +174,7 @@ func TestConsecutiveLimitWithBabysitterGap(t *testing.T) {
 
 	// We need: stats tied (total + last30), last 2 parent assignments = same parent.
 	// All within last 30 days so last30 = total for both.
-	// Alice=2, Bob=2; parent-only last 2 = Bob, Bob → consecutive limit → Alice
+	// Alice=2, Bob=2 parent + 1 babysitter shift each; parent-only last 2 = Bob, Bob → ConsecutiveLimit → Alice
 	old1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC) // Within last 30 days of day4
 	old2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
 	_, err = tracker.RecordAssignment("Alice", old1, false, fairness.DecisionReasonAlternating)
@@ -191,8 +194,8 @@ func TestConsecutiveLimitWithBabysitterGap(t *testing.T) {
 	_, err = tracker.RecordAssignment("Bob", day3, true, fairness.DecisionReasonOverride)
 	assert.NoError(t, err)
 
-	// Stats at day4: Alice=2(old1+old2), Bob=2(day1+day3) → tied total
-	// Last30 at day4: all within 30 days → Alice=2, Bob=2 → tied last30
+	// Stats at day4: Alice=2+1shift=3, Bob=2+1shift=3 → tied total
+	// Last30 at day4: all within 30 days → Alice=2+1shift=3, Bob=2+1shift=3 → tied last30
 	// Parent-only last assignments: [Bob(day3), Bob(day1), Alice(old2), Alice(old1)]
 	// Consecutive: Bob, Bob → count=2 ≥ 2 → ConsecutiveLimit → Alice
 
@@ -838,27 +841,23 @@ func TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday(t *testi
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Babysitter gap: date-adjacency guard for ConsecutiveAvoidance
+// Babysitter shift: TotalCount accounts for babysitter nights equally
 // ──────────────────────────────────────────────────────────────────────────────
 
-// TestBabysitterGapDisablesConsecutiveAvoidance verifies that when a babysitter
-// night creates a gap in parent assignments, the ConsecutiveAvoidance logic does
-// not fire because the last parent assignment is not from yesterday.
-//
-// Scenario: Alice=2, Bob=1, last parent = Bob (Mar 2), babysitter on Mar 3,
-// schedule Mar 4. Without the date-adjacency guard, the scheduler would see
-// Bob == lastParent and trigger ConsecutiveAvoidance. With the guard, it
-// recognises the gap and allows TotalCount to assign Bob normally.
-func TestBabysitterGapDisablesConsecutiveAvoidance(t *testing.T) {
+// TestBabysitterShiftKeepsFairness verifies that when a babysitter gap exists,
+// TotalCount still correctly picks the parent with fewer assignments. The
+// babysitter night counts as +1 for both parents, so the relative imbalance
+// from parent-only assignments is preserved.
+func TestBabysitterShiftKeepsFairness(t *testing.T) {
 	store := newBabysitterTestConfigStore()
 
 	dayPre := time.Date(2026, 2, 28, 0, 0, 0, 0, time.UTC)
 	dayA := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	dayB := time.Date(2026, 3, 2, 0, 0, 0, 0, time.UTC)
-	dayC := time.Date(2026, 3, 3, 0, 0, 0, 0, time.UTC) // babysitter or parent
+	dayC := time.Date(2026, 3, 3, 0, 0, 0, 0, time.UTC) // babysitter
 	dayD := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC) // schedule this
 
-	t.Run("babysitter gap allows TotalCount despite fewerParent==lastParent", func(t *testing.T) {
+	t.Run("babysitter gap preserves TotalCount imbalance correction", func(t *testing.T) {
 		db, cleanup := setupTestDB(t)
 		defer cleanup()
 
@@ -876,20 +875,16 @@ func TestBabysitterGapDisablesConsecutiveAvoidance(t *testing.T) {
 		_, err = tracker.RecordBabysitterAssignment("Sitter", dayC, false)
 		assert.NoError(t, err)
 
-		// Parent-only history: [Bob(dayB), Alice(dayA), Alice(dayPre)].
-		// Alice=2, Bob=1. Last parent = Bob (dayB = Mar 2).
-		// TotalCount wants Bob (fewer, 1). Bob == lastParent → would be consecutive conflict.
-		// BUT Bob's last assignment (Mar 2) is NOT yesterday of dayD (Mar 4) — babysitter gap
-		// on Mar 3. Adjacency guard disables consecutive avoidance → TotalCount → Bob.
+		// Stats at dayD: Alice=2+1shift=3, Bob=1+1shift=2. Bob has fewer → TotalCount → Bob.
 		schedule, err := sched.GenerateSchedule(dayD, dayD, dayD)
 		assert.NoError(t, err)
 		assert.Len(t, schedule, 1)
 
-		assert.Equal(t, "Bob", schedule[0].Parent, "dayD: Bob (TotalCount — babysitter gap disables consecutive avoidance)")
+		assert.Equal(t, "Bob", schedule[0].Parent, "dayD: Bob (TotalCount — fewer assignments even with shift)")
 		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
 	})
 
-	t.Run("without gap ConsecutiveAvoidance fires", func(t *testing.T) {
+	t.Run("without babysitter TotalCount still corrects imbalance", func(t *testing.T) {
 		db, cleanup := setupTestDB(t)
 		defer cleanup()
 
@@ -907,14 +902,12 @@ func TestBabysitterGapDisablesConsecutiveAvoidance(t *testing.T) {
 		_, err = tracker.RecordAssignment("Bob", dayC, false, fairness.DecisionReasonAlternating)
 		assert.NoError(t, err)
 
-		// Alice=3, Bob=1. Last parent = Bob (dayC = Mar 3 = yesterday of dayD).
-		// TotalCount wants Bob (fewer, 1). Bob == lastParent AND was yesterday → CONSECUTIVE.
-		// No recent unavailability → ConsecutiveAvoidance → Alice.
+		// Alice=3, Bob=1 (no babysitter, no shift). TotalCount → Bob.
 		schedule, err := sched.GenerateSchedule(dayD, dayD, dayD)
 		assert.NoError(t, err)
 		assert.Len(t, schedule, 1)
 
-		assert.Equal(t, "Alice", schedule[0].Parent, "dayD: Alice (ConsecutiveAvoidance — no babysitter gap)")
-		assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, schedule[0].DecisionReason)
+		assert.Equal(t, "Bob", schedule[0].Parent, "dayD: Bob (TotalCount — fewer total)")
+		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
 	})
 }

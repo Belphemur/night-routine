@@ -576,7 +576,7 @@ func TestUpdateAssignmentToBabysitter(t *testing.T) {
 	assert.Equal(t, "Bob", updated.Parent)
 }
 
-func TestGetParentStatsUntil_ExcludesBabysitterAssignments(t *testing.T) {
+func TestGetParentStatsUntil_BabysitterShiftCountsForBothParents(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
@@ -594,12 +594,13 @@ func TestGetParentStatsUntil_ExcludesBabysitterAssignments(t *testing.T) {
 
 	stats, err := tracker.GetParentStatsUntil(until)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, stats["Alice"].TotalAssignments)
-	assert.Equal(t, 1, stats["Alice"].Last30Days)
-	assert.Equal(t, 1, stats["Bob"].TotalAssignments)
-	assert.Equal(t, 1, stats["Bob"].Last30Days)
+	// Babysitter shift adds +1 to both parents: Alice=1+1=2, Bob=1+1=2
+	assert.Equal(t, 2, stats["Alice"].TotalAssignments)
+	assert.Equal(t, 2, stats["Alice"].Last30Days)
+	assert.Equal(t, 2, stats["Bob"].TotalAssignments)
+	assert.Equal(t, 2, stats["Bob"].Last30Days)
 	_, exists := stats["Dawn"]
-	assert.False(t, exists, "babysitter should not be part of fairness parent stats")
+	assert.False(t, exists, "babysitter should not appear as a separate parent in stats")
 }
 
 func TestUnlockAssignment_ClearsBabysitterState(t *testing.T) {
