@@ -673,7 +673,10 @@ func (s *Scheduler) determineNextParent(date time.Time, parentA, parentB string,
 			return fewerRecentParent, fairness.DecisionReasonRecentCount
 		}
 
-		// Would create consecutive — avoid it.
+		// Would create consecutive — always avoid it for RecentCount.
+		// Unlike TotalCount, no unavailability exemption is applied here:
+		// RecentCount only fires when totals are equal, so the last-30-day
+		// difference is minor and will self-correct through alternation.
 		fairnessLogger.Info().
 			Str("fewer_recent_parent", fewerRecentParent).
 			Str("assigned_parent", other).
