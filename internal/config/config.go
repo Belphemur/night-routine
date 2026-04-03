@@ -101,7 +101,7 @@ func Load(path string) (*Config, error) {
 	k := koanf.New(".")
 
 	// 1. Built-in defaults.
-	defaults := map[string]interface{}{
+	defaults := map[string]any{
 		"app.port":                           8888,
 		"service.log_level":                  "info",
 		"service.manual_sync_on_startup":     true,
@@ -126,17 +126,17 @@ func Load(path string) (*Config, error) {
 		if _, err := fmt.Sscanf(portStr, "%d", &portNum); err != nil {
 			return nil, fmt.Errorf("PORT must be a valid number: %v", err)
 		}
-		if err := k.Load(confmap.Provider(map[string]interface{}{"app.port": portNum}, "."), nil); err != nil {
+		if err := k.Load(confmap.Provider(map[string]any{"app.port": portNum}, "."), nil); err != nil {
 			return nil, fmt.Errorf("failed to apply PORT env var: %w", err)
 		}
 	}
 	if id := os.Getenv("GOOGLE_OAUTH_CLIENT_ID"); id != "" {
-		if err := k.Load(confmap.Provider(map[string]interface{}{"oauth.client_id": id}, "."), nil); err != nil {
+		if err := k.Load(confmap.Provider(map[string]any{"oauth.client_id": id}, "."), nil); err != nil {
 			return nil, fmt.Errorf("failed to apply GOOGLE_OAUTH_CLIENT_ID env var: %w", err)
 		}
 	}
 	if secret := os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"); secret != "" {
-		if err := k.Load(confmap.Provider(map[string]interface{}{"oauth.client_secret": secret}, "."), nil); err != nil {
+		if err := k.Load(confmap.Provider(map[string]any{"oauth.client_secret": secret}, "."), nil); err != nil {
 			return nil, fmt.Errorf("failed to apply GOOGLE_OAUTH_CLIENT_SECRET env var: %w", err)
 		}
 	}
@@ -204,8 +204,8 @@ func Load(path string) (*Config, error) {
 // trimmed. An empty string results in an empty slice (not a one-element slice
 // containing ""), which is important for availability fields set via env vars.
 func commaSeparatedStringToSliceHook() mapstructure.DecodeHookFuncType {
-	return func(from reflect.Type, to reflect.Type, data interface{}) (interface{}, error) {
-		if from.Kind() != reflect.String || to != reflect.TypeOf([]string{}) {
+	return func(from reflect.Type, to reflect.Type, data any) (any, error) {
+		if from.Kind() != reflect.String || to != reflect.TypeFor[[]string]() {
 			return data, nil
 		}
 		s := data.(string)

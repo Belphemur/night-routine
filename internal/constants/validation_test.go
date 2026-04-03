@@ -1,6 +1,7 @@
 package constants
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,13 +62,7 @@ func TestGetAllDaysOfWeek(t *testing.T) {
 
 	// Check all valid days are included
 	for day := range ValidDaysOfWeek {
-		found := false
-		for _, d := range days {
-			if d == day {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(days, day)
 		assert.True(t, found, "Valid day %s should be in returned list", day)
 	}
 }

@@ -121,7 +121,7 @@ func (t *Tracker) RecordBabysitterAssignment(name string, date time.Time, overri
 
 // scanAssignment scans a row into an Assignment struct
 func (t *Tracker) scanAssignment(scanner interface {
-	Scan(dest ...interface{}) error
+	Scan(dest ...any) error
 }) (*Assignment, error) {
 	var a Assignment
 	var dateStr string
@@ -247,7 +247,7 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	defer cancel()
 
 	query := `UPDATE assignments SET parent_name = ?, override = ?, caregiver_type = ?, updated_at = CURRENT_TIMESTAMP`
-	args := []interface{}{parent, override}
+	args := []any{parent, override}
 	args = append(args, CaregiverTypeParent.String())
 
 	if override {
@@ -288,7 +288,7 @@ func (t *Tracker) UpdateAssignmentToBabysitter(id int64, babysitterName string, 
 
 	// parent_name stores the display name shown in the UI and calendar for all caregiver types.
 	query := `UPDATE assignments SET parent_name = ?, caregiver_type = ?, override = ?, updated_at = CURRENT_TIMESTAMP`
-	args := []interface{}{babysitterName, CaregiverTypeBabysitter.String(), override}
+	args := []any{babysitterName, CaregiverTypeBabysitter.String(), override}
 	if override {
 		query += ", decision_reason = ?"
 		args = append(args, DecisionReasonOverride)
@@ -354,14 +354,15 @@ func (t *Tracker) UnlockAssignment(id int64) error {
 	})
 }
 
-// GetLastParentAssignmentsUntil returns the last n parent-only assignments up to a specific date.
-// Babysitter assignments are excluded so they don't affect consecutive/alternating scheduling logic.
-func (t *Tracker) GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
+// GetLastAssignmentsUntil returns the last n assignments of all caregiver types up to a specific date.
+// Babysitter assignments are included so the caller can detect gaps in parent assignments
+// caused by babysitter nights. Parent-only entries can be derived by filtering on CaregiverType.
+func (t *Tracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*Assignment, error) {
 	queryLogger := t.logger.With().
 		Int("limit", n).
 		Str("until_date", until.Format(dateFormat)).
 		Logger()
-	queryLogger.Debug().Msg("Fetching last assignments")
+	queryLogger.Debug().Msg("Fetching last assignments (all caregiver types)")
 	untilStr := until.Format(dateFormat)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
@@ -371,10 +372,9 @@ func (t *Tracker) GetLastParentAssignmentsUntil(n int, until time.Time) ([]*Assi
 SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, created_at, updated_at
 FROM assignments
 WHERE assignment_date < ?
-AND caregiver_type = ?
 ORDER BY assignment_date DESC
 LIMIT ?
-`, untilStr, CaregiverTypeParent.String(), n)
+`, untilStr, n)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			queryLogger.Error().Err(err).Msg("Database query for last assignments timed out")
@@ -399,7 +399,7 @@ LIMIT ?
 		return nil, fmt.Errorf("failed during row iteration: %w", err)
 	}
 
-	queryLogger.Debug().Int("count", len(assignments)).Msg("Fetched last assignments successfully")
+	queryLogger.Debug().Int("count", len(assignments)).Msg("Fetched last assignments (all types) successfully")
 	return assignments, nil
 }
 

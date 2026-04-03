@@ -836,3 +836,85 @@ func TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday(t *testi
 	// day5 (future): Alice=2, Bob=1 → Bob (TotalCount)
 	assert.Equal(t, "Bob", recalc[3].Parent, "day5: Alice=2, Bob=1 → Bob (TotalCount)")
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Babysitter gap: date-adjacency guard for ConsecutiveAvoidance
+// ──────────────────────────────────────────────────────────────────────────────
+
+// TestBabysitterGapDisablesConsecutiveAvoidance verifies that when a babysitter
+// night creates a gap in parent assignments, the ConsecutiveAvoidance logic does
+// not fire because the last parent assignment is not from yesterday.
+//
+// Scenario: Alice=2, Bob=1, last parent = Bob (Mar 2), babysitter on Mar 3,
+// schedule Mar 4. Without the date-adjacency guard, the scheduler would see
+// Bob == lastParent and trigger ConsecutiveAvoidance. With the guard, it
+// recognises the gap and allows TotalCount to assign Bob normally.
+func TestBabysitterGapDisablesConsecutiveAvoidance(t *testing.T) {
+	store := newBabysitterTestConfigStore()
+
+	dayPre := time.Date(2026, 2, 28, 0, 0, 0, 0, time.UTC)
+	dayA := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	dayB := time.Date(2026, 3, 2, 0, 0, 0, 0, time.UTC)
+	dayC := time.Date(2026, 3, 3, 0, 0, 0, 0, time.UTC) // babysitter or parent
+	dayD := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC) // schedule this
+
+	t.Run("babysitter gap allows TotalCount despite fewerParent==lastParent", func(t *testing.T) {
+		db, cleanup := setupTestDB(t)
+		defer cleanup()
+
+		tracker, err := fairness.New(db)
+		assert.NoError(t, err)
+		sched := New(store, tracker)
+
+		// Alice=2 (dayPre + dayA), Bob=1 (dayB), babysitter on dayC.
+		_, err = tracker.RecordAssignment("Alice", dayPre, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+		_, err = tracker.RecordAssignment("Alice", dayA, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+		_, err = tracker.RecordAssignment("Bob", dayB, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+		_, err = tracker.RecordBabysitterAssignment("Sitter", dayC, false)
+		assert.NoError(t, err)
+
+		// Parent-only history: [Bob(dayB), Alice(dayA), Alice(dayPre)].
+		// Alice=2, Bob=1. Last parent = Bob (dayB = Mar 2).
+		// TotalCount wants Bob (fewer, 1). Bob == lastParent → would be consecutive conflict.
+		// BUT Bob's last assignment (Mar 2) is NOT yesterday of dayD (Mar 4) — babysitter gap
+		// on Mar 3. Adjacency guard disables consecutive avoidance → TotalCount → Bob.
+		schedule, err := sched.GenerateSchedule(dayD, dayD, dayD)
+		assert.NoError(t, err)
+		assert.Len(t, schedule, 1)
+
+		assert.Equal(t, "Bob", schedule[0].Parent, "dayD: Bob (TotalCount — babysitter gap disables consecutive avoidance)")
+		assert.Equal(t, fairness.DecisionReasonTotalCount, schedule[0].DecisionReason)
+	})
+
+	t.Run("without gap ConsecutiveAvoidance fires", func(t *testing.T) {
+		db, cleanup := setupTestDB(t)
+		defer cleanup()
+
+		tracker, err := fairness.New(db)
+		assert.NoError(t, err)
+		sched := New(store, tracker)
+
+		// Same imbalance but parent on dayC instead of babysitter.
+		_, err = tracker.RecordAssignment("Alice", dayPre, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+		_, err = tracker.RecordAssignment("Alice", dayA, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+		_, err = tracker.RecordAssignment("Alice", dayB, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+		_, err = tracker.RecordAssignment("Bob", dayC, false, fairness.DecisionReasonAlternating)
+		assert.NoError(t, err)
+
+		// Alice=3, Bob=1. Last parent = Bob (dayC = Mar 3 = yesterday of dayD).
+		// TotalCount wants Bob (fewer, 1). Bob == lastParent AND was yesterday → CONSECUTIVE.
+		// No recent unavailability → ConsecutiveAvoidance → Alice.
+		schedule, err := sched.GenerateSchedule(dayD, dayD, dayD)
+		assert.NoError(t, err)
+		assert.Len(t, schedule, 1)
+
+		assert.Equal(t, "Alice", schedule[0].Parent, "dayD: Alice (ConsecutiveAvoidance — no babysitter gap)")
+		assert.Equal(t, fairness.DecisionReasonConsecutiveAvoidance, schedule[0].DecisionReason)
+	})
+}

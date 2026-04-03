@@ -369,8 +369,8 @@ func parseManagedEventAssignee(summary, parentA, parentB string) (parsedManagedA
 		}
 	}
 
-	if strings.HasSuffix(trimmedSummary, " - Babysitter") {
-		name := strings.TrimSpace(strings.TrimSuffix(trimmedSummary, " - Babysitter"))
+	if before, ok := strings.CutSuffix(trimmedSummary, " - Babysitter"); ok {
+		name := strings.TrimSpace(before)
 		if name == "" {
 			return parsedManagedAssignee{}, false
 		}

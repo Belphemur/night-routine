@@ -66,17 +66,17 @@ func New(opts SQLiteOptions) (*DB, error) {
 // a combined error if one or more PRAGMA applications fail.
 // pragmaConfig defines how a PRAGMA should be handled
 type pragmaConfig struct {
-	name        string                             // Name of the PRAGMA
-	value       interface{}                        // Value to set
-	allowZero   bool                               // Whether zero/false values should be applied
-	formatValue func(v interface{}) (string, bool) // Custom value formatter, returns formatted value and whether to skip
+	name        string                     // Name of the PRAGMA
+	value       any                        // Value to set
+	allowZero   bool                       // Whether zero/false values should be applied
+	formatValue func(v any) (string, bool) // Custom value formatter, returns formatted value and whether to skip
 }
 
 func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error {
 	var errs []error // Slice to collect errors
 
 	// Define formatters for specific types
-	boolFormatter := func(v interface{}) (string, bool) {
+	boolFormatter := func(v any) (string, bool) {
 		if b, ok := v.(bool); ok {
 			if b {
 				return "1", false
@@ -86,7 +86,7 @@ func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error
 		return "", true
 	}
 
-	syncFormatter := func(v interface{}) (string, bool) {
+	syncFormatter := func(v any) (string, bool) {
 		if mode, ok := v.(SynchronousMode); ok && mode != "" {
 			switch mode {
 			case SynchronousOff:
@@ -103,7 +103,7 @@ func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error
 	}
 
 	// Default string formatter for enums that ensures values are uppercase for SQLite
-	enumFormatter := func(v interface{}) (string, bool) {
+	enumFormatter := func(v any) (string, bool) {
 		switch val := v.(type) {
 		case JournalMode:
 			if val != "" {
@@ -185,7 +185,7 @@ func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error
 		_, err := conn.Exec(query) // Execute the full query string
 		if err != nil {
 			// Attempt to query the value if setting failed, maybe it's read-only or needs specific context
-			var currentValue interface{}
+			var currentValue any
 			queryErr := conn.QueryRow(fmt.Sprintf("PRAGMA %s;", p.name)).Scan(&currentValue)
 			logCtx := logger.Error().Err(err).Str("pragma", p.name).Str("attempted_value", sqlValueStr).Str("query", query)
 			if queryErr == nil {
@@ -201,7 +201,7 @@ func applyPragmas(conn *sql.DB, opts SQLiteOptions, logger zerolog.Logger) error
 }
 
 // isZero returns true if the value is the zero value for its type
-func isZero(v interface{}) bool {
+func isZero(v any) bool {
 	switch val := v.(type) {
 	case bool:
 		return !val

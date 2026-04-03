@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/belphemur/night-routine/internal/logging"
@@ -129,12 +130,7 @@ func (h *StaticHandler) matchesETag(ifNoneMatch, currentETag string) bool {
 		return true
 	}
 	etags := parseETags(ifNoneMatch)
-	for _, etag := range etags {
-		if etag == currentETag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(etags, currentETag)
 }
 
 // parseETags parses comma-separated ETags from If-None-Match header

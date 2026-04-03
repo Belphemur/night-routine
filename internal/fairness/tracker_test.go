@@ -59,37 +59,6 @@ func TestRecordAssignment(t *testing.T) {
 	assert.Equal(t, assignment.ID, assignment2.ID) // Should be the same assignment (updated)
 }
 
-// TestGetLastParentAssignmentsUntil tests the GetLastParentAssignmentsUntil method
-func TestGetLastParentAssignmentsUntil(t *testing.T) {
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	tracker, err := New(db)
-	assert.NoError(t, err)
-
-	// Create some test assignments
-	dates := []time.Time{
-		time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC),
-		time.Date(2025, 1, 3, 0, 0, 0, 0, time.UTC),
-	}
-
-	parents := []string{"Alice", "Bob", "Alice"}
-
-	for i, date := range dates {
-		_, err := tracker.RecordAssignment(parents[i], date, false, "Alternating")
-		assert.NoError(t, err)
-	}
-
-	// Test getting last 2 assignments until January 4th
-	until := time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC)
-	assignments, err := tracker.GetLastParentAssignmentsUntil(2, until)
-	assert.NoError(t, err)
-	assert.Len(t, assignments, 2)
-	assert.Equal(t, "Alice", assignments[0].Parent) // Most recent first
-	assert.Equal(t, "Bob", assignments[1].Parent)
-}
-
 // TestGetParentStatsUntil tests the GetParentStatsUntil method
 func TestGetParentStatsUntil(t *testing.T) {
 	db, cleanup := setupTestDB(t)
@@ -845,4 +814,36 @@ func TestUnlockAssignment_NotFound(t *testing.T) {
 	err = tracker.UnlockAssignment(99999)
 	assert.Error(t, err, "unlocking a nonexistent assignment should fail")
 	assert.Contains(t, err.Error(), "assignment not found")
+}
+
+// TestGetLastAssignmentsUntil verifies that GetLastAssignmentsUntil returns all
+// caregiver types (parents and babysitters) in reverse chronological order.
+func TestGetLastAssignmentsUntil(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := New(db)
+	assert.NoError(t, err)
+
+	day1 := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	day2 := time.Date(2026, 3, 2, 0, 0, 0, 0, time.UTC)
+	day3 := time.Date(2026, 3, 3, 0, 0, 0, 0, time.UTC)
+	until := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC)
+
+	_, err = tracker.RecordAssignment("Alice", day1, false, DecisionReasonAlternating)
+	assert.NoError(t, err)
+	_, err = tracker.RecordBabysitterAssignment("Sitter", day2, false)
+	assert.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", day3, false, DecisionReasonAlternating)
+	assert.NoError(t, err)
+
+	// GetLastAssignmentsUntil should return all three (parent + babysitter + parent).
+	all, err := tracker.GetLastAssignmentsUntil(5, until)
+	assert.NoError(t, err)
+	assert.Len(t, all, 3, "should include parent and babysitter assignments")
+	assert.Equal(t, "Bob", all[0].Parent)
+	assert.Equal(t, CaregiverTypeParent, all[0].CaregiverType)
+	assert.Equal(t, CaregiverTypeBabysitter, all[1].CaregiverType)
+	assert.Equal(t, "Alice", all[2].Parent)
+	assert.Equal(t, CaregiverTypeParent, all[2].CaregiverType)
 }
