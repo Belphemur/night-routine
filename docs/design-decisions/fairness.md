@@ -25,18 +25,30 @@
 
 **Implementation**: The assignment classification loop in `GenerateSchedule()` at `internal/fairness/scheduler/scheduler.go`. The `earliestOverrideStr != "" && assignmentDayStr > earliestOverrideStr → continue` branch was moved above the `assignmentDayStr < currentDayStr → fixed` branch. Regression test: `TestBabysitterOnPastDayRecalculatesPastDaysBetweenOverrideAndToday` in `internal/fairness/scheduler/scheduler_babysitter_test.go`.
 
-## ConsecutiveAvoidance prevents unnecessary back-to-back assignments
+## ConsecutiveAvoidance removed — caused schedule imbalances
 
-**Decision**: The `TotalCount` step in the fairness cascade now checks whether its chosen parent is the same as last night's parent. If assigning them would create a back-to-back consecutive and no recent unavailability caused the imbalance, the algorithm assigns the other parent instead with a new `ConsecutiveAvoidance` decision reason. The `RecentCount` step also avoids unnecessary back-to-back assignments, but always fires `ConsecutiveAvoidance` without the unavailability exemption — RecentCount only triggers when totals are already equal, so any last-30-day difference is minor and self-corrects. A date-adjacency guard (`isLastAssignmentYesterday`) ensures the check only fires when the most recent parent assignment is from the calendar day immediately before the scheduled date — a babysitter night or any gap in parent assignments disables the back-to-back concern.
+**Decision**: The `ConsecutiveAvoidance` logic (which prevented back-to-back same-parent assignments in `TotalCount` and `RecentCount`) was removed entirely. The `DecisionReasonConsecutiveAvoidance` constant, `hasRecentUnavailability()`, and `isLastAssignmentYesterday()` helpers were deleted. Migration 000018 replaces existing `'Consecutive Avoidance'` decision reasons with `'Total Count'` in the database.
 
 **Rationale**:
 
-- At month boundaries (e.g. a 31-day month), one parent ends up with 16 assignments vs 15. Previously `TotalCount` would assign the same parent again to correct the imbalance, creating an unnecessary 2-in-a-row that users had to manually override.
-- Not all imbalances need the same correction: unavailability-caused imbalances (e.g. "Bob can't do Wednesdays") are structural and need consecutive assignments to stay balanced; month-boundary imbalances self-correct through natural alternation.
-- The `hasRecentUnavailability(lastAssignments, 2)` lookback distinguishes these cases for `TotalCount` by scanning recent all-assignment history and only considering the contiguous window before the scheduled date. If it encounters a babysitter assignment or a date gap, it stops; if either of the two most recent qualifying assignments was forced by `Unavailability`, the consecutive is allowed (the imbalance is real); otherwise `ConsecutiveAvoidance` fires.
-- `RecentCount` always avoids the consecutive without the unavailability exemption. This is intentional: RecentCount only fires when total assignments are equal, so the last-30-day difference is minor and will self-correct through alternation. Adding the exemption would add complexity for negligible benefit.
+- ConsecutiveAvoidance was designed to prevent unnecessary 2-in-a-row at month boundaries, but in practice it caused persistent imbalances: the algorithm would never allow the "payback" double night needed to restore fairness after one parent accumulated extra assignments.
+- The unavailability exemption added complexity but didn't cover all edge cases — babysitter-related imbalances were not addressed.
+- Removing it simplifies the cascade to: `TotalCount → ConsecutiveLimit → RecentCount → Alternating`. TotalCount now always picks the parent with fewer total assignments, so the behind parent may be assigned repeatedly until totals converge. Once totals are equal, ConsecutiveLimit (2+ streak force switch) caps further streak growth before the algorithm falls through to recent-count balancing.
+- The simpler algorithm is easier to reason about and produces fairer schedules in real-world use.
 
-**Implementation**: `determineNextParent()`, `hasRecentUnavailability()`, and `isLastAssignmentYesterday()` in `internal/fairness/scheduler/scheduler.go`. `hasRecentUnavailability()` is used only for the `TotalCount` consecutive-avoidance exemption; the `RecentCount` branch always avoids back-to-back assignments. New `DecisionReasonConsecutiveAvoidance` constant in `internal/fairness/decision_reason.go`. Regression tests: `TestNoConsecutiveWithoutUnavailability` (30/31/59-day periods with no unavailability prove zero consecutives), `TestUnavailabilityExemptionAllowsConsecutive` (unavailability-caused imbalance still corrected), `TestConsecutiveAvoidanceAtMonthBoundary` (both branches: avoidance + unavailability exemption), `TestConsecutiveAvoidanceWithTotalCountImbalance` (subtests: no-conflict + conflict), and `TestBabysitterGapDisablesConsecutiveAvoidance` (date-adjacency guard with/without babysitter gap).
+**Implementation**: `determineNextParent()` in `internal/fairness/scheduler/scheduler.go`. Dead code removed: `hasRecentUnavailability()`, `isLastAssignmentYesterday()`, `DecisionReasonConsecutiveAvoidance`. Tests updated: `TestTotalCountCorrectsImbalanceAtMonthBoundary`, `TestTotalCountWithImbalance`, `TestBalanceOverLongPeriods`, `TestUnavailabilityImbalanceCorrectedByTotalCount`.
+
+## Babysitter nights treated as shifts (+1 for both parents)
+
+**Decision**: `GetParentStatsUntil()` now counts each babysitter assignment as +1 to both parents' `TotalAssignments` and `Last30Days`. A babysitter night is a "shift" — the night still happened, but neither parent did it, so both advance equally.
+
+**Rationale**:
+
+- Previously babysitter nights were fully excluded from parent stats. This meant converting a parent assignment to babysitter created an artificial imbalance: the parent who lost the assignment fell behind in counts, and the scheduler would over-correct.
+- Treating babysitter as a shift keeps both parents' counts aligned. The relative difference from parent-only assignments is preserved, but the babysitter night doesn't create or widen a gap.
+- This approach is simple (one additional query) and uses the existing `idx_assignments_caregiver_date` composite index for efficient lookups.
+
+**Implementation**: `GetParentStatsUntil()` in `internal/fairness/tracker.go` runs a second `QueryRowContext` for babysitter count (with `COALESCE` for NULL safety) and adds the result to both parents' stats. Tests: `TestBabysitterShiftCountsForBothParentsTotalCount`, `TestBabysitterShiftCountsForBothParentsRecentCount`, `TestGetParentStatsUntil_BabysitterShiftCountsForBothParents`.
 
 ## Single assignment list simplifies the scheduler (KISS)
 
@@ -45,8 +57,7 @@
 **Rationale**:
 
 - The two-list approach added a second tracker query per day and doubled the parameter count in `assignForDate` → `determineParentForDate` → `determineNextParent`, making the code harder to follow.
-- Parent-only entries can be cheaply derived from the full list by filtering on `CaregiverType == Parent`. This gives the scheduler the full picture (babysitter gaps, date adjacency, unavailability scanning) from a single source of truth.
+- Parent-only entries can be cheaply derived from the full list by filtering on `CaregiverType == Parent`. This gives the scheduler the full picture (babysitter gaps, date adjacency) from a single source of truth.
 - Fetching 7 entries (instead of 5) ensures enough parent entries are available even when babysitter nights are interspersed.
-- `isLastAssignmentYesterday` and `hasRecentUnavailability` inspect the full list directly; `parentOnly()` is used only where needed (streak counting, lastParent detection).
 
-**Implementation**: `parentOnly()` helper and single-list `determineNextParent(date, parentA, parentB, lastAssignments, stats)` in `internal/fairness/scheduler/scheduler.go`. `assignForDate()` calls only `GetLastAssignmentsUntil(7, date)`. `determineParentForDate()` passes one slice through to `determineNextParent()`. `GetLastParentAssignmentsUntil` was removed from `TrackerInterface` and `Tracker` as dead code — the single all-types query fully replaces it. Regression tests updated to pass a single list.
+**Implementation**: `parentOnly()` helper and single-list `determineNextParent(date, parentA, parentB, lastAssignments, stats)` in `internal/fairness/scheduler/scheduler.go`. `assignForDate()` calls only `GetLastAssignmentsUntil(7, date)`. `determineParentForDate()` passes one slice through to `determineNextParent()`. `GetLastParentAssignmentsUntil` was removed from `TrackerInterface` and `Tracker` as dead code — the single all-types query fully replaces it. `parentOnly()` is used for streak counting and lastParent detection. Regression tests updated to pass a single list.

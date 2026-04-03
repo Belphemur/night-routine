@@ -46,8 +46,8 @@ func (m *MockTracker) GetLastAssignmentsUntil(n int, until time.Time) ([]*fairne
 	return args.Get(0).([]*fairness.Assignment), args.Error(1)
 }
 
-func (m *MockTracker) GetParentStatsUntil(until time.Time) (map[string]fairness.Stats, error) {
-	args := m.Called(until)
+func (m *MockTracker) GetParentStatsUntil(until time.Time, parentNames ...string) (map[string]fairness.Stats, error) {
+	args := m.Called(until, parentNames)
 	return args.Get(0).(map[string]fairness.Stats), args.Error(1)
 }
 
