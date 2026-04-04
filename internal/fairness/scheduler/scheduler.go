@@ -207,6 +207,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 
 	// Process each day in the range
 	genLogger.Debug().Msg("Processing days in range")
+	dcTracker := newDoubleConsecutiveTracker(genLogger)
 	for !current.After(end) {
 		dateStr := current.Format("2006-01-02")
 		dayLogger := genLogger.With().Str("date", dateStr).Logger()
@@ -227,6 +228,10 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 				UpdatedAt:             fixedAssignment.UpdatedAt,
 			}
 			schedule = append(schedule, assignment)
+			// Fixed assignments are immutable (past/override) and cannot
+			// participate in swaps — reset the consecutive tracker so no
+			// pattern detection spans across a fixed boundary.
+			dcTracker.reset()
 		} else {
 			dayLogger.Debug().Msg("No fixed assignment found for this date, assigning parent")
 			// No fixed assignment, determine assignment based on fairness rules
@@ -238,17 +243,14 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 			}
 			dayLogger.Info().Int64("assignment_id", assignment.ID).Str("parent", assignment.Parent).Msg("Assigned parent for date")
 			schedule = append(schedule, assignment)
+			// Detect and swap double consecutive patterns inline.
+			dcTracker.observe(schedule, len(schedule)-1, cfg, s.tracker)
 		}
 
 		current = current.AddDate(0, 0, 1)
 	}
 
 	genLogger.Info().Int("total_assignments", len(schedule)).Msg("Schedule generation complete")
-
-	// Post-processing: smooth double consecutive patterns (e.g. AA BB → AB AB)
-	// to avoid both parents having back-to-back nights. Only swaps non-fixed,
-	// non-override, non-unavailability assignments where availability allows.
-	s.smoothDoubleConsecutive(schedule, assignmentFixedInTime, cfg)
 
 	return schedule, nil
 }
@@ -286,120 +288,142 @@ type consecutiveRun struct {
 	count    int
 }
 
-// smoothDoubleConsecutive performs a single forward pass over the generated
-// schedule to detect and eliminate "double consecutive" patterns, where one
-// parent has 2+ consecutive nights immediately followed by the other parent
-// having 2+ consecutive nights (e.g. AA BB). The boundary assignments are
-// swapped to produce an alternating pattern (AB AB), and the database records
-// are updated accordingly.
-//
-// The map is reset whenever:
-//   - a non-swappable assignment (babysitter, override, unavailability) interrupts the run,
-//   - the consecutive run for a parent ends without forming a double-consecutive pair,
-//   - a successful swap is performed.
-func (s *Scheduler) smoothDoubleConsecutive(schedule []*Assignment, fixed map[string]*fairness.Assignment, cfg *scheduleConfig) {
-	smoothLogger := s.logger.With().Str("phase", "smooth_double_consecutive").Logger()
-	smoothLogger.Debug().Int("schedule_len", len(schedule)).Msg("Starting double consecutive smoothing")
+// doubleConsecutiveTracker tracks consecutive parent runs during schedule
+// generation and detects the "double consecutive" pattern (AA BB) where both
+// runs are ≥ 2 and neither is caused by unavailability, override, or babysitter.
+// When the pattern is detected, it swaps the boundary assignments in-place and
+// persists the change to the database.
+type doubleConsecutiveTracker struct {
+	prev   *consecutiveRun
+	curr   *consecutiveRun
+	logger zerolog.Logger
+}
 
-	var prev *consecutiveRun
-	var curr *consecutiveRun
-
-	for i, a := range schedule {
-		// Non-swappable assignments break any ongoing tracking.
-		if !isSwappable(a) {
-			if curr != nil {
-				smoothLogger.Debug().
-					Int("index", i).
-					Str("reason", "non_swappable").
-					Str("decision_reason", string(a.DecisionReason)).
-					Msg("Breaking consecutive tracking")
-			}
-			prev = nil
-			curr = nil
-			continue
-		}
-
-		if curr == nil || a.Parent != curr.parent {
-			// Parent changed — promote current run to previous.
-			prev = curr
-			curr = &consecutiveRun{
-				parent:   a.Parent,
-				startIdx: i,
-				endIdx:   i,
-				count:    1,
-			}
-		} else {
-			// Same parent — extend the current run.
-			curr.endIdx = i
-			curr.count++
-		}
-
-		// Detect double consecutive: prev run ≥ 2 and current run reaches 2.
-		if prev != nil && prev.count >= 2 && curr.count >= 2 {
-			swapA := prev.endIdx   // last assignment of the first run
-			swapB := curr.startIdx // first assignment of the second run
-
-			parentForA := schedule[swapB].Parent // will go to position A
-			parentForB := schedule[swapA].Parent // will go to position B
-
-			// Verify availability constraints before swapping.
-			if !isParentAvailableOnDate(parentForA, schedule[swapA].Date, cfg) ||
-				!isParentAvailableOnDate(parentForB, schedule[swapB].Date, cfg) {
-				smoothLogger.Debug().
-					Int("swap_a_idx", swapA).
-					Int("swap_b_idx", swapB).
-					Msg("Cannot swap: availability constraint violated")
-				// Can't swap — reset and keep tracking from current position.
-				prev = nil
-				curr = &consecutiveRun{
-					parent:   a.Parent,
-					startIdx: i,
-					endIdx:   i,
-					count:    1,
-				}
-				continue
-			}
-
-			smoothLogger.Info().
-				Str("parent_a", schedule[swapA].Parent).
-				Str("parent_b", schedule[swapB].Parent).
-				Str("date_a", schedule[swapA].Date.Format("2006-01-02")).
-				Str("date_b", schedule[swapB].Date.Format("2006-01-02")).
-				Msg("Swapping assignments to avoid double consecutive")
-
-			// Swap parent names and update decision reasons.
-			schedule[swapA].Parent = parentForA
-			schedule[swapA].DecisionReason = fairness.DecisionReasonDoubleConsecutiveSwap
-			schedule[swapA].ParentType = resolveParentType(&fairness.Assignment{
-				Parent:        parentForA,
-				CaregiverType: fairness.CaregiverTypeParent,
-			}, cfg.parentA)
-
-			schedule[swapB].Parent = parentForB
-			schedule[swapB].DecisionReason = fairness.DecisionReasonDoubleConsecutiveSwap
-			schedule[swapB].ParentType = resolveParentType(&fairness.Assignment{
-				Parent:        parentForB,
-				CaregiverType: fairness.CaregiverTypeParent,
-			}, cfg.parentA)
-
-			// Persist the swap to the database.
-			if err := s.tracker.UpdateAssignmentParentAndReason(
-				schedule[swapA].ID, parentForA, false, fairness.DecisionReasonDoubleConsecutiveSwap,
-			); err != nil {
-				smoothLogger.Error().Err(err).Int64("id", schedule[swapA].ID).Msg("Failed to update swapped assignment A in DB")
-			}
-			if err := s.tracker.UpdateAssignmentParentAndReason(
-				schedule[swapB].ID, parentForB, false, fairness.DecisionReasonDoubleConsecutiveSwap,
-			); err != nil {
-				smoothLogger.Error().Err(err).Int64("id", schedule[swapB].ID).Msg("Failed to update swapped assignment B in DB")
-			}
-
-			// Reset tracking after a successful swap.
-			prev = nil
-			curr = nil
-		}
+// newDoubleConsecutiveTracker creates a tracker for double consecutive detection.
+func newDoubleConsecutiveTracker(logger zerolog.Logger) *doubleConsecutiveTracker {
+	return &doubleConsecutiveTracker{
+		logger: logger.With().Str("phase", "double_consecutive").Logger(),
 	}
-	smoothLogger.Debug().Msg("Double consecutive smoothing complete")
+}
+
+// reset clears both the previous and current run tracking.
+func (d *doubleConsecutiveTracker) reset() {
+	d.prev = nil
+	d.curr = nil
+}
+
+// observe processes a newly appended assignment at index i in the schedule.
+// If the assignment is not swappable, tracking is reset. Otherwise, the
+// current run is extended or a new run is started. When a double-consecutive
+// pattern is detected, the boundary assignments are swapped in-place and
+// re-recorded to the database via RecordAssignment (upsert).
+//
+// Returns true if a swap was performed.
+func (d *doubleConsecutiveTracker) observe(
+	schedule []*Assignment,
+	i int,
+	cfg *scheduleConfig,
+	tracker fairness.TrackerInterface,
+) bool {
+	a := schedule[i]
+
+	// Non-swappable assignments break any ongoing tracking.
+	if !isSwappable(a) {
+		if d.curr != nil {
+			d.logger.Debug().
+				Int("index", i).
+				Str("reason", "non_swappable").
+				Str("decision_reason", string(a.DecisionReason)).
+				Msg("Breaking consecutive tracking")
+		}
+		d.reset()
+		return false
+	}
+
+	if d.curr == nil || a.Parent != d.curr.parent {
+		// Parent changed — promote current run to previous.
+		d.prev = d.curr
+		d.curr = &consecutiveRun{
+			parent:   a.Parent,
+			startIdx: i,
+			endIdx:   i,
+			count:    1,
+		}
+	} else {
+		// Same parent — extend the current run.
+		d.curr.endIdx = i
+		d.curr.count++
+	}
+
+	// Detect double consecutive: prev run ≥ 2 and current run reaches 2.
+	if d.prev == nil || d.prev.count < 2 || d.curr.count < 2 {
+		return false
+	}
+
+	swapA := d.prev.endIdx   // last assignment of the first run
+	swapB := d.curr.startIdx // first assignment of the second run
+
+	parentForA := schedule[swapB].Parent // will go to position A
+	parentForB := schedule[swapA].Parent // will go to position B
+
+	// Verify availability constraints before swapping.
+	if !isParentAvailableOnDate(parentForA, schedule[swapA].Date, cfg) ||
+		!isParentAvailableOnDate(parentForB, schedule[swapB].Date, cfg) {
+		d.logger.Debug().
+			Int("swap_a_idx", swapA).
+			Int("swap_b_idx", swapB).
+			Msg("Cannot swap: availability constraint violated")
+		// Can't swap — reset and keep tracking from current position.
+		d.prev = nil
+		d.curr = &consecutiveRun{
+			parent:   a.Parent,
+			startIdx: i,
+			endIdx:   i,
+			count:    1,
+		}
+		return false
+	}
+
+	d.logger.Info().
+		Str("parent_a", schedule[swapA].Parent).
+		Str("parent_b", schedule[swapB].Parent).
+		Str("date_a", schedule[swapA].Date.Format("2006-01-02")).
+		Str("date_b", schedule[swapB].Date.Format("2006-01-02")).
+		Msg("Swapping assignments to avoid double consecutive")
+
+	// Re-record the boundary assignments with swapped parents via upsert.
+	// RecordAssignment uses ON CONFLICT(assignment_date) DO UPDATE, so it
+	// updates the existing row's parent_name, decision_reason, override, and
+	// caregiver_type while preserving the google_calendar_event_id.
+	updatedA, errA := tracker.RecordAssignment(
+		parentForA, schedule[swapA].Date, false, fairness.DecisionReasonDoubleConsecutiveSwap,
+	)
+	if errA != nil {
+		d.logger.Error().Err(errA).Str("date", schedule[swapA].Date.Format("2006-01-02")).Msg("Failed to re-record swapped assignment A")
+	} else {
+		schedule[swapA].ID = updatedA.ID
+		schedule[swapA].Parent = updatedA.Parent
+		schedule[swapA].DecisionReason = updatedA.DecisionReason
+		schedule[swapA].ParentType = resolveParentType(updatedA, cfg.parentA)
+		schedule[swapA].UpdatedAt = updatedA.UpdatedAt
+	}
+
+	updatedB, errB := tracker.RecordAssignment(
+		parentForB, schedule[swapB].Date, false, fairness.DecisionReasonDoubleConsecutiveSwap,
+	)
+	if errB != nil {
+		d.logger.Error().Err(errB).Str("date", schedule[swapB].Date.Format("2006-01-02")).Msg("Failed to re-record swapped assignment B")
+	} else {
+		schedule[swapB].ID = updatedB.ID
+		schedule[swapB].Parent = updatedB.Parent
+		schedule[swapB].DecisionReason = updatedB.DecisionReason
+		schedule[swapB].ParentType = resolveParentType(updatedB, cfg.parentA)
+		schedule[swapB].UpdatedAt = updatedB.UpdatedAt
+	}
+
+	// Reset tracking after a successful swap.
+	d.reset()
+	return true
 }
 
 // assignForDate determines who should do the night routine on a specific date and records it.

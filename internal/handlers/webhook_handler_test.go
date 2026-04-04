@@ -81,11 +81,6 @@ func (m *MockTracker) UpdateAssignmentParent(id int64, parent string, override b
 	return args.Error(0)
 }
 
-func (m *MockTracker) UpdateAssignmentParentAndReason(id int64, parent string, override bool, reason fairness.DecisionReason) error {
-	args := m.Called(id, parent, override, reason)
-	return args.Error(0)
-}
-
 func (m *MockTracker) UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error {
 	args := m.Called(id, babysitterName, override)
 	return args.Error(0)

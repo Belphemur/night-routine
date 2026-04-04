@@ -5,327 +5,451 @@ import (
 	"time"
 
 	"github.com/belphemur/night-routine/internal/fairness"
+	"github.com/belphemur/night-routine/internal/logging"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestDoubleConsecutiveSwapBasic verifies the basic AA BB → AB AB swap.
-func TestDoubleConsecutiveSwapBasic(t *testing.T) {
-	// No unavailability so the cascade can produce natural consecutives.
-	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
+// --- Unit tests for the doubleConsecutiveTracker.observe mechanism ---
 
+// makeAssignment is a test helper that builds a scheduler.Assignment
+// with the minimum fields needed for double-consecutive tracking.
+func makeAssignment(id int64, parent string, date time.Time, reason fairness.DecisionReason, caregiverType fairness.CaregiverType) *Assignment {
+	return &Assignment{
+		ID:             id,
+		Parent:         parent,
+		Date:           date,
+		DecisionReason: reason,
+		CaregiverType:  caregiverType,
+	}
+}
+
+func noUnavailabilityCfg() *scheduleConfig {
+	return &scheduleConfig{
+		parentA:            "Alice",
+		parentB:            "Bob",
+		parentAUnavailable: []string{},
+		parentBUnavailable: []string{},
+	}
+}
+
+func testTracker(t *testing.T) fairness.TrackerInterface {
+	t.Helper()
+	db, cleanup := setupTestDB(t)
+	t.Cleanup(cleanup)
 	tracker, err := fairness.New(db)
 	assert.NoError(t, err)
-	sched := New(store, tracker)
+	return tracker
+}
 
-	// Seed history so that the scheduler will naturally produce AA BB.
-	// We need TotalCount to create consecutive assignments.
-	// Alice=0, Bob=2 → TotalCount gives Alice twice, then tied → alternating.
+// TestObserveDetectsDoubleConsecutive directly tests the tracker with an
+// AA BB schedule slice and verifies it swaps the boundary assignments.
+func TestObserveDetectsDoubleConsecutive(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
+
 	day1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
-
-	_, err = tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-
-	// State: Alice=0, Bob=2. Last=Bob.
-	// day3: TotalCount → Alice (fewer). Alice=1,Bob=2
-	// day4: TotalCount → Alice (fewer). Alice=2,Bob=2
-	// day5: Tied. ConsecutiveLimit: Alice had 2 → Bob. Alice=2,Bob=3
-	// day6: TotalCount → Alice (fewer). Alice=3,Bob=3
-	// Without smoothing: Alice, Alice, Bob, Bob → double consecutive!
-	// With smoothing:    Alice, Bob, Alice, Bob → swapped!
 	day3 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)
-	day6 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+	day4 := time.Date(2026, 4, 4, 0, 0, 0, 0, time.UTC)
 
-	schedule, err := sched.GenerateSchedule(day3, day6, day3)
-	assert.NoError(t, err)
-	assert.Len(t, schedule, 4)
+	// Pre-record all 4 assignments in the DB so upsert works.
+	a1, _ := tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Alice", day2, false, fairness.DecisionReasonTotalCount)
+	a3, _ := tracker.RecordAssignment("Bob", day3, false, fairness.DecisionReasonConsecutiveLimit)
+	a4, _ := tracker.RecordAssignment("Bob", day4, false, fairness.DecisionReasonAlternating)
 
-	// After smoothing, the AA BB pattern should become AB AB.
-	assert.Equal(t, "Alice", schedule[0].Parent, "day3: Alice")
-	assert.Equal(t, "Bob", schedule[1].Parent, "day4: Bob (swapped)")
-	assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, schedule[1].DecisionReason, "day4: swapped reason")
-	assert.Equal(t, "Alice", schedule[2].Parent, "day5: Alice (swapped)")
-	assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, schedule[2].DecisionReason, "day5: swapped reason")
-	assert.Equal(t, "Bob", schedule[3].Parent, "day6: Bob")
-}
-
-// TestDoubleConsecutiveSwapNotTriggeredForUnavailability verifies that consecutive
-// runs caused by unavailability do not trigger the double consecutive swap.
-func TestDoubleConsecutiveSwapNotTriggeredForUnavailability(t *testing.T) {
-	// Alice unavailable on Monday, Bob unavailable on Thursday.
-	store := newTestConfigStore("Alice", "Bob", []string{"Monday"}, []string{"Thursday"})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Start on a Thursday so Bob is unavailable → Alice.
-	// Friday → alternating (Bob). Saturday → alternating (Alice).
-	// Sunday → alternating (Bob). Monday → unavailability (Bob since Alice unavailable).
-	start := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC) // Thursday
-	end := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)   // Monday
-
-	schedule, err := sched.GenerateSchedule(start, end, start)
-	assert.NoError(t, err)
-	assert.Len(t, schedule, 5)
-
-	// The unavailability reason should NOT be part of the double consecutive detection.
-	// Thu: Alice (unavailability), Fri: Bob, Sat: Alice, Sun: Bob, Mon: Bob (unavailability)
-	assert.Equal(t, "Alice", schedule[0].Parent, "Thursday: Alice (Bob unavailable)")
-	assert.Equal(t, fairness.DecisionReasonUnavailability, schedule[0].DecisionReason)
-
-	// No DoubleConsecutiveSwap should appear.
-	for _, a := range schedule {
-		assert.NotEqual(t, fairness.DecisionReasonDoubleConsecutiveSwap, a.DecisionReason,
-			"Unavailability-driven consecutive should not trigger swap on %s", a.Date.Format("2006-01-02"))
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Alice", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Alice", day2, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Bob", day3, fairness.DecisionReasonConsecutiveLimit, fairness.CaregiverTypeParent),
+		makeAssignment(a4.ID, "Bob", day4, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
 	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+
+	// Feed assignments one by one.
+	swapped := false
+	for i := range schedule {
+		if dc.observe(schedule, i, cfg, tracker) {
+			swapped = true
+		}
+	}
+
+	assert.True(t, swapped, "Should detect and swap the AA BB pattern")
+
+	// After swap: Alice, Bob, Alice, Bob  (boundary positions 1 and 2 swapped).
+	assert.Equal(t, "Alice", schedule[0].Parent, "day1 unchanged")
+	assert.Equal(t, "Bob", schedule[1].Parent, "day2 swapped to Bob")
+	assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, schedule[1].DecisionReason)
+	assert.Equal(t, "Alice", schedule[2].Parent, "day3 swapped to Alice")
+	assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, schedule[2].DecisionReason)
+	assert.Equal(t, "Bob", schedule[3].Parent, "day4 unchanged")
+
+	// Verify the DB was updated via the upsert.
+	dbA2, _ := tracker.GetAssignmentByDate(day2)
+	assert.Equal(t, "Bob", dbA2.Parent)
+	assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, dbA2.DecisionReason)
+
+	dbA3, _ := tracker.GetAssignmentByDate(day3)
+	assert.Equal(t, "Alice", dbA3.Parent)
+	assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, dbA3.DecisionReason)
 }
 
-// TestDoubleConsecutiveSwapNotTriggeredForOverride verifies that override
-// assignments break consecutive tracking and don't get swapped.
-func TestDoubleConsecutiveSwapNotTriggeredForOverride(t *testing.T) {
-	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
+// TestObserveReversedPattern verifies BB AA is also detected and swapped.
+func TestObserveReversedPattern(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
 
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Seed: Alice=0, Bob=2 so TotalCount gives Alice twice.
 	day1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
-
-	_, err = tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-
-	// Pre-record day5 as an override for Alice → this should break the tracking.
-	day5 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)
-	_, err = tracker.RecordAssignment("Alice", day5, true, fairness.DecisionReasonOverride)
-	assert.NoError(t, err)
-
 	day3 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)
-	day7 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)
+	day4 := time.Date(2026, 4, 4, 0, 0, 0, 0, time.UTC)
 
-	schedule, err := sched.GenerateSchedule(day3, day7, day3)
-	assert.NoError(t, err)
+	a1, _ := tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonTotalCount)
+	a3, _ := tracker.RecordAssignment("Alice", day3, false, fairness.DecisionReasonConsecutiveLimit)
+	a4, _ := tracker.RecordAssignment("Alice", day4, false, fairness.DecisionReasonAlternating)
 
-	// The override on day5 should break tracking, preventing swaps across it.
-	for _, a := range schedule {
-		if a.Date.Equal(day5) {
-			assert.Equal(t, fairness.DecisionReasonOverride, a.DecisionReason, "day5 should remain override")
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Bob", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Bob", day2, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Alice", day3, fairness.DecisionReasonConsecutiveLimit, fairness.CaregiverTypeParent),
+		makeAssignment(a4.ID, "Alice", day4, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	swapped := false
+	for i := range schedule {
+		if dc.observe(schedule, i, cfg, tracker) {
+			swapped = true
 		}
 	}
+
+	assert.True(t, swapped, "Should detect BB AA pattern")
+	assert.Equal(t, "Bob", schedule[0].Parent)
+	assert.Equal(t, "Alice", schedule[1].Parent, "swapped to Alice")
+	assert.Equal(t, "Bob", schedule[2].Parent, "swapped to Bob")
+	assert.Equal(t, "Alice", schedule[3].Parent)
 }
 
-// TestDoubleConsecutiveSwapWithBabysitterBreak verifies that a babysitter night
-// in between breaks the consecutive tracking.
-func TestDoubleConsecutiveSwapWithBabysitterBreak(t *testing.T) {
-	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
+// TestObserveNoSwapForSingleConsecutive verifies that A B B does NOT trigger
+// a swap because the first run has only 1 assignment.
+func TestObserveNoSwapForSingleConsecutive(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
 
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Seed so the scheduler produces Alice, Alice, Babysitter, Bob, Bob
-	// The babysitter should break tracking.
 	day1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
-
-	_, err = tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-
-	// Pre-record day5 as babysitter → breaks consecutive chain.
-	day5 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)
-	_, err = tracker.RecordBabysitterAssignment("Nanny", day5, true)
-	assert.NoError(t, err)
-
 	day3 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)
-	day7 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)
 
-	schedule, err := sched.GenerateSchedule(day3, day7, day3)
-	assert.NoError(t, err)
+	a1, _ := tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating)
+	a3, _ := tracker.RecordAssignment("Bob", day3, false, fairness.DecisionReasonAlternating)
 
-	// The babysitter on day5 should prevent a swap from spanning across it.
-	for _, a := range schedule {
-		if a.Date.Equal(day5) {
-			assert.Equal(t, fairness.CaregiverTypeBabysitter, a.CaregiverType, "day5 should be babysitter")
-		}
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Alice", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Bob", day2, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Bob", day3, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	for i := range schedule {
+		assert.False(t, dc.observe(schedule, i, cfg, tracker), "No swap for single consecutive at index %d", i)
 	}
 }
 
-// TestDoubleConsecutiveSwapRespectsAvailability verifies that the swap is not
-// performed when it would violate a parent's availability constraint.
-func TestDoubleConsecutiveSwapRespectsAvailability(t *testing.T) {
-	// Alice unavailable on Wednesday (day index 2 in a Mon-start week).
-	// If the swap would put Alice on a Wednesday, it should not happen.
-	store := newTestConfigStore("Alice", "Bob", []string{"Wednesday"}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
+// TestObserveBabysitterBreaksTracking verifies that a babysitter assignment
+// in the middle of a potential double consecutive breaks tracking.
+func TestObserveBabysitterBreaksTracking(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
 
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Seed: Alice=0, Bob=3 → TotalCount gives Alice many times.
-	day1 := time.Date(2026, 3, 30, 0, 0, 0, 0, time.UTC) // Monday
-	day2 := time.Date(2026, 3, 31, 0, 0, 0, 0, time.UTC) // Tuesday
-	day3 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)  // Wednesday
-
-	_, err = tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Bob", day3, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-
-	// Schedule from Thu (Apr 2) to Sun (Apr 5).
-	// day4 (Thu): TotalCount → Alice (0 vs 3)
-	// day5 (Fri): TotalCount → Alice (1 vs 3)
-	// day6 (Sat): TotalCount → Alice (2 vs 3)
-	// day7 (Sun): Tied. ConsecutiveLimit → Bob (Alice had 3+)
-	// Actually the cascade depends on exact state. The point is:
-	// If a swap would place Alice on a Wednesday, it should be skipped.
-	day4 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC) // Thursday
-	day7 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC) // Sunday
-
-	schedule, err := sched.GenerateSchedule(day4, day7, day4)
-	assert.NoError(t, err)
-
-	// Verify that no assignment puts Alice on a Wednesday.
-	for _, a := range schedule {
-		if a.Date.Weekday() == time.Wednesday && a.Parent == "Alice" {
-			t.Errorf("Alice should not be assigned on Wednesday %s", a.Date.Format("2006-01-02"))
-		}
-	}
-}
-
-// TestDoubleConsecutiveSwapMultiplePatterns verifies that the algorithm detects
-// and fixes multiple double consecutive patterns in a single schedule.
-func TestDoubleConsecutiveSwapMultiplePatterns(t *testing.T) {
-	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Manually record a pattern that will naturally produce double consecutives.
-	// Seed: Alice=0, Bob=4 → lots of Alice catch-up creating AA BB patterns.
-	for i := range 4 {
-		day := time.Date(2026, 3, 28+i, 0, 0, 0, 0, time.UTC)
-		_, err = tracker.RecordAssignment("Bob", day, false, fairness.DecisionReasonAlternating)
-		assert.NoError(t, err)
-	}
-
-	// Generate a longer schedule where multiple AA BB could occur.
-	start := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
-
-	schedule, err := sched.GenerateSchedule(start, end, start)
-	assert.NoError(t, err)
-
-	// After smoothing, we should not have any AA BB patterns among swappable assignments.
-	for i := 0; i < len(schedule)-3; i++ {
-		a, b, c, d := schedule[i], schedule[i+1], schedule[i+2], schedule[i+3]
-		// Only check parent-type assignments with swappable reasons.
-		if !isSwappable(a) || !isSwappable(b) || !isSwappable(c) || !isSwappable(d) {
-			continue
-		}
-		if a.Parent == b.Parent && c.Parent == d.Parent && a.Parent != c.Parent {
-			t.Errorf("Found unsmoothed double consecutive at index %d-%d: %s %s %s %s",
-				i, i+3, a.Parent, b.Parent, c.Parent, d.Parent)
-		}
-	}
-}
-
-// TestDoubleConsecutiveSwapSingleConsecutiveNotTriggered verifies that a single
-// consecutive (e.g. AB B) does NOT trigger the swap — both runs must be ≥ 2.
-func TestDoubleConsecutiveSwapSingleConsecutiveNotTriggered(t *testing.T) {
-	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Seed exactly one prior assignment so alternating gives AB AB pattern.
-	// Alice=0, Bob=1 → TotalCount gives Alice once, then tied → alternating.
 	day1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
-	_, err = tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-
 	day2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
+	day3 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)
+	day4 := time.Date(2026, 4, 4, 0, 0, 0, 0, time.UTC)
 	day5 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)
 
-	schedule, err := sched.GenerateSchedule(day2, day5, day2)
-	assert.NoError(t, err)
+	a1, _ := tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Alice", day2, false, fairness.DecisionReasonTotalCount)
+	a3, _ := tracker.RecordBabysitterAssignment("Nanny", day3, true)
+	a4, _ := tracker.RecordAssignment("Bob", day4, false, fairness.DecisionReasonAlternating)
+	a5, _ := tracker.RecordAssignment("Bob", day5, false, fairness.DecisionReasonAlternating)
 
-	// No DoubleConsecutiveSwap should appear since there's no AA BB pattern.
-	for _, a := range schedule {
-		assert.NotEqual(t, fairness.DecisionReasonDoubleConsecutiveSwap, a.DecisionReason,
-			"Single consecutive should not trigger swap on %s", a.Date.Format("2006-01-02"))
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Alice", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Alice", day2, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Nanny", day3, fairness.DecisionReasonOverride, fairness.CaregiverTypeBabysitter),
+		makeAssignment(a4.ID, "Bob", day4, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+		makeAssignment(a5.ID, "Bob", day5, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	for i := range schedule {
+		assert.False(t, dc.observe(schedule, i, cfg, tracker), "Babysitter breaks tracking at index %d", i)
 	}
 }
 
-// TestDoubleConsecutiveSwapPersistsToDatabase verifies that the swap updates
-// are persisted to the database, not just in-memory.
-func TestDoubleConsecutiveSwapPersistsToDatabase(t *testing.T) {
-	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
+// TestObserveOverrideBreaksTracking verifies that an override assignment
+// in the middle breaks consecutive tracking.
+func TestObserveOverrideBreaksTracking(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
 
-	tracker, err := fairness.New(db)
-	assert.NoError(t, err)
-	sched := New(store, tracker)
-
-	// Seed: Alice=0, Bob=2 → produces AA BB pattern.
 	day1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 	day2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
-
-	_, err = tracker.RecordAssignment("Bob", day1, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-	_, err = tracker.RecordAssignment("Bob", day2, false, fairness.DecisionReasonAlternating)
-	assert.NoError(t, err)
-
 	day3 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)
-	day6 := time.Date(2026, 4, 6, 0, 0, 0, 0, time.UTC)
+	day4 := time.Date(2026, 4, 4, 0, 0, 0, 0, time.UTC)
+	day5 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)
 
-	schedule, err := sched.GenerateSchedule(day3, day6, day3)
-	assert.NoError(t, err)
-	assert.Len(t, schedule, 4)
+	a1, _ := tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Alice", day2, false, fairness.DecisionReasonTotalCount)
+	a3, _ := tracker.RecordAssignment("Alice", day3, true, fairness.DecisionReasonOverride)
+	a4, _ := tracker.RecordAssignment("Bob", day4, false, fairness.DecisionReasonAlternating)
+	a5, _ := tracker.RecordAssignment("Bob", day5, false, fairness.DecisionReasonAlternating)
 
-	// Verify the swapped assignments are persisted in the database.
-	for _, a := range schedule {
-		if a.DecisionReason == fairness.DecisionReasonDoubleConsecutiveSwap {
-			// Read back from DB and verify.
-			dbAssignment, err := tracker.GetAssignmentByID(a.ID)
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Alice", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Alice", day2, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Alice", day3, fairness.DecisionReasonOverride, fairness.CaregiverTypeParent),
+		makeAssignment(a4.ID, "Bob", day4, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+		makeAssignment(a5.ID, "Bob", day5, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	for i := range schedule {
+		assert.False(t, dc.observe(schedule, i, cfg, tracker), "Override breaks tracking at index %d", i)
+	}
+}
+
+// TestObserveUnavailabilityBreaksTracking verifies that an unavailability
+// assignment breaks consecutive tracking.
+func TestObserveUnavailabilityBreaksTracking(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
+
+	day1 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	day2 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)
+	day3 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)
+	day4 := time.Date(2026, 4, 4, 0, 0, 0, 0, time.UTC)
+	day5 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)
+
+	a1, _ := tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Alice", day2, false, fairness.DecisionReasonTotalCount)
+	a3, _ := tracker.RecordAssignment("Bob", day3, false, fairness.DecisionReasonUnavailability)
+	a4, _ := tracker.RecordAssignment("Bob", day4, false, fairness.DecisionReasonAlternating)
+	a5, _ := tracker.RecordAssignment("Bob", day5, false, fairness.DecisionReasonAlternating)
+
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Alice", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Alice", day2, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Bob", day3, fairness.DecisionReasonUnavailability, fairness.CaregiverTypeParent),
+		makeAssignment(a4.ID, "Bob", day4, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+		makeAssignment(a5.ID, "Bob", day5, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	for i := range schedule {
+		assert.False(t, dc.observe(schedule, i, cfg, tracker), "Unavailability breaks tracking at index %d", i)
+	}
+}
+
+// TestObserveRespectsAvailabilityConstraints verifies that a swap is skipped
+// when it would violate a parent's day-of-week unavailability.
+func TestObserveRespectsAvailabilityConstraints(t *testing.T) {
+	tracker := testTracker(t)
+	// Alice is unavailable on Thursdays.
+	cfg := &scheduleConfig{
+		parentA:            "Alice",
+		parentB:            "Bob",
+		parentAUnavailable: []string{"Thursday"},
+		parentBUnavailable: []string{},
+	}
+
+	// Build AA BB where position 2 (day3) is a Thursday.
+	// Swapping would put Alice on Thursday — must be skipped.
+	day1 := time.Date(2026, 3, 31, 0, 0, 0, 0, time.UTC) // Tuesday
+	day2 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)  // Wednesday
+	day3 := time.Date(2026, 4, 2, 0, 0, 0, 0, time.UTC)  // Thursday
+	day4 := time.Date(2026, 4, 3, 0, 0, 0, 0, time.UTC)  // Friday
+
+	a1, _ := tracker.RecordAssignment("Alice", day1, false, fairness.DecisionReasonTotalCount)
+	a2, _ := tracker.RecordAssignment("Alice", day2, false, fairness.DecisionReasonTotalCount)
+	a3, _ := tracker.RecordAssignment("Bob", day3, false, fairness.DecisionReasonConsecutiveLimit)
+	a4, _ := tracker.RecordAssignment("Bob", day4, false, fairness.DecisionReasonAlternating)
+
+	schedule := []*Assignment{
+		makeAssignment(a1.ID, "Alice", day1, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a2.ID, "Alice", day2, fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent),
+		makeAssignment(a3.ID, "Bob", day3, fairness.DecisionReasonConsecutiveLimit, fairness.CaregiverTypeParent),
+		makeAssignment(a4.ID, "Bob", day4, fairness.DecisionReasonAlternating, fairness.CaregiverTypeParent),
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	for i := range schedule {
+		assert.False(t, dc.observe(schedule, i, cfg, tracker),
+			"Swap should be skipped due to availability at index %d", i)
+	}
+
+	// Assignments should be unchanged.
+	assert.Equal(t, "Alice", schedule[1].Parent, "day2 should remain Alice")
+	assert.Equal(t, "Bob", schedule[2].Parent, "day3 should remain Bob")
+}
+
+// TestObserveMultiplePatterns verifies that multiple AA BB patterns in a
+// single schedule are each detected and swapped independently.
+func TestObserveMultiplePatterns(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
+
+	days := make([]time.Time, 8)
+	for i := range days {
+		days[i] = time.Date(2026, 4, 1+i, 0, 0, 0, 0, time.UTC)
+	}
+
+	// Record: AA BB AA BB
+	assignments := make([]*fairness.Assignment, 8)
+	parents := []string{"Alice", "Alice", "Bob", "Bob", "Alice", "Alice", "Bob", "Bob"}
+	for i, p := range parents {
+		assignments[i], _ = tracker.RecordAssignment(p, days[i], false, fairness.DecisionReasonTotalCount)
+	}
+
+	schedule := make([]*Assignment, 8)
+	for i := range schedule {
+		schedule[i] = makeAssignment(assignments[i].ID, parents[i], days[i],
+			fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent)
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	swapCount := 0
+	for i := range schedule {
+		if dc.observe(schedule, i, cfg, tracker) {
+			swapCount++
+		}
+	}
+
+	assert.Equal(t, 2, swapCount, "Should detect two AA BB patterns")
+	// After two swaps: AB AB AB AB.
+	for i, a := range schedule {
+		if i%2 == 0 {
+			assert.Equal(t, "Alice", a.Parent, "Even index %d should be Alice", i)
+		} else {
+			assert.Equal(t, "Bob", a.Parent, "Odd index %d should be Bob", i)
+		}
+	}
+}
+
+// TestObserveLongerRuns verifies that runs > 2 are also detected.
+// AAA BBB → boundary swap at endIdx=2 and startIdx=3 → AA B A BB.
+func TestObserveLongerRuns(t *testing.T) {
+	tracker := testTracker(t)
+	cfg := noUnavailabilityCfg()
+
+	days := make([]time.Time, 6)
+	for i := range days {
+		days[i] = time.Date(2026, 4, 1+i, 0, 0, 0, 0, time.UTC)
+	}
+
+	parents := []string{"Alice", "Alice", "Alice", "Bob", "Bob", "Bob"}
+	assignments := make([]*fairness.Assignment, 6)
+	for i, p := range parents {
+		assignments[i], _ = tracker.RecordAssignment(p, days[i], false, fairness.DecisionReasonTotalCount)
+	}
+
+	schedule := make([]*Assignment, 6)
+	for i := range schedule {
+		schedule[i] = makeAssignment(assignments[i].ID, parents[i], days[i],
+			fairness.DecisionReasonTotalCount, fairness.CaregiverTypeParent)
+	}
+
+	dc := newDoubleConsecutiveTracker(logging.GetLogger("test"))
+	swapped := false
+	for i := range schedule {
+		if dc.observe(schedule, i, cfg, tracker) {
+			swapped = true
+		}
+	}
+
+	assert.True(t, swapped, "Should detect AAA BBB pattern")
+	// Boundary swap: [2]=Alice→Bob, [3]=Bob→Alice
+	assert.Equal(t, "Alice", schedule[0].Parent)
+	assert.Equal(t, "Alice", schedule[1].Parent)
+	assert.Equal(t, "Bob", schedule[2].Parent, "boundary swapped")
+	assert.Equal(t, "Alice", schedule[3].Parent, "boundary swapped")
+	assert.Equal(t, "Bob", schedule[4].Parent)
+	assert.Equal(t, "Bob", schedule[5].Parent)
+}
+
+// --- Integration tests through GenerateSchedule ---
+
+// TestGenerateScheduleNoDoubleConsecutiveInOutput verifies that GenerateSchedule
+// never produces AA BB patterns among swappable assignments in various scenarios.
+func TestGenerateScheduleNoDoubleConsecutiveInOutput(t *testing.T) {
+	tests := []struct {
+		name               string
+		parentAUnavailable []string
+		parentBUnavailable []string
+		seedAlice          int
+		seedBob            int
+		days               int
+	}{
+		{"balanced no unavailability", []string{}, []string{}, 0, 0, 14},
+		{"alice behind", []string{}, []string{}, 0, 5, 14},
+		{"bob behind", []string{}, []string{}, 5, 0, 14},
+		{"large imbalance", []string{}, []string{}, 0, 10, 30},
+		{"with unavailability", []string{"Monday"}, []string{"Thursday"}, 0, 3, 14},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestConfigStore("Alice", "Bob", tt.parentAUnavailable, tt.parentBUnavailable)
+			db, cleanup := setupTestDB(t)
+			defer cleanup()
+
+			tracker, err := fairness.New(db)
 			assert.NoError(t, err)
-			assert.Equal(t, a.Parent, dbAssignment.Parent,
-				"DB parent should match in-memory parent for %s", a.Date.Format("2006-01-02"))
-			assert.Equal(t, fairness.DecisionReasonDoubleConsecutiveSwap, dbAssignment.DecisionReason,
-				"DB decision reason should be DoubleConsecutiveSwap for %s", a.Date.Format("2006-01-02"))
-		}
+			sched := New(store, tracker)
+
+			// Seed prior assignments to create the desired imbalance.
+			seedDay := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+			for i := range tt.seedAlice {
+				_, err = tracker.RecordAssignment("Alice", seedDay.AddDate(0, 0, i), false, fairness.DecisionReasonAlternating)
+				assert.NoError(t, err)
+			}
+			for i := range tt.seedBob {
+				_, err = tracker.RecordAssignment("Bob", seedDay.AddDate(0, 0, tt.seedAlice+i), false, fairness.DecisionReasonAlternating)
+				assert.NoError(t, err)
+			}
+
+			start := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+			end := start.AddDate(0, 0, tt.days-1)
+
+			schedule, err := sched.GenerateSchedule(start, end, start)
+			assert.NoError(t, err)
+			assert.Len(t, schedule, tt.days)
+
+			// Verify no AA BB pattern among swappable assignments.
+			for i := 0; i < len(schedule)-3; i++ {
+				a, b, c, d := schedule[i], schedule[i+1], schedule[i+2], schedule[i+3]
+				if !isSwappable(a) || !isSwappable(b) || !isSwappable(c) || !isSwappable(d) {
+					continue
+				}
+				if a.Parent == b.Parent && c.Parent == d.Parent && a.Parent != c.Parent {
+					t.Errorf("Found unsmoothed double consecutive at index %d-%d: %s(%s) %s(%s) %s(%s) %s(%s)",
+						i, i+3,
+						a.Parent, a.DecisionReason,
+						b.Parent, b.DecisionReason,
+						c.Parent, c.DecisionReason,
+						d.Parent, d.DecisionReason)
+				}
+			}
+		})
 	}
 }
 
-// TestDoubleConsecutiveSwapFixedAssignmentsNotSwapped verifies that fixed (past)
-// assignments are not swapped even if they form a double consecutive pattern.
-func TestDoubleConsecutiveSwapFixedAssignmentsNotSwapped(t *testing.T) {
+// TestGenerateScheduleFixedAssignmentsNotSwapped verifies that past (fixed)
+// assignments are never modified by the double consecutive tracker.
+func TestGenerateScheduleFixedAssignmentsNotSwapped(t *testing.T) {
 	store := newTestConfigStore("Alice", "Bob", []string{}, []string{})
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
@@ -349,7 +473,7 @@ func TestDoubleConsecutiveSwapFixedAssignmentsNotSwapped(t *testing.T) {
 	_, err = tracker.RecordAssignment("Bob", day4, false, fairness.DecisionReasonAlternating)
 	assert.NoError(t, err)
 
-	// Set currentTime to day5, so day1-day4 are all past (fixed).
+	// Set currentTime to day5 so day1-day4 are all past (fixed).
 	day5 := time.Date(2026, 4, 5, 0, 0, 0, 0, time.UTC)
 	day7 := time.Date(2026, 4, 7, 0, 0, 0, 0, time.UTC)
 
@@ -363,4 +487,9 @@ func TestDoubleConsecutiveSwapFixedAssignmentsNotSwapped(t *testing.T) {
 				"Past assignment on %s should not be swapped", a.Date.Format("2006-01-02"))
 		}
 	}
+}
+
+// TestDoubleConsecutiveSwapDecisionReasonString verifies the string representation.
+func TestDoubleConsecutiveSwapDecisionReasonString(t *testing.T) {
+	assert.Equal(t, "Double Consecutive Swap", fairness.DecisionReasonDoubleConsecutiveSwap.String())
 }

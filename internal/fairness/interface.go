@@ -39,9 +39,6 @@ type TrackerInterface interface {
 	// UpdateAssignmentParent updates the parent for an assignment and sets the override flag
 	UpdateAssignmentParent(id int64, parent string, override bool) error
 
-	// UpdateAssignmentParentAndReason updates the parent, override flag, and decision reason for an assignment.
-	UpdateAssignmentParentAndReason(id int64, parent string, override bool, reason DecisionReason) error
-
 	// UpdateAssignmentToBabysitter sets an assignment to a named babysitter.
 	UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error
 
