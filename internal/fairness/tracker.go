@@ -274,6 +274,36 @@ func (t *Tracker) UpdateAssignmentParent(id int64, parent string, override bool)
 	return nil
 }
 
+// UpdateAssignmentParentAndReason updates the parent, override flag, and decision reason for an assignment.
+func (t *Tracker) UpdateAssignmentParentAndReason(id int64, parent string, override bool, reason DecisionReason) error {
+	updateLogger := t.logger.With().
+		Int64("assignment_id", id).
+		Str("new_parent", parent).
+		Bool("override", override).
+		Str("decision_reason", reason.String()).
+		Logger()
+	updateLogger.Debug().Msg("Updating assignment parent and reason")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	query := `UPDATE assignments SET parent_name = ?, override = ?, caregiver_type = ?, decision_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	args := []any{parent, override, CaregiverTypeParent.String(), reason.String(), id}
+
+	_, err := t.db.Conn().ExecContext(ctx, query, args...)
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			updateLogger.Error().Err(err).Msg("Database update timed out")
+			return fmt.Errorf("database update timed out: %w", err)
+		}
+		updateLogger.Error().Err(err).Msg("Failed to execute update query")
+		return fmt.Errorf("failed to update assignment: %w", err)
+	}
+
+	updateLogger.Debug().Msg("Assignment parent/reason updated in DB")
+	return nil
+}
+
 // UpdateAssignmentToBabysitter sets an assignment to a named babysitter and marks it as override.
 func (t *Tracker) UpdateAssignmentToBabysitter(id int64, babysitterName string, override bool) error {
 	updateLogger := t.logger.With().

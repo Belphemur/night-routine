@@ -16,6 +16,9 @@ const (
 	DecisionReasonAlternating DecisionReason = "Alternating"
 	// DecisionReasonOverride represents that the assignment was manually overridden
 	DecisionReasonOverride DecisionReason = "Override"
+	// DecisionReasonDoubleConsecutiveSwap represents that assignments were swapped to avoid
+	// both parents having back-to-back consecutive nights (e.g. AA BB → AB AB).
+	DecisionReasonDoubleConsecutiveSwap DecisionReason = "Double Consecutive Swap"
 )
 
 // String returns the string representation of the DecisionReason
