@@ -154,7 +154,7 @@
                         <span class="block text-xs text-slate-700 mt-1">Babysitter</span>
                         {{end}}
                         {{if .Assignment.DecisionReason}}
-                        <span class="block text-xs text-slate-500 mt-1 truncate" title="{{.Assignment.DecisionReason}}">{{.Assignment.DecisionReason}}</span>
+                        <span class="block text-xs text-slate-500 mt-1" title="{{.Assignment.DecisionReason}}">{{.Assignment.DecisionReason}}</span>
                         {{end}}
                         {{end}}
                     </td>
@@ -634,7 +634,7 @@
 
                     if (day.assignmentReason) {
                         const reasonSpan = document.createElement('span');
-                        reasonSpan.className = 'block text-xs text-slate-500 mt-1 truncate';
+                        reasonSpan.className = 'block text-xs text-slate-500 mt-1';
                         reasonSpan.title = day.assignmentReason;
                         reasonSpan.textContent = day.assignmentReason;
                         td.appendChild(reasonSpan);

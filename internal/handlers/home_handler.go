@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/fairness/scheduler"
+	scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/viewhelpers"
 	"github.com/rs/zerolog"
 )
@@ -13,14 +13,14 @@ import (
 // HomeHandler manages home page functionality
 type HomeHandler struct {
 	*BaseHandler
-	Scheduler *scheduler.Scheduler
+	Scheduler scheduler.SchedulerInterface
 }
 
 // NewHomeHandler creates a new home page handler
-func NewHomeHandler(baseHandler *BaseHandler, scheduler *scheduler.Scheduler) *HomeHandler {
+func NewHomeHandler(baseHandler *BaseHandler, sched scheduler.SchedulerInterface) *HomeHandler {
 	return &HomeHandler{
 		BaseHandler: baseHandler,
-		Scheduler:   scheduler,
+		Scheduler:   sched,
 	}
 }
 
@@ -190,20 +190,20 @@ func (h *HomeHandler) processMessages(r *http.Request, logger zerolog.Logger) (e
 	return errorMessage, successMessage
 }
 
-// generateCalendarData calculates the date range, generates the schedule, and structures it for the template.
+// generateCalendarData calculates the date range, reads existing assignments, and structures them for the template.
 func (h *HomeHandler) generateCalendarData(logger zerolog.Logger) (monthName string, weeks [][]viewhelpers.CalendarDay, err error) {
 	logger.Debug().Msg("Generating calendar view data")
 	refTime := time.Now()
 	startDate, endDate := viewhelpers.CalculateCalendarRange(refTime)
 	logger.Debug().Time("start_date", startDate).Time("end_date", endDate).Msg("Calculated calendar range")
 
-	assignments, err := h.Scheduler.GenerateSchedule(startDate, endDate, time.Now())
+	assignments, err := h.Scheduler.GetAssignmentsInRange(startDate, endDate)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to generate schedule for calendar view")
-		return "", nil, err // Return error to the caller
+		logger.Error().Err(err).Msg("Failed to read assignments for calendar view")
+		return "", nil, err
 	}
 
-	logger.Debug().Int("assignment_count", len(assignments)).Msg("Successfully generated schedule")
+	logger.Debug().Int("assignment_count", len(assignments)).Msg("Successfully read assignments")
 	monthName, weeks = viewhelpers.StructureAssignmentsForTemplate(startDate, endDate, assignments)
 	logger.Debug().Str("month_name", monthName).Int("week_count", len(weeks)).Msg("Structured calendar data for template")
 	return monthName, weeks, nil

@@ -599,6 +599,32 @@ func (s *Scheduler) UpdateAssignmentToBabysitter(id int64, babysitterName string
 	return nil
 }
 
+// GetAssignmentsInRange retrieves existing assignments in a date range without generating new ones.
+func (s *Scheduler) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, error) {
+	raw, err := s.tracker.GetAssignmentsInRange(start, end)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get assignments in range: %w", err)
+	}
+	parentA, _, err := s.getParents()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parent names: %w", err)
+	}
+	result := make([]*Assignment, len(raw))
+	for i, a := range raw {
+		result[i] = &Assignment{
+			ID:                    a.ID,
+			Date:                  a.Date,
+			Parent:                a.Parent,
+			ParentType:            resolveParentType(a, parentA),
+			CaregiverType:         a.CaregiverType,
+			GoogleCalendarEventID: a.GoogleCalendarEventID,
+			DecisionReason:        a.DecisionReason,
+			UpdatedAt:             a.UpdatedAt,
+		}
+	}
+	return result, nil
+}
+
 func resolveParentType(a *fairness.Assignment, parentAName string) ParentType {
 	if a.CaregiverType == fairness.CaregiverTypeBabysitter {
 		return ParentTypeBabysitter

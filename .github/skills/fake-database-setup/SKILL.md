@@ -150,155 +150,135 @@ sqlite3 /tmp/night-routine-demo.db <<'EOF'
 -- Full-month demo data for Night Routine Scheduler
 -- Covers all decision reasons including Double Consecutive Swap
 --
--- Layout (offsets from today = start of the current month):
---   Day  1 (today-N): Alice  – Total Count
---   Day  2           : Bob   – Alternating
---   Day  3           : Alice – Total Count
---   Day  4           : Bob   – Consecutive Limit  (Alice had 2 consecutive)
---   Day  5           : Alice – Recent Count
---   Day  6           : Bob   – Total Count
---   Day  7           : Alice – Alternating
---   Day  8           : Bob   – Total Count
---   Day  9           : Alice – Consecutive Limit  (Bob had 2 consecutive)
---   Day 10           : Dawn  – Babysitter
---   Day 11           : Bob   – Total Count
---   Day 12           : Alice – Alternating
---   Day 13           : Alice – Total Count         (Alice still behind)
---   Day 14           : Bob   – Double Consecutive Swap (was Alice; AA BB → AB AB)
---   Day 15           : Alice – Double Consecutive Swap (was Bob;  AA BB → AB AB)
---   Day 16           : Bob   – Total Count
---   Day 17           : Alice – Override            (manually changed)
---   Day 18           : Bob   – Unavailability      (Alice unavailable)
---   Day 19           : Alice – Total Count
---   Day 20           : Bob   – Alternating
---   Day 21           : Alice – Total Count
---   Day 22           : Bob   – Consecutive Limit
---   Day 23           : Alice – Total Count
---   Day 24           : Emma  – Babysitter
---   Day 25           : Bob   – Recent Count
---   Day 26           : Alice – Total Count
---   Day 27           : Bob   – Alternating
---   Day 28           : Alice – Total Count
---   Day 29           : Bob   – Alternating
---   Day 30           : Alice – Recent Count
+-- Day  1: Alice – Total Count
+-- Day  2: Bob   – Alternating
+-- Day  3: Alice – Double Consecutive Swap  ← pair start (AA BB → AB AB)
+-- Day  4: Bob   – Double Consecutive Swap  ← pair end
+-- Day  5: Alice – Recent Count
+-- Day  6: Bob   – Total Count
+-- Day  7: Dawn  – Babysitter
+-- Day  8: Alice – Total Count
+-- Day  9: Bob   – Consecutive Limit   (Alice had 2 consecutive)
+-- Day 10: Alice – Alternating
+-- Day 11: Bob   – Total Count
+-- Day 12: Alice – Recent Count
+-- Day 13: Bob   – Total Count
+-- Day 14: Alice – Override             (manually changed, locked)
+-- Day 15: Bob   – Alternating
+-- Day 16: Alice – Total Count
+-- Day 17: Bob   – Unavailability       (Alice unavailable)
+-- Day 18: Alice – Total Count
+-- Day 19: Bob   – Alternating
+-- Day 20: Alice – Total Count
+-- Day 21: Emma  – Babysitter
+-- Day 22: Bob   – Consecutive Limit   (Alice had 2 consecutive)
+-- Day 23: Alice – Total Count
+-- Day 24: Bob   – Alternating
+-- Day 25: Alice – Total Count
+-- Day 26: Bob   – Recent Count
+-- Day 27: Alice – Total Count
+-- Day 28: Bob   – Alternating
+-- Day 29: Alice – Total Count
+-- Day 30: Bob   – Alternating
 -- ============================================================
 
--- Compute start-of-month offset so data fills the current calendar month.
--- We use the day-of-month to anchor day 1 to the 1st of the current month.
--- e.g. if today is the 5th, day 1 is today-4 days, day 30 is today+25 days.
-
 INSERT INTO assignments (parent_name, assignment_date, override, caregiver_type, decision_reason, google_calendar_event_id) VALUES
--- Week 1
--- Note: date offset = (day_of_month - strftime('%d','now')); positive = future, negative = past
 ('Alice', date('now', (1  - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d01'),
 ('Bob',   date('now', (2  - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d02'),
-('Alice', date('now', (3  - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d03'),
-('Bob',   date('now', (4  - strftime('%d','now')) || ' days'), 0, 'parent',     'Consecutive Limit',      'evt_d04'),
+-- Double Consecutive Swap pair: days 3 & 4 were the boundary of an AA BB run that got swapped to AB AB
+('Alice', date('now', (3  - strftime('%d','now')) || ' days'), 0, 'parent',     'Double Consecutive Swap','evt_d03'),
+('Bob',   date('now', (4  - strftime('%d','now')) || ' days'), 0, 'parent',     'Double Consecutive Swap','evt_d04'),
 ('Alice', date('now', (5  - strftime('%d','now')) || ' days'), 0, 'parent',     'Recent Count',           'evt_d05'),
 ('Bob',   date('now', (6  - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d06'),
-('Alice', date('now', (7  - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d07'),
--- Week 2
-('Bob',   date('now', (8  - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d08'),
-('Alice', date('now', (9  - strftime('%d','now')) || ' days'), 0, 'parent',     'Consecutive Limit',      'evt_d09'),
-('Dawn',  date('now', (10 - strftime('%d','now')) || ' days'), 0, 'babysitter', NULL,                     'evt_d10'),
+('Dawn',  date('now', (7  - strftime('%d','now')) || ' days'), 0, 'babysitter', NULL,                     'evt_d07'),
+('Alice', date('now', (8  - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d08'),
+('Bob',   date('now', (9  - strftime('%d','now')) || ' days'), 0, 'parent',     'Consecutive Limit',      'evt_d09'),
+('Alice', date('now', (10 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d10'),
 ('Bob',   date('now', (11 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d11'),
-('Alice', date('now', (12 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d12'),
-('Alice', date('now', (13 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d13'),
--- Week 3 – Double Consecutive Swap pair (days 14 & 15)
--- Before swap: Alice Alice Bob Bob (AA BB). After swap: Alice Bob Alice Bob (AB AB).
--- Day 14 was originally Alice but swapped to Bob; day 15 was originally Bob but swapped to Alice.
-('Bob',   date('now', (14 - strftime('%d','now')) || ' days'), 0, 'parent',     'Double Consecutive Swap','evt_d14'),
-('Alice', date('now', (15 - strftime('%d','now')) || ' days'), 0, 'parent',     'Double Consecutive Swap','evt_d15'),
-('Bob',   date('now', (16 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d16'),
-('Alice', date('now', (17 - strftime('%d','now')) || ' days'), 1, 'parent',     'Override',               'evt_d17'),
-('Bob',   date('now', (18 - strftime('%d','now')) || ' days'), 0, 'parent',     'Unavailability',         'evt_d18'),
--- Week 4
-('Alice', date('now', (19 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d19'),
-('Bob',   date('now', (20 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d20'),
-('Alice', date('now', (21 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d21'),
+('Alice', date('now', (12 - strftime('%d','now')) || ' days'), 0, 'parent',     'Recent Count',           'evt_d12'),
+('Bob',   date('now', (13 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d13'),
+('Alice', date('now', (14 - strftime('%d','now')) || ' days'), 1, 'parent',     'Override',               'evt_d14'),
+('Bob',   date('now', (15 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d15'),
+('Alice', date('now', (16 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d16'),
+('Bob',   date('now', (17 - strftime('%d','now')) || ' days'), 0, 'parent',     'Unavailability',         'evt_d17'),
+('Alice', date('now', (18 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d18'),
+('Bob',   date('now', (19 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d19'),
+('Alice', date('now', (20 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d20'),
+('Emma',  date('now', (21 - strftime('%d','now')) || ' days'), 0, 'babysitter', NULL,                     'evt_d21'),
 ('Bob',   date('now', (22 - strftime('%d','now')) || ' days'), 0, 'parent',     'Consecutive Limit',      'evt_d22'),
 ('Alice', date('now', (23 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d23'),
-('Emma',  date('now', (24 - strftime('%d','now')) || ' days'), 0, 'babysitter', NULL,                     'evt_d24'),
-('Bob',   date('now', (25 - strftime('%d','now')) || ' days'), 0, 'parent',     'Recent Count',           'evt_d25'),
-('Alice', date('now', (26 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d26'),
-('Bob',   date('now', (27 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d27'),
-('Alice', date('now', (28 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d28'),
-('Bob',   date('now', (29 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d29'),
-('Alice', date('now', (30 - strftime('%d','now')) || ' days'), 0, 'parent',     'Recent Count',           'evt_d30');
+('Bob',   date('now', (24 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d24'),
+('Alice', date('now', (25 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d25'),
+('Bob',   date('now', (26 - strftime('%d','now')) || ' days'), 0, 'parent',     'Recent Count',           'evt_d26'),
+('Alice', date('now', (27 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d27'),
+('Bob',   date('now', (28 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d28'),
+('Alice', date('now', (29 - strftime('%d','now')) || ' days'), 0, 'parent',     'Total Count',            'evt_d29'),
+('Bob',   date('now', (30 - strftime('%d','now')) || ' days'), 0, 'parent',     'Alternating',            'evt_d30');
 
 -- ============================================================
 -- Assignment details (stats snapshot at time of each assignment)
--- Skipped for: babysitter days (IDs 10, 24) and override day (ID 17).
--- Stats follow a realistic progression. Babysitter nights count as +1 for BOTH parents.
---
--- Key: "Total Count" → assigned parent has fewer total
---      "Alternating"  → both totals equal, both last-30 equal
---      "Recent Count" → totals equal, assigned parent has fewer last-30
---      "Consecutive Limit" / "Double Consecutive Swap" → totals equal (or close)
---      "Unavailability" → one parent unavailable regardless of counts
+-- Skipped for: babysitter days (IDs 7, 21) and override day (ID 14).
 -- ============================================================
 INSERT INTO assignment_details (assignment_id, calculation_date, parent_a_name, parent_a_total_count, parent_a_last_30_days, parent_b_name, parent_b_total_count, parent_b_last_30_days) VALUES
 -- Day  1: Alice, Total Count   (Alice=12 < Bob=14)
 (1,  date('now', (1  - strftime('%d','now')) || ' days'), 'Alice', 12, 5,  'Bob', 14, 6),
 -- Day  2: Bob,   Alternating   (equal totals & recent, previous=Alice → Bob)
 (2,  date('now', (2  - strftime('%d','now')) || ' days'), 'Alice', 13, 6,  'Bob', 13, 6),
--- Day  3: Alice, Total Count   (Alice=13 < Bob=14)
+-- Day  3: Alice, Double Consecutive Swap (boundary swap: was originally Bob but swapped to Alice)
 (3,  date('now', (3  - strftime('%d','now')) || ' days'), 'Alice', 13, 6,  'Bob', 14, 7),
--- Day  4: Bob,   Consecutive Limit  (totals tied=14, Alice had 2 consecutive → switch)
+-- Day  4: Bob,   Double Consecutive Swap (boundary swap: was originally Alice but swapped to Bob)
 (4,  date('now', (4  - strftime('%d','now')) || ' days'), 'Alice', 14, 7,  'Bob', 14, 7),
 -- Day  5: Alice, Recent Count  (totals tied=15, Alice has fewer last-30: 7 < 8)
 (5,  date('now', (5  - strftime('%d','now')) || ' days'), 'Alice', 14, 7,  'Bob', 15, 8),
 -- Day  6: Bob,   Total Count   (Bob=15 < Alice=16)
 (6,  date('now', (6  - strftime('%d','now')) || ' days'), 'Alice', 16, 8,  'Bob', 15, 8),
--- Day  7: Alice, Alternating   (totals=16/16, recent=8/8, previous=Bob → Alice)
-(7,  date('now', (7  - strftime('%d','now')) || ' days'), 'Alice', 15, 8,  'Bob', 16, 9),
--- Day  8: Bob,   Total Count   (Bob=16 < Alice=17)
-(8,  date('now', (8  - strftime('%d','now')) || ' days'), 'Alice', 17, 9,  'Bob', 16, 8),
--- Day  9: Alice, Consecutive Limit  (totals tied=17, Bob had 2 consecutive → switch)
-(9,  date('now', (9  - strftime('%d','now')) || ' days'), 'Alice', 17, 9,  'Bob', 17, 9),
--- Day 10: babysitter (Dawn) – no details
--- Day 11: Bob,   Total Count   (babysitter night added +1 to both; Bob=18 < Alice=19)
-(11, date('now', (11 - strftime('%d','now')) || ' days'), 'Alice', 19, 10, 'Bob', 18, 9),
--- Day 12: Alice, Alternating   (totals=19/19, recent=10/10, previous=Bob → Alice)
-(12, date('now', (12 - strftime('%d','now')) || ' days'), 'Alice', 18, 9,  'Bob', 19, 10),
--- Day 13: Alice, Total Count   (Alice=19 < Bob=20; still catching up)
-(13, date('now', (13 - strftime('%d','now')) || ' days'), 'Alice', 19, 10, 'Bob', 20, 11),
--- Day 14: Bob,   Double Consecutive Swap  (was Alice; AA BB pattern → swapped to Bob)
---         Before swap: Alice(13) Alice(14) Bob(15) Bob(16) → AA BB
---         After swap:  Alice(13) Bob(14)   Alice(15) Bob(16) → AB AB
-(14, date('now', (14 - strftime('%d','now')) || ' days'), 'Alice', 20, 11, 'Bob', 20, 11),
--- Day 15: Alice, Double Consecutive Swap  (was Bob; paired swap with day 14)
-(15, date('now', (15 - strftime('%d','now')) || ' days'), 'Alice', 20, 11, 'Bob', 21, 12),
--- Day 16: Bob,   Total Count   (Bob=21 < Alice=22 after swap resolution)
-(16, date('now', (16 - strftime('%d','now')) || ' days'), 'Alice', 22, 12, 'Bob', 21, 11),
--- Day 17: Alice, Override – no details (manually changed, fairness not calculated)
--- Day 18: Bob,   Unavailability  (Alice unavailable; Bob assigned regardless of counts)
-(18, date('now', (18 - strftime('%d','now')) || ' days'), 'Alice', 22, 12, 'Bob', 22, 12),
--- Day 19: Alice, Total Count   (Alice=22 < Bob=23)
-(19, date('now', (19 - strftime('%d','now')) || ' days'), 'Alice', 22, 12, 'Bob', 23, 13),
--- Day 20: Bob,   Alternating   (totals tied=23, recent tied=13, previous=Alice → Bob)
-(20, date('now', (20 - strftime('%d','now')) || ' days'), 'Alice', 23, 13, 'Bob', 23, 13),
--- Day 21: Alice, Total Count   (Alice=23 < Bob=24)
-(21, date('now', (21 - strftime('%d','now')) || ' days'), 'Alice', 23, 13, 'Bob', 24, 14),
--- Day 22: Bob,   Consecutive Limit  (totals tied=24, Alice had 2 consecutive → switch)
-(22, date('now', (22 - strftime('%d','now')) || ' days'), 'Alice', 24, 14, 'Bob', 24, 14),
--- Day 23: Alice, Total Count   (Alice=24 < Bob=25)
-(23, date('now', (23 - strftime('%d','now')) || ' days'), 'Alice', 24, 14, 'Bob', 25, 15),
--- Day 24: babysitter (Emma) – no details
--- Day 25: Bob,   Recent Count  (babysitter +1 both; totals tied=26, Bob has fewer last-30: 15 < 16)
-(25, date('now', (25 - strftime('%d','now')) || ' days'), 'Alice', 26, 16, 'Bob', 26, 15),
--- Day 26: Alice, Total Count   (Alice=26 < Bob=27)
-(26, date('now', (26 - strftime('%d','now')) || ' days'), 'Alice', 26, 15, 'Bob', 27, 16),
--- Day 27: Bob,   Alternating   (totals tied=27, recent tied=16, previous=Alice → Bob)
-(27, date('now', (27 - strftime('%d','now')) || ' days'), 'Alice', 27, 16, 'Bob', 27, 16),
--- Day 28: Alice, Total Count   (Alice=27 < Bob=28)
-(28, date('now', (28 - strftime('%d','now')) || ' days'), 'Alice', 27, 16, 'Bob', 28, 17),
--- Day 29: Bob,   Alternating   (totals tied=28, recent tied=17, previous=Alice → Bob)
-(29, date('now', (29 - strftime('%d','now')) || ' days'), 'Alice', 28, 17, 'Bob', 28, 17),
--- Day 30: Alice, Recent Count  (totals tied=29, Alice has fewer last-30: 17 < 18)
-(30, date('now', (30 - strftime('%d','now')) || ' days'), 'Alice', 28, 17, 'Bob', 29, 18);
+-- Day  7: babysitter (Dawn) – no details
+-- Day  8: Alice, Total Count   (babysitter +1 both; Alice=17 < Bob=18 after babysitter shift)
+(8,  date('now', (8  - strftime('%d','now')) || ' days'), 'Alice', 17, 9,  'Bob', 18, 9),
+-- Day  9: Bob,   Consecutive Limit (totals tied=18, Alice had 2 consecutive → switch to Bob)
+(9,  date('now', (9  - strftime('%d','now')) || ' days'), 'Alice', 18, 9,  'Bob', 18, 9),
+-- Day 10: Alice, Alternating   (totals tied=19, recent tied=9, previous=Bob → Alice)
+(10, date('now', (10 - strftime('%d','now')) || ' days'), 'Alice', 18, 9,  'Bob', 19, 10),
+-- Day 11: Bob,   Total Count   (Bob=19 < Alice=20)
+(11, date('now', (11 - strftime('%d','now')) || ' days'), 'Alice', 20, 10, 'Bob', 19, 9),
+-- Day 12: Alice, Recent Count  (totals tied=20, Alice has fewer last-30: 9 < 10)
+(12, date('now', (12 - strftime('%d','now')) || ' days'), 'Alice', 19, 9,  'Bob', 20, 10),
+-- Day 13: Bob,   Total Count   (Bob=20 < Alice=21 after Alice assigned day 12)
+(13, date('now', (13 - strftime('%d','now')) || ' days'), 'Alice', 21, 10, 'Bob', 20, 10),
+-- Day 14: Alice, Override – no details (manually changed, fairness not calculated)
+-- Day 15: Bob,   Alternating   (totals tied=21, recent tied=11, previous=Alice → Bob)
+(15, date('now', (15 - strftime('%d','now')) || ' days'), 'Alice', 21, 11, 'Bob', 21, 11),
+-- Day 16: Alice, Total Count   (Alice=21 < Bob=22)
+(16, date('now', (16 - strftime('%d','now')) || ' days'), 'Alice', 21, 11, 'Bob', 22, 12),
+-- Day 17: Bob,   Unavailability (Alice unavailable; Bob assigned regardless of counts)
+(17, date('now', (17 - strftime('%d','now')) || ' days'), 'Alice', 22, 12, 'Bob', 22, 12),
+-- Day 18: Alice, Total Count   (Alice=22 < Bob=23)
+(18, date('now', (18 - strftime('%d','now')) || ' days'), 'Alice', 22, 12, 'Bob', 23, 13),
+-- Day 19: Bob,   Alternating   (totals tied=23, recent tied=13, previous=Alice → Bob)
+(19, date('now', (19 - strftime('%d','now')) || ' days'), 'Alice', 23, 13, 'Bob', 23, 13),
+-- Day 20: Alice, Total Count   (Alice=23 < Bob=24)
+(20, date('now', (20 - strftime('%d','now')) || ' days'), 'Alice', 23, 13, 'Bob', 24, 14),
+-- Day 21: babysitter (Emma) – no details
+-- Day 22: Bob,   Consecutive Limit (babysitter +1 both; totals tied=25, Alice had 2 consecutive → Bob)
+(22, date('now', (22 - strftime('%d','now')) || ' days'), 'Alice', 25, 15, 'Bob', 25, 15),
+-- Day 23: Alice, Total Count   (Alice=25 < Bob=26)
+(23, date('now', (23 - strftime('%d','now')) || ' days'), 'Alice', 25, 14, 'Bob', 26, 16),
+-- Day 24: Bob,   Alternating   (totals tied=26, recent tied=15, previous=Alice → Bob)
+(24, date('now', (24 - strftime('%d','now')) || ' days'), 'Alice', 26, 15, 'Bob', 26, 15),
+-- Day 25: Alice, Total Count   (Alice=26 < Bob=27)
+(25, date('now', (25 - strftime('%d','now')) || ' days'), 'Alice', 26, 15, 'Bob', 27, 16),
+-- Day 26: Bob,   Recent Count  (totals tied=27, Bob has fewer last-30: 15 < 16)
+(26, date('now', (26 - strftime('%d','now')) || ' days'), 'Alice', 27, 16, 'Bob', 27, 15),
+-- Day 27: Alice, Total Count   (Alice=27 < Bob=28)
+(27, date('now', (27 - strftime('%d','now')) || ' days'), 'Alice', 27, 16, 'Bob', 28, 16),
+-- Day 28: Bob,   Alternating   (totals tied=28, recent tied=16, previous=Alice → Bob)
+(28, date('now', (28 - strftime('%d','now')) || ' days'), 'Alice', 28, 17, 'Bob', 28, 16),
+-- Day 29: Alice, Total Count   (Alice=28 < Bob=29)
+(29, date('now', (29 - strftime('%d','now')) || ' days'), 'Alice', 28, 16, 'Bob', 29, 17),
+-- Day 30: Bob,   Alternating   (totals tied=29, recent tied=17, previous=Alice → Bob)
+(30, date('now', (30 - strftime('%d','now')) || ' days'), 'Alice', 29, 17, 'Bob', 29, 17);
 
--- Insert OAuth token (JSON format)
+-- Insert OAuth token (JSON format — expiry far in the future so GetValidToken succeeds without a network call)
 INSERT OR REPLACE INTO oauth_tokens (id, token_data, updated_at)
 VALUES (1, '{"access_token":"demo_token","token_type":"Bearer","refresh_token":"demo_refresh","expiry":"2099-12-31T23:59:59Z"}', datetime('now'));
 
@@ -401,13 +381,13 @@ Once the demo database is set up, use a browser or automated tool to take screen
 ### Suggested Screenshots
 
 1. **Full month overview** — Shows the balanced calendar with all decision reasons visible in cells
-2. **Double Consecutive Swap cells** — Navigate to days 14–15 to show the swap pair (both show "Double Consecutive Swap" reason in adjacent cells)
-3. **Babysitter night** — Click the Dawn (day 10) or Emma (day 24) cell; modal shows babysitter note
+2. **Double Consecutive Swap cells** — April 3–4 show the swap pair (both show "Double Consecutive Swap" on adjacent days)
+3. **Babysitter night** — Click the Dawn (day 7) or Emma (day 21) cell
 4. **Total Count modal** — Click day 1 (Alice, Total Count); modal shows Alice with fewer total assignments
-5. **Recent Count modal** — Click day 5 (Alice) or day 30 (Alice); modal shows equal totals but Alice fewer last-30
-6. **Consecutive Limit modal** — Click day 4 or 9 or 22; shows equal totals with one parent having 2+ consecutive nights
-7. **Double Consecutive Swap modal** — Click day 14 or 15; shows explanation of the AA BB → AB AB swap
-8. **Override cell** — Click day 17 (Alice, Override); unlock modal appears
+5. **Recent Count modal** — Click day 5 or day 26; modal shows equal totals but assigned parent has fewer last-30
+6. **Consecutive Limit modal** — Click day 9 or day 22; shows equal totals with one parent having 2+ consecutive nights
+7. **Double Consecutive Swap modal** — Click day 3 or 4; shows explanation of the AA BB → AB AB swap
+8. **Override cell** — Click day 14 (Alice, Override); unlock modal appears
 
 ### Testing the Assignment Details Modal
 

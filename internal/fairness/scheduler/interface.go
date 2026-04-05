@@ -9,6 +9,9 @@ type SchedulerInterface interface {
 	// GenerateSchedule creates a schedule for the specified date range
 	GenerateSchedule(start, end time.Time, currentTime time.Time) ([]*Assignment, error)
 
+	// GetAssignmentsInRange retrieves existing assignments in a date range without generating new ones
+	GetAssignmentsInRange(start, end time.Time) ([]*Assignment, error)
+
 	// UpdateGoogleCalendarEventID updates the assignment with the Google Calendar event ID
 	UpdateGoogleCalendarEventID(assignment *Assignment, eventID string) error
 
