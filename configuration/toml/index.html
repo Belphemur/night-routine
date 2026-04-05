@@ -2331,9 +2331,9 @@ See the <a href="../environment/">Environment Variables reference</a> for the fu
 <p><strong>Type:</strong> String<br />
 <strong>Required:</strong> Yes (for initial seeding)<br />
 <strong>Default:</strong> None<br />
-<strong>Valid values:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code><br />
+<strong>Valid values:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>disabled</code><br />
 <strong>Configurable via UI:</strong> Yes</p>
-<p>How often the schedule should be automatically updated.</p>
+<p>How often the schedule should be automatically updated. Use <code>disabled</code> to prevent automatic background updates (manual "Sync Now" only).</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[schedule]</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">update_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;weekly&quot;</span>
 </span></code></pre></div>
@@ -2512,7 +2512,7 @@ With volume mount: <code>-v ./data:/app/data</code></p>
 </span></code></pre></div>
 <p><strong>Solution:</strong> Add the missing field to your configuration.</p>
 <h3 id="invalid-values">Invalid Values<a class="headerlink" href="#invalid-values" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Error: invalid update_frequency: &#39;biweekly&#39; (must be daily, weekly, or monthly)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Error: invalid update_frequency: &#39;biweekly&#39; (must be daily, weekly, monthly, or disabled)
 </span></code></pre></div>
 <p><strong>Solution:</strong> Use one of the valid values.</p>
 <h3 id="same-parent-names">Same Parent Names<a class="headerlink" href="#same-parent-names" title="Permanent link">&para;</a></h3>
