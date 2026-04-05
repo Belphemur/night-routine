@@ -208,10 +208,10 @@ parent_b_unavailable = ["Monday", "Thursday"]
 **Type:** String  
 **Required:** Yes (for initial seeding)  
 **Default:** None  
-**Valid values:** `daily`, `weekly`, `monthly`  
+**Valid values:** `daily`, `weekly`, `monthly`, `disabled`  
 **Configurable via UI:** Yes
 
-How often the schedule should be automatically updated.
+How often the schedule should be automatically updated. Use `disabled` to prevent automatic background updates (manual "Sync Now" only).
 
 ```toml
 [schedule]
@@ -386,7 +386,7 @@ Error: missing required configuration: parents.parent_a
 ### Invalid Values
 
 ```
-Error: invalid update_frequency: 'biweekly' (must be daily, weekly, or monthly)
+Error: invalid update_frequency: 'biweekly' (must be daily, weekly, monthly, or disabled)
 ```
 
 **Solution:** Use one of the valid values.

@@ -56,19 +56,17 @@ The application ensures both parents share night routine duties fairly while mai
 
 ## Screenshots
 
-### Modern 2025 UI Design
+### Calendar Dashboard
 
-The application features a completely modernized user interface with:
+The home page displays a monthly calendar grid with all night routine assignments. Each cell shows the assigned caregiver, the decision reason, and uses color coding for quick identification:
 
-- **Contemporary aesthetics** - Gradients, shadows, and smooth transitions
-- **Responsive navigation** - Clean nav bar with emoji icons for quick access
-- **Card-based layouts** - Modern card designs with depth and hover effects
-- **Enhanced typography** - Better hierarchy and readability
-- **Improved accessibility** - Better touch targets and keyboard navigation
-- **Mobile-first design** - Fully responsive across all device sizes
+- **Blue** — Parent A assignments
+- **Amber** — Parent B assignments
+- **Gray** — Babysitter assignments
+- **Lock icon** — Manually overridden (locked) assignments
 
-![Home Page - Modern Design](docs/screenshots/2025-modern/home-page-modernized.png)
-_Modern home dashboard with streamlined navigation (Home, Stats, Settings), gradient background, and card-based layout. Calendar management accessible via "Change Calendar" button. The UI features smooth animations and contemporary design patterns._
+![Home Page - Calendar Dashboard](https://github.com/user-attachments/assets/74182b22-7639-428f-9c5b-a6615de53022)
+_Calendar dashboard with equal-width columns and uniform row heights. Decision reasons (Total Count, Alternating, Double Consecutive Swap, etc.) wrap naturally within cells. The "Sync Now" button triggers schedule regeneration — the home page is read-only by default._
 
 ### Assignment Details Feature
 

@@ -77,6 +77,7 @@ Each assignment includes a reason explaining why that parent was chosen:
 | **Recent Count** | This parent has had fewer recent assignments |
 | **Consecutive Limit** | Prevents too many consecutive assignments |
 | **Alternating** | Maintains an alternating pattern |
+| **Double Consecutive Swap** | Adjacent pair swapped to break AA BB into AB AB |
 | **Override** | Manually changed via Google Calendar or babysitter assigned |
 
 ### Quick Actions
@@ -171,7 +172,7 @@ Select days when each parent is unavailable for night routine duties.
 
 #### Schedule Settings
 
-- **Update Frequency** - How often to automatically update (daily, weekly, monthly)
+- **Update Frequency** - How often to automatically update (daily, weekly, monthly, or disabled for manual-only)
 - **Look Ahead Days** - Number of days in advance to schedule (1-365)
 - **Past Event Threshold Days** - Days in the past to accept manual changes (0-30)
 
@@ -190,7 +191,7 @@ Select days when each parent is unavailable for night routine duties.
 The form validates your input before saving:
 
 - **Parent names** must not be empty or identical
-- **Update frequency** must be daily, weekly, or monthly
+- **Update frequency** must be daily, weekly, monthly, or disabled
 - **Look ahead days** must be at least 1
 - **Past event threshold** cannot be negative
 

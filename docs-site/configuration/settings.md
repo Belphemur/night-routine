@@ -230,7 +230,7 @@ All settings are validated both client-side and server-side:
 - No validation if no days selected (available all days)
 
 ### Schedule Settings
-- **Update Frequency**: Must be one of: daily, weekly, monthly
+- **Update Frequency**: Must be one of: daily, weekly, monthly, disabled
 - **Look Ahead Days**: Must be between 1 and 365
 - **Past Event Threshold**: Must be between 0 and 30
 - **Statistics Sort Order**: Must be one of: desc (descending), asc (ascending)
