@@ -1,3 +1,17 @@
+# [0.31.0](https://github.com/Belphemur/night-routine/compare/v0.30.0...v0.31.0) (2026-04-05)
+
+
+### Bug Fixes
+
+* **ui:** add table-fixed to calendar for equal-width columns ([7f60e56](https://github.com/Belphemur/night-routine/commit/7f60e56aefcf1f0e9ca5e293452a88b57fb49820))
+
+
+### Features
+
+* **home,schedule:** read assignments from DB on home page, no auto-generate; fix uniform calendar cell height ([4564cc7](https://github.com/Belphemur/night-routine/commit/4564cc7ae0947c5dc6668dde50351536314a5c5b))
+* **schedule:** add disabled update_frequency and migration 19 ([e53cbf4](https://github.com/Belphemur/night-routine/commit/e53cbf4249d552ddaebdea2d0647a3a1824375d7))
+* **skill:** update fake-database-setup with full month data and Double Consecutive Swap examples ([c43849f](https://github.com/Belphemur/night-routine/commit/c43849f170ff7e1b12893f12291310f9ca168ac0))
+
 # [0.30.0](https://github.com/Belphemur/night-routine/compare/v0.29.0...v0.30.0) (2026-04-05)
 
 
