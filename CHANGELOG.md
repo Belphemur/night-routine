@@ -1,3 +1,17 @@
+# [0.30.0](https://github.com/Belphemur/night-routine/compare/v0.29.0...v0.30.0) (2026-04-05)
+
+
+### Bug Fixes
+
+* **fairness:** resolve variable shadowing in SwapAssignments ([c6fd3d1](https://github.com/Belphemur/night-routine/commit/c6fd3d10deac661531a776a7ef87a10589eeb56b))
+* **fairness:** use atomic transaction for swap, propagate errors, assert test DB calls ([bc9d3a3](https://github.com/Belphemur/night-routine/commit/bc9d3a33a4cdf4ad7bc8d243e23e39c6c2d6992b))
+
+
+### Features
+
+* **fairness:** add double consecutive parent swap detection (WIP) ([89f028f](https://github.com/Belphemur/night-routine/commit/89f028fddde9bf8424cdf93f36231db5bf02d0d4))
+* **fairness:** add inline double consecutive detection during schedule generation ([395eee8](https://github.com/Belphemur/night-routine/commit/395eee87ff38d293aae622a243ddd74ded39565a))
+
 # [0.29.0](https://github.com/Belphemur/night-routine/compare/v0.28.0...v0.29.0) (2026-04-03)
 
 
