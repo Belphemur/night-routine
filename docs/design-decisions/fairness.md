@@ -61,3 +61,19 @@
 - Fetching 7 entries (instead of 5) ensures enough parent entries are available even when babysitter nights are interspersed.
 
 **Implementation**: `parentOnly()` helper and single-list `determineNextParent(date, parentA, parentB, lastAssignments, stats)` in `internal/fairness/scheduler/scheduler.go`. `assignForDate()` calls only `GetLastAssignmentsUntil(7, date)`. `determineParentForDate()` passes one slice through to `determineNextParent()`. `GetLastParentAssignmentsUntil` was removed from `TrackerInterface` and `Tracker` as dead code — the single all-types query fully replaces it. `parentOnly()` is used for streak counting and lastParent detection. Regression tests updated to pass a single list.
+
+## Double consecutive smoothing during schedule generation
+
+**Decision**: A `doubleConsecutiveTracker` is maintained inline during the `GenerateSchedule` loop to detect and swap "double consecutive" patterns (AA BB → AB AB) where both runs are ≥ 2 and neither is caused by unavailability, override, or babysitter. The swap is persisted atomically via `SwapAssignments` (a single DB transaction); in-memory state is only updated after the transaction commits.
+
+**Rationale**:
+
+- Back-to-back consecutive nights for both parents (e.g. Alice–Alice–Bob–Bob) feels unfair to users even when the cascade produces it correctly. Swapping the boundary gives a smoother alternating pattern (Alice–Bob–Alice–Bob).
+- Inline detection during generation is preferred over post-processing because swaps happen as assignments are built, keeping the schedule consistent at every step.
+- The swap uses `SwapAssignments` which wraps both upserts in a single `WithTransaction` call. If either upsert fails, the transaction rolls back and the in-memory schedule is left unchanged — no partial/inconsistent state.
+- Fixed (past/override) assignments reset the tracker so they are never modified. Only generated assignments with non-override, non-unavailability, non-babysitter reasons participate in swaps.
+- Availability constraints are checked before each swap to ensure no parent is assigned to a day they are unavailable.
+- The tracker state (previous and current consecutive runs) is reset after each successful swap or when a non-swappable assignment is encountered, keeping the algorithm simple and O(n).
+- The current fairness cascade (TotalCount → ConsecutiveLimit → RecentCount → Alternating) rarely produces the AA BB pattern naturally, so this is primarily a safety net for edge cases and future algorithm changes.
+
+**Implementation**: `doubleConsecutiveTracker` type with `observe()` method in `internal/fairness/scheduler/scheduler.go`. Instantiated in `GenerateSchedule()` and called after each generated assignment is appended. `observe()` returns an error that is propagated to fail generation fast. Helper functions: `isSwappable()` (excludes override/unavailability/babysitter), `isParentAvailableOnDate()` (checks day-of-week constraints). `consecutiveRun` struct tracks parent, start/end indices, and count. New `DecisionReasonDoubleConsecutiveSwap` in `internal/fairness/decision_reason.go`. `SwapAssignments` in `internal/fairness/tracker.go` and `TrackerInterface` for atomic DB persistence. UI explanation added to `explanations` object in `internal/handlers/templates/home.html`. Unit tests for the observe mechanism and integration tests through `GenerateSchedule` in `internal/fairness/scheduler/scheduler_double_consecutive_test.go`.

@@ -1020,7 +1020,8 @@
                 'Recent Count': 'When total assignments were tied, this parent had fewer assignments in the last 30 days, ensuring fair recent distribution. Babysitter nights count as +1 for both parents (shift).',
                 'Consecutive Limit': 'Totals were tied, but one parent had too many consecutive night assignments (limit: 2). The algorithm switched to the other parent.',
                 'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
-                'Override': 'This assignment was manually changed in Google Calendar by a user.'
+                'Override': 'This assignment was manually changed in Google Calendar by a user.',
+                'Double Consecutive Swap': 'Both parents had back-to-back consecutive nights (e.g. AA BB). The algorithm swapped boundary assignments to produce an alternating pattern (AB AB).'
             };
 
             const reasonExplanation = document.createElement('p');
@@ -1050,7 +1051,8 @@
                 'Total assignment counts',
                 'Consecutive limit (max 2 when totals are tied)',
                 'Recent counts — last 30 days',
-                'Alternating pattern'
+                'Alternating pattern',
+                'Double consecutive smoothing (swaps AA BB → AB AB)'
             ];
             steps.forEach(step => {
                 const li = document.createElement('li');

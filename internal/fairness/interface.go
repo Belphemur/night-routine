@@ -59,6 +59,11 @@ type TrackerInterface interface {
 
 	// GetAssignmentDetails retrieves the fairness algorithm calculation details for an assignment
 	GetAssignmentDetails(assignmentID int64) (*AssignmentDetails, error)
+
+	// SwapAssignments atomically swaps two assignments' parents within a single
+	// database transaction. Both assignments are upserted with the new parent
+	// and the given decision reason. Returns the updated assignment records.
+	SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason DecisionReason) (updatedA *Assignment, updatedB *Assignment, err error)
 }
 
 // Ensure Tracker implements the TrackerInterface

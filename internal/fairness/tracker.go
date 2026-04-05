@@ -117,6 +117,84 @@ func (t *Tracker) RecordBabysitterAssignment(name string, date time.Time, overri
 	return assignment, nil
 }
 
+const upsertAssignmentSQL = `
+	INSERT INTO assignments (parent_name, assignment_date, override, decision_reason, caregiver_type)
+	VALUES (?, ?, ?, ?, ?)
+	ON CONFLICT(assignment_date) DO UPDATE SET
+		parent_name = excluded.parent_name,
+		override = excluded.override,
+		decision_reason = excluded.decision_reason,
+		caregiver_type = excluded.caregiver_type`
+
+const selectAssignmentByDateSQL = `
+	SELECT id, parent_name, assignment_date, override, google_calendar_event_id, decision_reason, caregiver_type, created_at, updated_at
+	FROM assignments
+	WHERE assignment_date = ?
+	ORDER BY id DESC
+	LIMIT 1`
+
+// SwapAssignments atomically swaps two assignments' parents within a single
+// database transaction. Both are upserted with the new parent and the given
+// decision reason. The in-memory Assignment records are returned only after
+// the transaction commits successfully.
+func (t *Tracker) SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason DecisionReason) (*Assignment, *Assignment, error) {
+	swapLogger := t.logger.With().
+		Str("parentA", parentA).Str("dateA", dateA.Format(dateFormat)).
+		Str("parentB", parentB).Str("dateB", dateB.Format(dateFormat)).
+		Str("reason", reason.String()).
+		Logger()
+	swapLogger.Debug().Msg("Swapping assignments atomically")
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel()
+
+	var updatedA, updatedB *Assignment
+
+	err := t.db.WithTransaction(ctx, func(tx *sql.Tx) error {
+		// Upsert assignment A.
+		if _, err := tx.ExecContext(ctx, upsertAssignmentSQL,
+			parentA, dateA.Format(dateFormat), false, reason.String(), CaregiverTypeParent.String(),
+		); err != nil {
+			return fmt.Errorf("failed to upsert assignment A (%s): %w", dateA.Format(dateFormat), err)
+		}
+
+		// Upsert assignment B.
+		if _, err := tx.ExecContext(ctx, upsertAssignmentSQL,
+			parentB, dateB.Format(dateFormat), false, reason.String(), CaregiverTypeParent.String(),
+		); err != nil {
+			return fmt.Errorf("failed to upsert assignment B (%s): %w", dateB.Format(dateFormat), err)
+		}
+
+		// Read back both rows inside the same transaction so the returned
+		// data is guaranteed consistent with the writes.
+		rowA := tx.QueryRowContext(ctx, selectAssignmentByDateSQL, dateA.Format(dateFormat))
+		var scanErr error
+		updatedA, scanErr = t.scanAssignment(rowA)
+		if scanErr != nil {
+			return fmt.Errorf("failed to read back assignment A (%s): %w", dateA.Format(dateFormat), scanErr)
+		}
+
+		rowB := tx.QueryRowContext(ctx, selectAssignmentByDateSQL, dateB.Format(dateFormat))
+		updatedB, scanErr = t.scanAssignment(rowB)
+		if scanErr != nil {
+			return fmt.Errorf("failed to read back assignment B (%s): %w", dateB.Format(dateFormat), scanErr)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		swapLogger.Error().Err(err).Msg("Failed to swap assignments")
+		return nil, nil, fmt.Errorf("failed to swap assignments: %w", err)
+	}
+
+	swapLogger.Debug().
+		Int64("assignment_a_id", updatedA.ID).
+		Int64("assignment_b_id", updatedB.ID).
+		Msg("Assignments swapped successfully")
+	return updatedA, updatedB, nil
+}
+
 // No deprecated methods here - we've consolidated to a single RecordAssignment method
 
 // scanAssignment scans a row into an Assignment struct
