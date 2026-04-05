@@ -41,6 +41,7 @@ type Assignment struct {
 	Parent                string
 	ParentType            ParentType
 	CaregiverType         fairness.CaregiverType
+	Override              bool
 	GoogleCalendarEventID string
 	DecisionReason        fairness.DecisionReason
 	UpdatedAt             time.Time
@@ -215,18 +216,7 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 		// Check if there's a fixed assignment (overridden, past, or before override) for this date
 		if fixedAssignment, ok := assignmentFixedInTime[dateStr]; ok {
 			dayLogger.Info().Int64("assignment_id", fixedAssignment.ID).Str("parent", fixedAssignment.Parent).Str("reason", string(fixedAssignment.DecisionReason)).Bool("override", fixedAssignment.Override).Msg("Using fixed assignment")
-			// Convert to scheduler assignment
-			parentType := resolveParentType(fixedAssignment, parentA)
-			assignment := &Assignment{
-				ID:                    fixedAssignment.ID,
-				Date:                  fixedAssignment.Date,
-				Parent:                fixedAssignment.Parent,
-				ParentType:            parentType,
-				CaregiverType:         fixedAssignment.CaregiverType,
-				GoogleCalendarEventID: fixedAssignment.GoogleCalendarEventID,
-				DecisionReason:        fixedAssignment.DecisionReason, // Use the reason from the fixed assignment
-				UpdatedAt:             fixedAssignment.UpdatedAt,
-			}
+			assignment := convertTrackerAssignment(fixedAssignment, parentA)
 			schedule = append(schedule, assignment)
 			// Fixed assignments are immutable (past/override) and cannot
 			// participate in swaps — reset the consecutive tracker so no
@@ -489,18 +479,7 @@ func (s *Scheduler) assignForDate(date time.Time, cfg *scheduleConfig) (*Assignm
 		}
 	}
 
-	// Convert to scheduler assignment
-	parentType := resolveParentType(trackerAssignment, parentAName)
-	return &Assignment{
-		ID:                    trackerAssignment.ID,
-		Date:                  trackerAssignment.Date,
-		Parent:                trackerAssignment.Parent,
-		ParentType:            parentType,
-		CaregiverType:         trackerAssignment.CaregiverType,
-		GoogleCalendarEventID: trackerAssignment.GoogleCalendarEventID,
-		DecisionReason:        trackerAssignment.DecisionReason,
-		UpdatedAt:             trackerAssignment.UpdatedAt,
-	}, nil
+	return convertTrackerAssignment(trackerAssignment, parentAName), nil
 }
 
 // UpdateGoogleCalendarEventID updates the assignment with the Google Calendar event ID
@@ -547,17 +526,7 @@ func (s *Scheduler) GetAssignmentByGoogleCalendarEventID(eventID string) (*Assig
 		getLogger.Error().Err(err).Msg("Failed to get parent names")
 		return nil, fmt.Errorf("failed to get parent names: %w", err)
 	}
-	parentType := resolveParentType(assignment, parentA)
-	return &Assignment{
-		ID:                    assignment.ID,
-		Date:                  assignment.Date,
-		Parent:                assignment.Parent,
-		ParentType:            parentType,
-		CaregiverType:         assignment.CaregiverType,
-		GoogleCalendarEventID: assignment.GoogleCalendarEventID,
-		DecisionReason:        assignment.DecisionReason,
-		UpdatedAt:             assignment.UpdatedAt, // Include UpdatedAt
-	}, nil
+	return convertTrackerAssignment(assignment, parentA), nil
 }
 
 // UpdateAssignmentParent updates the parent for an assignment and sets the override flag
@@ -609,20 +578,33 @@ func (s *Scheduler) GetAssignmentsInRange(start, end time.Time) ([]*Assignment, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get parent names: %w", err)
 	}
-	result := make([]*Assignment, len(raw))
-	for i, a := range raw {
-		result[i] = &Assignment{
-			ID:                    a.ID,
-			Date:                  a.Date,
-			Parent:                a.Parent,
-			ParentType:            resolveParentType(a, parentA),
-			CaregiverType:         a.CaregiverType,
-			GoogleCalendarEventID: a.GoogleCalendarEventID,
-			DecisionReason:        a.DecisionReason,
-			UpdatedAt:             a.UpdatedAt,
-		}
+	return mapTrackerAssignments(raw, parentA), nil
+}
+
+// convertTrackerAssignment converts a fairness.Assignment to a scheduler Assignment.
+// This is the single source of truth for tracker→scheduler mapping; all call-sites
+// must use this helper to avoid field-drift when new fields are added.
+func convertTrackerAssignment(a *fairness.Assignment, parentAName string) *Assignment {
+	return &Assignment{
+		ID:                    a.ID,
+		Date:                  a.Date,
+		Parent:                a.Parent,
+		ParentType:            resolveParentType(a, parentAName),
+		CaregiverType:         a.CaregiverType,
+		Override:              a.Override,
+		GoogleCalendarEventID: a.GoogleCalendarEventID,
+		DecisionReason:        a.DecisionReason,
+		UpdatedAt:             a.UpdatedAt,
 	}
-	return result, nil
+}
+
+// mapTrackerAssignments converts a slice of fairness.Assignment to scheduler Assignments.
+func mapTrackerAssignments(assignments []*fairness.Assignment, parentAName string) []*Assignment {
+	result := make([]*Assignment, len(assignments))
+	for i, a := range assignments {
+		result[i] = convertTrackerAssignment(a, parentAName)
+	}
+	return result
 }
 
 func resolveParentType(a *fairness.Assignment, parentAName string) ParentType {

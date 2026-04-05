@@ -3,16 +3,14 @@ package viewhelpers
 import (
 	"fmt"
 	"time"
-
-	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 )
 
 // CalendarDay represents a single day cell in the calendar view.
 type CalendarDay struct {
 	Date           time.Time
 	DayOfMonth     int
-	IsCurrentMonth bool                  // Is this day within the primary month being displayed?
-	Assignment     *scheduler.Assignment // Assignment for this day (nil if none)
+	IsCurrentMonth bool               // Is this day within the primary month being displayed?
+	Assignment     *DisplayAssignment // Assignment for this day (nil if none)
 }
 
 // CalculateCalendarRange determines the start and end dates for a calendar view
@@ -52,7 +50,7 @@ func CalculateCalendarRange(refDate time.Time) (startDate time.Time, endDate tim
 }
 
 // StructureAssignmentsForTemplate organizes assignments into a weekly structure for the template.
-func StructureAssignmentsForTemplate(startDate, endDate time.Time, assignments []*scheduler.Assignment) (monthName string, weeks [][]CalendarDay) {
+func StructureAssignmentsForTemplate(startDate, endDate time.Time, assignments []*DisplayAssignment) (monthName string, weeks [][]CalendarDay) {
 	// Determine the primary month being displayed (month of the first day of the range that isn't padding)
 	// A simpler way: the primary month is the month of the 15th day within the range.
 	midPointDate := startDate.AddDate(0, 0, 14) // Approx middle of the displayed range
@@ -60,7 +58,7 @@ func StructureAssignmentsForTemplate(startDate, endDate time.Time, assignments [
 	primaryYear := midPointDate.Year()
 	monthName = fmt.Sprintf("%s %d", primaryMonth.String(), primaryYear)
 
-	assignmentMap := make(map[string]*scheduler.Assignment)
+	assignmentMap := make(map[string]*DisplayAssignment)
 	for _, a := range assignments {
 		if a != nil {
 			// Use UTC date string for map key to avoid timezone issues if dates aren't consistent

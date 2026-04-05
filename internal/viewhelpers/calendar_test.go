@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -93,7 +92,7 @@ func TestStructureAssignmentsForTemplate(t *testing.T) {
 	refDate := date(t, "2025-04-15")
 	startDate, endDate := CalculateCalendarRange(refDate) // 2025-03-31 to 2025-05-04
 
-	assignments := []*scheduler.Assignment{
+	assignments := []*DisplayAssignment{
 		{Date: date(t, "2025-04-01"), Parent: "ParentA"},
 		{Date: date(t, "2025-04-03"), Parent: "ParentB"},
 		{Date: date(t, "2025-04-15"), Parent: "ParentA"},
@@ -156,7 +155,7 @@ func TestStructureAssignmentsForTemplate(t *testing.T) {
 	// A more robust test would involve injecting a clock.
 
 	// Test Empty Assignments
-	monthNameEmpty, weeksEmpty := StructureAssignmentsForTemplate(startDate, endDate, []*scheduler.Assignment{})
+	monthNameEmpty, weeksEmpty := StructureAssignmentsForTemplate(startDate, endDate, []*DisplayAssignment{})
 	assert.Equal(t, "April 2025", monthNameEmpty)
 	assert.Len(t, weeksEmpty, 5)
 	assert.Nil(t, weeksEmpty[0][1].Assignment) // Check a day that had assignment before

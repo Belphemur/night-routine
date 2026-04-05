@@ -104,6 +104,36 @@ manual_sync_on_startup = false # Explicitly set to false to test override
 	assert.Equal(t, "http://localhost:9090/oauth/callback", cfg.OAuth.RedirectURL)
 }
 
+func TestLoadConfig_DisabledFrequency(t *testing.T) {
+	disabledToml := `
+[app]
+app_url = "http://localhost:8080"
+public_url = "http://localhost:8080"
+
+[parents]
+parent_a = "Alice"
+parent_b = "Bob"
+
+[schedule]
+update_frequency = "disabled"
+look_ahead_days = 14
+
+[service]
+state_file = "data/test.db"
+`
+	configFile := createTempConfigFile(t, disabledToml)
+	setEnvVars(t, map[string]string{
+		"GOOGLE_OAUTH_CLIENT_ID":     "test-client-id",
+		"GOOGLE_OAUTH_CLIENT_SECRET": "test-client-secret",
+	})
+
+	cfg, err := Load(configFile)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	assert.Equal(t, "disabled", cfg.Schedule.UpdateFrequency)
+}
+
 func TestLoadConfig_Defaults(t *testing.T) {
 	// Provide required URLs, other fields will use defaults
 	minimalToml := `

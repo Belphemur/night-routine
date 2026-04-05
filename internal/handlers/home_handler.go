@@ -124,18 +124,19 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 			if day.Assignment != nil {
 				dayJSON.AssignmentID = day.Assignment.ID
 				dayJSON.AssignmentParent = day.Assignment.Parent
-				dayJSON.CaregiverType = day.Assignment.CaregiverType.String()
-				dayJSON.AssignmentReason = string(day.Assignment.DecisionReason)
+				dayJSON.CaregiverType = day.Assignment.CaregiverType
+				dayJSON.AssignmentReason = day.Assignment.DecisionReason
 				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"
 
 				// Add assignment-specific classes
 				classes := append(baseClasses, "cursor-pointer", "transition-all", "duration-200")
 
-				if day.Assignment.ParentType.String() == "ParentA" {
+				switch day.Assignment.ParentType {
+				case "ParentA":
 					classes = append(classes, "bg-linear-to-br", "from-blue-50", "to-indigo-100", "text-indigo-900", "border-indigo-200", "hover:from-blue-100", "hover:to-indigo-200")
-				} else if day.Assignment.ParentType.String() == "ParentB" {
+				case "ParentB":
 					classes = append(classes, "bg-linear-to-br", "from-amber-50", "to-orange-100", "text-orange-900", "border-orange-200", "hover:from-amber-100", "hover:to-orange-200")
-				} else if day.Assignment.ParentType.String() == "Babysitter" {
+				case "Babysitter":
 					classes = append(classes, "bg-linear-to-br", "from-slate-100", "to-zinc-200", "text-slate-900", "border-slate-300", "hover:from-slate-200", "hover:to-zinc-300")
 				}
 
@@ -204,7 +205,21 @@ func (h *HomeHandler) generateCalendarData(logger zerolog.Logger) (monthName str
 	}
 
 	logger.Debug().Int("assignment_count", len(assignments)).Msg("Successfully read assignments")
-	monthName, weeks = viewhelpers.StructureAssignmentsForTemplate(startDate, endDate, assignments)
+
+	// Convert scheduler-internal assignments to presentation DTOs at the boundary.
+	displayAssignments := make([]*viewhelpers.DisplayAssignment, len(assignments))
+	for i, a := range assignments {
+		displayAssignments[i] = &viewhelpers.DisplayAssignment{
+			ID:             a.ID,
+			Date:           a.Date,
+			Parent:         a.Parent,
+			ParentType:     a.ParentType.String(),
+			CaregiverType:  a.CaregiverType.String(),
+			DecisionReason: string(a.DecisionReason),
+		}
+	}
+
+	monthName, weeks = viewhelpers.StructureAssignmentsForTemplate(startDate, endDate, displayAssignments)
 	logger.Debug().Str("month_name", monthName).Int("week_count", len(weeks)).Msg("Structured calendar data for template")
 	return monthName, weeks, nil
 }

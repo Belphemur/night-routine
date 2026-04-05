@@ -212,10 +212,10 @@ func (m *MockScheduler) UpdateGoogleCalendarEventID(assignment *Scheduler.Assign
 
 func (m *MockScheduler) GetAssignmentsInRange(start, end time.Time) ([]*Scheduler.Assignment, error) {
 	args := m.Called(start, end)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	if assignments, ok := args.Get(0).([]*Scheduler.Assignment); ok {
+		return assignments, args.Error(1)
 	}
-	return args.Get(0).([]*Scheduler.Assignment), args.Error(1)
+	return nil, args.Error(1)
 }
 
 // MockConfigStore is a mock implementation of config.ConfigStoreInterface

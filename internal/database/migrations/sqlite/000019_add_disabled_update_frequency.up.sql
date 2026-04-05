@@ -5,8 +5,8 @@ CREATE TABLE config_schedule_new (
     update_frequency TEXT NOT NULL CHECK (update_frequency IN ('daily', 'weekly', 'monthly', 'disabled')),
     look_ahead_days INTEGER NOT NULL CHECK (look_ahead_days > 0),
     past_event_threshold_days INTEGER NOT NULL DEFAULT 5 CHECK (past_event_threshold_days >= 0),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     stats_order TEXT NOT NULL DEFAULT 'desc' CHECK (stats_order IN ('desc', 'asc'))
 );
 

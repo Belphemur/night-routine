@@ -288,6 +288,14 @@ func TestConfigStore_SaveSchedule_Validation(t *testing.T) {
 			statsOrder: constants.StatsOrderAsc,
 			wantErr:    false,
 		},
+		{
+			name:       "Valid disabled",
+			frequency:  "disabled",
+			lookAhead:  14,
+			threshold:  5,
+			statsOrder: constants.StatsOrderDesc,
+			wantErr:    false,
+		},
 	}
 
 	for _, tt := range tests {

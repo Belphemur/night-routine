@@ -39,6 +39,47 @@ func TestGenerateSchedule(t *testing.T) {
 	assert.Equal(t, "Alice", schedule[4].Parent)
 }
 
+// TestGetAssignmentsInRange verifies that GetAssignmentsInRange is a read-only
+// operation: it returns previously-generated assignments with correct field
+// mapping (ParentType, CaregiverType, DecisionReason, Override) but does not
+// create assignments for days that have none.
+func TestGetAssignmentsInRange(t *testing.T) {
+	store := createTestConfigStore()
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	tracker, err := fairness.New(db)
+	assert.NoError(t, err)
+	sched := New(store, tracker)
+
+	// Generate assignments for 3 days (Sun–Tue).
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC)
+	generated, err := sched.GenerateSchedule(start, end, end)
+	assert.NoError(t, err)
+	assert.Len(t, generated, 3)
+
+	// Reading back the same range must return exactly the same assignments.
+	read, err := sched.GetAssignmentsInRange(start, end)
+	assert.NoError(t, err)
+	assert.Len(t, read, 3)
+	for i, a := range read {
+		assert.Equal(t, generated[i].ID, a.ID)
+		assert.Equal(t, generated[i].Parent, a.Parent)
+		assert.Equal(t, generated[i].ParentType, a.ParentType)
+		assert.Equal(t, generated[i].CaregiverType, a.CaregiverType)
+		assert.Equal(t, generated[i].DecisionReason, a.DecisionReason)
+		assert.Equal(t, generated[i].Override, a.Override)
+	}
+
+	// Querying a range with no assignments returns an empty slice, not new ones.
+	future := time.Date(2023, 6, 1, 0, 0, 0, 0, time.UTC)
+	futureEnd := time.Date(2023, 6, 7, 0, 0, 0, 0, time.UTC)
+	empty, err := sched.GetAssignmentsInRange(future, futureEnd)
+	assert.NoError(t, err)
+	assert.Empty(t, empty, "GetAssignmentsInRange must not create assignments for empty ranges")
+}
+
 // TestGenerateScheduleWithPriorAssignments tests the scheduler with prior assignments
 func TestGenerateScheduleWithPriorAssignments(t *testing.T) {
 	store := createTestConfigStore()
