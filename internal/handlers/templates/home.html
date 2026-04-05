@@ -104,7 +104,7 @@
         </div>
     </div>
     <div class="overflow-x-auto -mx-6 md:-mx-8 px-6 md:px-8">
-        <table class="w-full border-collapse min-w-full" id="assignment-calendar" role="table" aria-label="Monthly calendar of night routine assignments">
+        <table class="w-full border-collapse min-w-full table-fixed" id="assignment-calendar" role="table" aria-label="Monthly calendar of night routine assignments">
             <caption class="sr-only">{{.CurrentMonth}} night routine assignment calendar</caption>
             <thead>
                 <tr>
@@ -135,26 +135,26 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="border border-slate-200 p-3 text-center align-top h-24 md:h-28 relative cursor-pointer transition-all duration-200
+                    <td class="border border-slate-200 p-3 text-center align-top h-28 md:h-32 overflow-hidden relative cursor-pointer transition-all duration-200
                             {{if not .IsCurrentMonth}}bg-slate-50 text-slate-400{{else}}bg-white hover:shadow-lg{{end}}
                             {{if .Assignment}}
-                                {{if eq .Assignment.ParentType.String "ParentA"}}bg-linear-to-br from-blue-50 to-indigo-100 text-indigo-900 border-indigo-200 hover:from-blue-100 hover:to-indigo-200{{end}}
-                                {{if eq .Assignment.ParentType.String "ParentB"}}bg-linear-to-br from-amber-50 to-orange-100 text-orange-900 border-orange-200 hover:from-amber-100 hover:to-orange-200{{end}}
-                                {{if eq .Assignment.ParentType.String "Babysitter"}}bg-linear-to-br from-slate-100 to-zinc-200 text-slate-900 border-slate-300 hover:from-slate-200 hover:to-zinc-300{{end}}
+                                {{if eq .Assignment.ParentType "ParentA"}}bg-linear-to-br from-blue-50 to-indigo-100 text-indigo-900 border-indigo-200 hover:from-blue-100 hover:to-indigo-200{{end}}
+                                {{if eq .Assignment.ParentType "ParentB"}}bg-linear-to-br from-amber-50 to-orange-100 text-orange-900 border-orange-200 hover:from-amber-100 hover:to-orange-200{{end}}
+                                {{if eq .Assignment.ParentType "Babysitter"}}bg-linear-to-br from-slate-100 to-zinc-200 text-slate-900 border-slate-300 hover:from-slate-200 hover:to-zinc-300{{end}}
                                 {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
                             {{end}}" 
                         data-date="{{.Date.Format "2006-01-02"}}" 
                         {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
                         {{if .Assignment}}data-caregiver-type="{{.Assignment.CaregiverType}}"{{end}}
-                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.ParentType.String "Babysitter"}} (babysitter){{end}}{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
+                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.ParentType "Babysitter"}} (babysitter){{end}}{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
                         <span class="block text-lg md:text-xl font-bold mb-1">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="block text-xs md:text-sm font-semibold">{{.Assignment.Parent}}</span>
-                        {{if eq .Assignment.ParentType.String "Babysitter"}}
+                        {{if eq .Assignment.ParentType "Babysitter"}}
                         <span class="block text-xs text-slate-700 mt-1">Babysitter</span>
                         {{end}}
                         {{if .Assignment.DecisionReason}}
-                        <span class="block text-xs text-slate-500 mt-1">{{.Assignment.DecisionReason}}</span>
+                        <span class="block text-xs text-slate-500 mt-1" title="{{.Assignment.DecisionReason}}">{{.Assignment.DecisionReason}}</span>
                         {{end}}
                         {{end}}
                     </td>
@@ -635,6 +635,7 @@
                     if (day.assignmentReason) {
                         const reasonSpan = document.createElement('span');
                         reasonSpan.className = 'block text-xs text-slate-500 mt-1';
+                        reasonSpan.title = day.assignmentReason;
                         reasonSpan.textContent = day.assignmentReason;
                         td.appendChild(reasonSpan);
                     }

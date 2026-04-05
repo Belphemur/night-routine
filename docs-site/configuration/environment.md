@@ -88,7 +88,7 @@ export NR_AVAILABILITY__PARENT_A_UNAVAILABLE=""
 
 | Env Var | TOML Key | Default | Description |
 |---------|----------|---------|-------------|
-| `NR_SCHEDULE__UPDATE_FREQUENCY` | `schedule.update_frequency` | *(required)* | `daily`, `weekly`, or `monthly` |
+| `NR_SCHEDULE__UPDATE_FREQUENCY` | `schedule.update_frequency` | *(required)* | `daily`, `weekly`, `monthly`, or `disabled` |
 | `NR_SCHEDULE__LOOK_AHEAD_DAYS` | `schedule.look_ahead_days` | *(required)* | Days to schedule in advance |
 | `NR_SCHEDULE__PAST_EVENT_THRESHOLD_DAYS` | `schedule.past_event_threshold_days` | `5` | Days in the past to accept manual event changes |
 | `NR_SCHEDULE__STATS_ORDER` | `schedule.stats_order` | `desc` | Statistics page sort order: `desc` or `asc` |

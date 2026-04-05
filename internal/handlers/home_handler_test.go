@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/belphemur/night-routine/internal/fairness"
-	"github.com/belphemur/night-routine/internal/fairness/scheduler"
 	"github.com/belphemur/night-routine/internal/viewhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,12 +63,12 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 					Date:           date,
 					DayOfMonth:     24,
 					IsCurrentMonth: true,
-					Assignment: &scheduler.Assignment{
+					Assignment: &viewhelpers.DisplayAssignment{
 						ID:             1,
 						Date:           date,
 						Parent:         "Alice",
-						ParentType:     scheduler.ParentTypeA,
-						DecisionReason: fairness.DecisionReason("TotalCount"),
+						ParentType:     "ParentA",
+						DecisionReason: "TotalCount",
 					},
 				},
 			},
@@ -100,12 +98,12 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 					Date:           date,
 					DayOfMonth:     25,
 					IsCurrentMonth: true,
-					Assignment: &scheduler.Assignment{
+					Assignment: &viewhelpers.DisplayAssignment{
 						ID:             2,
 						Date:           date,
 						Parent:         "Bob",
-						ParentType:     scheduler.ParentTypeB,
-						DecisionReason: fairness.DecisionReason("Fairness"),
+						ParentType:     "ParentB",
+						DecisionReason: "Fairness",
 					},
 				},
 			},
@@ -135,12 +133,12 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 					Date:           date,
 					DayOfMonth:     26,
 					IsCurrentMonth: true,
-					Assignment: &scheduler.Assignment{
+					Assignment: &viewhelpers.DisplayAssignment{
 						ID:             3,
 						Date:           date,
 						Parent:         "Alice",
-						ParentType:     scheduler.ParentTypeA,
-						DecisionReason: fairness.DecisionReason("Override"),
+						ParentType:     "ParentA",
+						DecisionReason: "Override",
 					},
 				},
 			},
@@ -190,11 +188,11 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 					Date:           date1,
 					DayOfMonth:     24,
 					IsCurrentMonth: true,
-					Assignment: &scheduler.Assignment{
+					Assignment: &viewhelpers.DisplayAssignment{
 						ID:             1,
 						Parent:         "Alice",
-						ParentType:     scheduler.ParentTypeA,
-						DecisionReason: fairness.DecisionReason("TotalCount"),
+						ParentType:     "ParentA",
+						DecisionReason: "TotalCount",
 					},
 				},
 				{
@@ -209,11 +207,11 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 					Date:           date3,
 					DayOfMonth:     26,
 					IsCurrentMonth: true,
-					Assignment: &scheduler.Assignment{
+					Assignment: &viewhelpers.DisplayAssignment{
 						ID:             2,
 						Parent:         "Bob",
-						ParentType:     scheduler.ParentTypeB,
-						DecisionReason: fairness.DecisionReason("Override"),
+						ParentType:     "ParentB",
+						DecisionReason: "Override",
 					},
 				},
 			},
@@ -249,11 +247,11 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 					Date:           date,
 					DayOfMonth:     24,
 					IsCurrentMonth: true,
-					Assignment: &scheduler.Assignment{
+					Assignment: &viewhelpers.DisplayAssignment{
 						ID:             1,
 						Parent:         "Alice",
-						ParentType:     scheduler.ParentTypeA,
-						DecisionReason: fairness.DecisionReason("TotalCount"),
+						ParentType:     "ParentA",
+						DecisionReason: "TotalCount",
 					},
 				},
 			},

@@ -234,7 +234,7 @@ func validate(cfg *Config) error {
 	}
 
 	switch cfg.Schedule.UpdateFrequency {
-	case "daily", "weekly", "monthly":
+	case "daily", "weekly", "monthly", "disabled":
 		// valid
 	default:
 		return fmt.Errorf("invalid update frequency: %s", cfg.Schedule.UpdateFrequency)

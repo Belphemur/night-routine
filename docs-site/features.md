@@ -17,7 +17,7 @@ The application uses a sophisticated multi-criteria fairness algorithm to ensure
 
 ### Flexible Scheduling Options
 
-- **Configurable Update Frequencies** - Choose from daily, weekly, or monthly updates
+- **Configurable Update Frequencies** - Choose from daily, weekly, monthly, or disabled (manual-only) updates
 - **Look-Ahead Scheduling** - Schedule assignments for a configurable number of days in advance (default: 30 days)
 - **Manual Sync on Startup** - Optionally synchronize schedules when the application starts (enabled by default)
 - **On-Demand Synchronization** - Trigger manual schedule updates via the web interface
@@ -68,12 +68,12 @@ Users can override assignments by editing event titles directly in Google Calend
 
 ## Web Interface
 
-### Modern 2025 UI Design
+### Calendar Dashboard
 
-The application features a completely redesigned user interface with contemporary aesthetics:
+The application features a modern, responsive calendar dashboard:
 
-![Home Page - Modern Design](screenshots/2025-modern/home-page-modernized.png)
-_Modern home dashboard with streamlined navigation, gradient background, and card-based layout_
+![Home Page - Calendar Dashboard](https://github.com/user-attachments/assets/74182b22-7639-428f-9c5b-a6615de53022)
+_Calendar dashboard with equal-width columns and uniform row heights. Decision reasons wrap naturally within cells. The home page is read-only — use "Sync Now" to regenerate._
 
 - **Navigation Bar** - Streamlined navigation with Home, Stats, and Settings (Calendar management via dedicated button on home page)
 - **Gradient Backgrounds** - Beautiful gradient color schemes for visual appeal
