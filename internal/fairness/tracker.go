@@ -168,16 +168,16 @@ func (t *Tracker) SwapAssignments(parentA string, dateA time.Time, parentB strin
 		// Read back both rows inside the same transaction so the returned
 		// data is guaranteed consistent with the writes.
 		rowA := tx.QueryRowContext(ctx, selectAssignmentByDateSQL, dateA.Format(dateFormat))
-		var err error
-		updatedA, err = t.scanAssignment(rowA)
-		if err != nil {
-			return fmt.Errorf("failed to read back assignment A (%s): %w", dateA.Format(dateFormat), err)
+		var scanErr error
+		updatedA, scanErr = t.scanAssignment(rowA)
+		if scanErr != nil {
+			return fmt.Errorf("failed to read back assignment A (%s): %w", dateA.Format(dateFormat), scanErr)
 		}
 
 		rowB := tx.QueryRowContext(ctx, selectAssignmentByDateSQL, dateB.Format(dateFormat))
-		updatedB, err = t.scanAssignment(rowB)
-		if err != nil {
-			return fmt.Errorf("failed to read back assignment B (%s): %w", dateB.Format(dateFormat), err)
+		updatedB, scanErr = t.scanAssignment(rowB)
+		if scanErr != nil {
+			return fmt.Errorf("failed to read back assignment B (%s): %w", dateB.Format(dateFormat), scanErr)
 		}
 
 		return nil
