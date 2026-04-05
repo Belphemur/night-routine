@@ -120,6 +120,18 @@ func (m *MockTracker) GetAssignmentDetails(assignmentID int64) (*fairness.Assign
 	return args.Get(0).(*fairness.AssignmentDetails), args.Error(1)
 }
 
+func (m *MockTracker) SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason fairness.DecisionReason) (*fairness.Assignment, *fairness.Assignment, error) {
+	args := m.Called(parentA, dateA, parentB, dateB, reason)
+	var a, b *fairness.Assignment
+	if args.Get(0) != nil {
+		a = args.Get(0).(*fairness.Assignment)
+	}
+	if args.Get(1) != nil {
+		b = args.Get(1).(*fairness.Assignment)
+	}
+	return a, b, args.Error(2)
+}
+
 // MockCalendarService is a mock implementation of the calendar.CalendarService interface
 type MockCalendarService struct {
 	mock.Mock

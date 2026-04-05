@@ -244,7 +244,10 @@ func (s *Scheduler) GenerateSchedule(start, end time.Time, currentTime time.Time
 			dayLogger.Info().Int64("assignment_id", assignment.ID).Str("parent", assignment.Parent).Msg("Assigned parent for date")
 			schedule = append(schedule, assignment)
 			// Detect and swap double consecutive patterns inline.
-			dcTracker.observe(schedule, len(schedule)-1, cfg, s.tracker)
+			if err := dcTracker.observe(schedule, len(schedule)-1, cfg, s.tracker); err != nil {
+				dayLogger.Error().Err(err).Msg("Failed to swap double consecutive assignments")
+				return nil, fmt.Errorf("failed to swap double consecutive for date %v: %w", current.Format("2006-01-02"), err)
+			}
 		}
 
 		current = current.AddDate(0, 0, 1)
@@ -318,13 +321,13 @@ func (d *doubleConsecutiveTracker) reset() {
 // pattern is detected, the boundary assignments are swapped in-place and
 // re-recorded to the database via RecordAssignment (upsert).
 //
-// Returns true if a swap was performed.
+// Returns an error if the DB upserts fail during a swap.
 func (d *doubleConsecutiveTracker) observe(
 	schedule []*Assignment,
 	i int,
 	cfg *scheduleConfig,
 	tracker fairness.TrackerInterface,
-) bool {
+) error {
 	a := schedule[i]
 
 	// Non-swappable assignments break any ongoing tracking.
@@ -337,7 +340,7 @@ func (d *doubleConsecutiveTracker) observe(
 				Msg("Breaking consecutive tracking")
 		}
 		d.reset()
-		return false
+		return nil
 	}
 
 	if d.curr == nil || a.Parent != d.curr.parent {
@@ -357,7 +360,7 @@ func (d *doubleConsecutiveTracker) observe(
 
 	// Detect double consecutive: prev run ≥ 2 and current run reaches 2.
 	if d.prev == nil || d.prev.count < 2 || d.curr.count < 2 {
-		return false
+		return nil
 	}
 
 	swapA := d.prev.endIdx   // last assignment of the first run
@@ -381,7 +384,7 @@ func (d *doubleConsecutiveTracker) observe(
 			endIdx:   i,
 			count:    1,
 		}
-		return false
+		return nil
 	}
 
 	d.logger.Info().
@@ -391,39 +394,35 @@ func (d *doubleConsecutiveTracker) observe(
 		Str("date_b", schedule[swapB].Date.Format("2006-01-02")).
 		Msg("Swapping assignments to avoid double consecutive")
 
-	// Re-record the boundary assignments with swapped parents via upsert.
-	// RecordAssignment uses ON CONFLICT(assignment_date) DO UPDATE, so it
-	// updates the existing row's parent_name, decision_reason, override, and
-	// caregiver_type while preserving the google_calendar_event_id.
-	updatedA, errA := tracker.RecordAssignment(
-		parentForA, schedule[swapA].Date, false, fairness.DecisionReasonDoubleConsecutiveSwap,
+	// Atomically swap both assignments in a single transaction.
+	// In-memory state is only updated after the transaction commits.
+	updatedA, updatedB, err := tracker.SwapAssignments(
+		parentForA, schedule[swapA].Date,
+		parentForB, schedule[swapB].Date,
+		fairness.DecisionReasonDoubleConsecutiveSwap,
 	)
-	if errA != nil {
-		d.logger.Error().Err(errA).Str("date", schedule[swapA].Date.Format("2006-01-02")).Msg("Failed to re-record swapped assignment A")
-	} else {
-		schedule[swapA].ID = updatedA.ID
-		schedule[swapA].Parent = updatedA.Parent
-		schedule[swapA].DecisionReason = updatedA.DecisionReason
-		schedule[swapA].ParentType = resolveParentType(updatedA, cfg.parentA)
-		schedule[swapA].UpdatedAt = updatedA.UpdatedAt
+	if err != nil {
+		return fmt.Errorf("failed to swap assignments for %s and %s: %w",
+			schedule[swapA].Date.Format("2006-01-02"),
+			schedule[swapB].Date.Format("2006-01-02"), err)
 	}
 
-	updatedB, errB := tracker.RecordAssignment(
-		parentForB, schedule[swapB].Date, false, fairness.DecisionReasonDoubleConsecutiveSwap,
-	)
-	if errB != nil {
-		d.logger.Error().Err(errB).Str("date", schedule[swapB].Date.Format("2006-01-02")).Msg("Failed to re-record swapped assignment B")
-	} else {
-		schedule[swapB].ID = updatedB.ID
-		schedule[swapB].Parent = updatedB.Parent
-		schedule[swapB].DecisionReason = updatedB.DecisionReason
-		schedule[swapB].ParentType = resolveParentType(updatedB, cfg.parentA)
-		schedule[swapB].UpdatedAt = updatedB.UpdatedAt
-	}
+	// Transaction committed — update in-memory schedule.
+	schedule[swapA].ID = updatedA.ID
+	schedule[swapA].Parent = updatedA.Parent
+	schedule[swapA].DecisionReason = updatedA.DecisionReason
+	schedule[swapA].ParentType = resolveParentType(updatedA, cfg.parentA)
+	schedule[swapA].UpdatedAt = updatedA.UpdatedAt
+
+	schedule[swapB].ID = updatedB.ID
+	schedule[swapB].Parent = updatedB.Parent
+	schedule[swapB].DecisionReason = updatedB.DecisionReason
+	schedule[swapB].ParentType = resolveParentType(updatedB, cfg.parentA)
+	schedule[swapB].UpdatedAt = updatedB.UpdatedAt
 
 	// Reset tracking after a successful swap.
 	d.reset()
-	return true
+	return nil
 }
 
 // assignForDate determines who should do the night routine on a specific date and records it.
