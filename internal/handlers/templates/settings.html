@@ -127,6 +127,7 @@
                     <option value="daily" {{if eq .UpdateFrequency "daily" }}selected{{end}}>Daily</option>
                     <option value="weekly" {{if eq .UpdateFrequency "weekly" }}selected{{end}}>Weekly</option>
                     <option value="monthly" {{if eq .UpdateFrequency "monthly" }}selected{{end}}>Monthly</option>
+                    <option value="disabled" {{if eq .UpdateFrequency "disabled" }}selected{{end}}>Disabled (manual only)</option>
                 </select>
                 <p class="text-sm text-slate-500 mt-2">How often to automatically update the schedule</p>
             </div>

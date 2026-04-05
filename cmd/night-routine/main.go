@@ -376,6 +376,10 @@ func run(ctx context.Context) error {
 				logger.Error().Err(err).Msg("Failed to read schedule config on tick; skipping update")
 				continue
 			}
+			if updateFrequency == "disabled" {
+				logger.Debug().Msg("Update frequency is disabled, skipping automatic schedule update")
+				continue
+			}
 			updateInterval := getUpdateInterval(updateFrequency)
 
 			if lastScheduleRun.IsZero() || time.Since(lastScheduleRun) >= updateInterval {
@@ -469,6 +473,8 @@ func getUpdateInterval(frequency string) time.Duration {
 		return 7 * 24 * time.Hour
 	case "monthly":
 		return 30 * 24 * time.Hour // Approximation
+	case "disabled":
+		return 0 // Never triggers automatically; handled before this function is called
 	default:
 		logger := logging.GetLogger("main")
 		logger.Warn().Str("frequency", frequency).Msg("Invalid update frequency specified, defaulting to daily")

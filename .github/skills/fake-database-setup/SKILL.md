@@ -29,7 +29,7 @@ parent_a_unavailable = []
 parent_b_unavailable = []
 
 [schedule]
-update_frequency = "weekly"
+update_frequency = "disabled"
 look_ahead_days = 14
 past_event_threshold_days = 5
 

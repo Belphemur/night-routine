@@ -135,7 +135,7 @@
                 {{range .CalendarWeeks}}
                 <tr>
                     {{range .}}
-                    <td class="border border-slate-200 p-3 text-center align-top h-24 md:h-28 relative cursor-pointer transition-all duration-200
+                    <td class="border border-slate-200 p-3 text-center align-top h-28 md:h-32 overflow-hidden relative cursor-pointer transition-all duration-200
                             {{if not .IsCurrentMonth}}bg-slate-50 text-slate-400{{else}}bg-white hover:shadow-lg{{end}}
                             {{if .Assignment}}
                                 {{if eq .Assignment.ParentType.String "ParentA"}}bg-linear-to-br from-blue-50 to-indigo-100 text-indigo-900 border-indigo-200 hover:from-blue-100 hover:to-indigo-200{{end}}
@@ -154,7 +154,7 @@
                         <span class="block text-xs text-slate-700 mt-1">Babysitter</span>
                         {{end}}
                         {{if .Assignment.DecisionReason}}
-                        <span class="block text-xs text-slate-500 mt-1">{{.Assignment.DecisionReason}}</span>
+                        <span class="block text-xs text-slate-500 mt-1 truncate" title="{{.Assignment.DecisionReason}}">{{.Assignment.DecisionReason}}</span>
                         {{end}}
                         {{end}}
                     </td>
@@ -634,7 +634,8 @@
 
                     if (day.assignmentReason) {
                         const reasonSpan = document.createElement('span');
-                        reasonSpan.className = 'block text-xs text-slate-500 mt-1';
+                        reasonSpan.className = 'block text-xs text-slate-500 mt-1 truncate';
+                        reasonSpan.title = day.assignmentReason;
                         reasonSpan.textContent = day.assignmentReason;
                         td.appendChild(reasonSpan);
                     }

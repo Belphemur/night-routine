@@ -280,7 +280,7 @@ func (s *ConfigStore) GetScheduleFull() (*ConfigSchedule, error) {
 // SaveSchedule saves or updates schedule configuration
 func (s *ConfigStore) SaveSchedule(updateFrequency string, lookAheadDays, pastEventThresholdDays int, statsOrder constants.StatsOrder) error {
 	// Validate inputs
-	if updateFrequency != "daily" && updateFrequency != "weekly" && updateFrequency != "monthly" {
+	if updateFrequency != "daily" && updateFrequency != "weekly" && updateFrequency != "monthly" && updateFrequency != "disabled" {
 		return fmt.Errorf("invalid update frequency: %s", updateFrequency)
 	}
 	if lookAheadDays < 1 {
