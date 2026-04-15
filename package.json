@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i ./internal/handlers/assets/css/input.css -o ./internal/handlers/assets/css/tailwind.css --minify"
+    "build:css": "tailwindcss -i ./internal/handlers/assets/css/input.css -o ./internal/handlers/assets/css/tailwind.css --minify",
+    "release": "semantic-release"
   },
   "repository": {
     "type": "git",
