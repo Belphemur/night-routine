@@ -31,6 +31,11 @@ func (r *recordingCalendarService) SyncSchedule(_ context.Context, _ []*Schedule
 	return nil
 }
 
+func testCurrentDate() time.Time {
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+}
+
 func setupTestAssignmentDetailsHandler(t *testing.T, authenticated bool) (*AssignmentDetailsHandler, *fairness.Tracker, *database.DB, func()) {
 	// Create test database
 	dbOpts := database.SQLiteOptions{
@@ -268,7 +273,7 @@ func TestHandleSetAssignmentBabysitter_Success(t *testing.T) {
 	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
 	defer cleanup()
 
-	date := time.Now().Truncate(24 * time.Hour) // Use today to stay within threshold
+	date := testCurrentDate()
 	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
 
@@ -303,7 +308,7 @@ func TestHandleSetAssignmentBabysitter_TriggersScheduleRecalculation(t *testing.
 	recordingSvc := &recordingCalendarService{}
 	handler.CalendarService = recordingSvc
 
-	date := time.Date(2026, 4, 10, 0, 0, 0, 0, time.UTC)
+	date := testCurrentDate()
 	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
 
@@ -397,8 +402,8 @@ func TestHandleSetAssignmentBabysitter_PastThreshold(t *testing.T) {
 	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
 	defer cleanup()
 
-	// Create an assignment far in the past (beyond the default 7-day threshold)
-	oldDate := time.Now().AddDate(0, 0, -30)
+	// Create an assignment far in the past (beyond the configured 5-day threshold)
+	oldDate := testCurrentDate().AddDate(0, 0, -30)
 	assignment, err := tracker.RecordAssignment("Alice", oldDate, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
 
