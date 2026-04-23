@@ -402,7 +402,7 @@ func TestHandleSetAssignmentBabysitter_PastThreshold(t *testing.T) {
 	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
 	defer cleanup()
 
-	// Create an assignment far in the past (beyond the default 7-day threshold)
+	// Create an assignment far in the past (beyond the configured 5-day threshold)
 	oldDate := testCurrentDate().AddDate(0, 0, -30)
 	assignment, err := tracker.RecordAssignment("Alice", oldDate, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
