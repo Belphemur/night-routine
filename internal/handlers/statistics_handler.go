@@ -29,6 +29,7 @@ type StatisticsPageData struct {
 type StatisticsHandler struct {
 	*BaseHandler
 	configStore *database.ConfigStore
+	now         func() time.Time // injectable for testing; defaults to time.Now
 }
 
 // NewStatisticsHandler creates a new statistics page handler.
@@ -36,6 +37,7 @@ func NewStatisticsHandler(baseHandler *BaseHandler, configStore *database.Config
 	return &StatisticsHandler{
 		BaseHandler: baseHandler,
 		configStore: configStore,
+		now:         time.Now,
 	}
 }
 
@@ -52,7 +54,7 @@ func (h *StatisticsHandler) handleStatisticsPage(w http.ResponseWriter, r *http.
 	data := StatisticsPageData{
 		BasePageData: h.NewBasePageData(r, true), // Assuming authenticated
 	}
-	nowForStats := time.Now() // Use a consistent "now" for this request processing
+	nowForStats := h.now() // Use a consistent "now" for this request processing
 
 	// Get the stats order from configuration (we only need statsOrder, ignore other schedule values)
 	_, _, _, statsOrder, err := h.configStore.GetSchedule()

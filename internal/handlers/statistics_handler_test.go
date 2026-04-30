@@ -87,17 +87,21 @@ func TestStatisticsHandler_StatsOrderDescending(t *testing.T) {
 	handler, _, _, tracker, cleanup := setupTestStatisticsHandler(t, constants.StatsOrderDesc)
 	defer cleanup()
 
+	// Use a fixed mid-month date to avoid end-of-month normalization issues
+	// (e.g. Apr 30 - 2 months = Feb 30 which Go normalizes to Mar 2, same month as -1 month)
+	fixedNow := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+	handler.now = func() time.Time { return fixedNow }
+
 	// Add some test assignments for different months
-	now := time.Now()
-	currentMonth := now.Format("2006-01")
-	lastMonth := now.AddDate(0, -1, 0).Format("2006-01")
-	twoMonthsAgo := now.AddDate(0, -2, 0).Format("2006-01")
+	currentMonth := fixedNow.Format("2006-01")
+	lastMonth := fixedNow.AddDate(0, -1, 0).Format("2006-01")
+	twoMonthsAgo := fixedNow.AddDate(0, -2, 0).Format("2006-01")
 
 	// Create assignments in different months
 	dates := []time.Time{
-		now,                   // Current month
-		now.AddDate(0, -1, 0), // Last month
-		now.AddDate(0, -2, 0), // Two months ago
+		fixedNow,                   // Current month
+		fixedNow.AddDate(0, -1, 0), // Last month
+		fixedNow.AddDate(0, -2, 0), // Two months ago
 	}
 
 	for _, date := range dates {
@@ -136,17 +140,20 @@ func TestStatisticsHandler_StatsOrderAscending(t *testing.T) {
 	handler, _, _, tracker, cleanup := setupTestStatisticsHandler(t, constants.StatsOrderAsc)
 	defer cleanup()
 
+	// Use a fixed mid-month date to avoid end-of-month normalization issues
+	fixedNow := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+	handler.now = func() time.Time { return fixedNow }
+
 	// Add some test assignments for different months
-	now := time.Now()
-	currentMonth := now.Format("2006-01")
-	lastMonth := now.AddDate(0, -1, 0).Format("2006-01")
-	twoMonthsAgo := now.AddDate(0, -2, 0).Format("2006-01")
+	currentMonth := fixedNow.Format("2006-01")
+	lastMonth := fixedNow.AddDate(0, -1, 0).Format("2006-01")
+	twoMonthsAgo := fixedNow.AddDate(0, -2, 0).Format("2006-01")
 
 	// Create assignments in different months
 	dates := []time.Time{
-		now,                   // Current month
-		now.AddDate(0, -1, 0), // Last month
-		now.AddDate(0, -2, 0), // Two months ago
+		fixedNow,                   // Current month
+		fixedNow.AddDate(0, -1, 0), // Last month
+		fixedNow.AddDate(0, -2, 0), // Two months ago
 	}
 
 	for _, date := range dates {
@@ -206,8 +213,11 @@ func TestStatisticsHandler_DefaultsToDescendingOnError(t *testing.T) {
 	handler, _, _, tracker, cleanup := setupTestStatisticsHandler(t, constants.StatsOrderDesc)
 	defer cleanup()
 
+	fixedNow := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC)
+	handler.now = func() time.Time { return fixedNow }
+
 	// Add a single assignment
-	_, err := tracker.RecordAssignment("TestParentA", time.Now(), false, fairness.DecisionReasonTotalCount)
+	_, err := tracker.RecordAssignment("TestParentA", fixedNow, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
 
 	// Make request
