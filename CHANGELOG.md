@@ -1,3 +1,12 @@
+## [0.31.7](https://github.com/Belphemur/night-routine/compare/v0.31.6...v0.31.7) (2026-04-30)
+
+
+### Bug Fixes
+
+* **handlers:** add controllable now() to StatisticsHandler to eliminate flaky tests ([c587f83](https://github.com/Belphemur/night-routine/commit/c587f839d3fef038e5b8e74eb2a3e669621fbb6d))
+* **handlers:** add controllable now() to StatisticsHandler to eliminate flaky tests ([f64821d](https://github.com/Belphemur/night-routine/commit/f64821d4410ba04fd05fd51f747c2a0a6172127a))
+* **handlers:** eliminate flaky statistics tests by controlling `now` ([a410626](https://github.com/Belphemur/night-routine/commit/a410626e418a048ce2b15e2b57a6b122d375e171))
+
 ## [0.31.6](https://github.com/Belphemur/night-routine/compare/v0.31.5...v0.31.6) (2026-04-25)
 
 
