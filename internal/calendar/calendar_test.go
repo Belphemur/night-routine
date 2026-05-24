@@ -324,6 +324,23 @@ func (f *fakeCalendarAPI) eventCount() int {
 	return len(f.events)
 }
 
+func (f *fakeCalendarAPI) addEvent(t *testing.T, event *gcalendar.Event) {
+	t.Helper()
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	cloned := cloneEvent(t, event)
+	f.events[cloned.Id] = cloned
+}
+
+func (f *fakeCalendarAPI) eventExists(eventID string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	_, ok := f.events[eventID]
+	return ok
+}
+
 func writeJSONResponse(t *testing.T, w http.ResponseWriter, statusCode int, payload any) {
 	t.Helper()
 
@@ -448,6 +465,58 @@ func TestSyncScheduleRecreatesMissingManagedEvent(t *testing.T) {
 	assert.Equal(t, 1, fakeAPI.eventCount())
 
 	storedEvent := fakeAPI.event(t, updatedAssignment.GoogleCalendarEventID)
+	assert.Equal(t, formatEventSummary(assignments[0]), storedEvent.Summary)
+	assert.Equal(t, "https://app.example", storedEvent.Source.Url)
+	assert.Equal(t, fmt.Sprintf("%d", assignment.ID), storedEvent.ExtendedProperties.Private["assignmentId"])
+	assert.Equal(t, constants.NightRoutineIdentifier, storedEvent.ExtendedProperties.Private["app"])
+}
+
+func TestSyncScheduleRelinksManagedEventAndDeletesDuplicates(t *testing.T) {
+	date := time.Date(2026, 5, 27, 0, 0, 0, 0, time.UTC)
+
+	service, fakeAPI, testScheduler, tracker, cleanup := newSyncTestService(t)
+	defer cleanup()
+
+	assignment, err := tracker.RecordAssignment("Alice", date, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	require.NoError(t, tracker.UpdateAssignmentGoogleCalendarEventID(assignment.ID, "missing-event"))
+
+	assignmentEvent := &gcalendar.Event{
+		Id:      "assignment-event",
+		Summary: "Old summary",
+		Start:   &gcalendar.EventDateTime{Date: date.Format("2006-01-02")},
+		End:     &gcalendar.EventDateTime{Date: date.AddDate(0, 0, 1).Format("2006-01-02")},
+		Source:  &gcalendar.EventSource{Title: constants.NightRoutineIdentifier, Url: "https://app.example"},
+		ExtendedProperties: &gcalendar.EventExtendedProperties{
+			Private: map[string]string{
+				"app":          constants.NightRoutineIdentifier,
+				"assignmentId": fmt.Sprintf("%d", assignment.ID),
+			},
+		},
+	}
+	duplicateEvent := &gcalendar.Event{
+		Id:      "duplicate-date-event",
+		Summary: "Duplicate summary",
+		Start:   &gcalendar.EventDateTime{Date: date.Format("2006-01-02")},
+		End:     &gcalendar.EventDateTime{Date: date.AddDate(0, 0, 1).Format("2006-01-02")},
+		Source:  &gcalendar.EventSource{Title: constants.NightRoutineIdentifier, Url: "https://app.example"},
+	}
+	fakeAPI.addEvent(t, assignmentEvent)
+	fakeAPI.addEvent(t, duplicateEvent)
+
+	assignments, err := testScheduler.GetAssignmentsInRange(date, date)
+	require.NoError(t, err)
+	require.Len(t, assignments, 1)
+
+	require.NoError(t, service.SyncSchedule(context.Background(), assignments))
+
+	updatedAssignment, err := tracker.GetAssignmentByID(assignment.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "assignment-event", updatedAssignment.GoogleCalendarEventID)
+	assert.Equal(t, 1, fakeAPI.eventCount())
+	assert.False(t, fakeAPI.eventExists("duplicate-date-event"))
+
+	storedEvent := fakeAPI.event(t, "assignment-event")
 	assert.Equal(t, formatEventSummary(assignments[0]), storedEvent.Summary)
 	assert.Equal(t, "https://app.example", storedEvent.Source.Url)
 	assert.Equal(t, fmt.Sprintf("%d", assignment.ID), storedEvent.ExtendedProperties.Private["assignmentId"])

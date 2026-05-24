@@ -322,6 +322,10 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 						goroutineLogger.Debug().Str("event_id", duplicateEvent.Id).Msg("Deleting duplicate managed event")
 						err := s.srv.Events.Delete(s.calendarID, duplicateEvent.Id).Do()
 						if err != nil {
+							if isGoogleAPINotFound(err) {
+								goroutineLogger.Info().Str("event_id", duplicateEvent.Id).Msg("Duplicate managed event already missing during delete")
+								continue
+							}
 							goroutineLogger.Error().Err(err).Str("event_id", duplicateEvent.Id).Msg("Failed to delete duplicate managed event")
 							errChan <- fmt.Errorf("failed to delete duplicate managed event %s for %v: %w", duplicateEvent.Id, a.Date, err)
 						} else {
