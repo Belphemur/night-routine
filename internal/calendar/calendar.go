@@ -2,13 +2,14 @@ package calendar
 
 import (
 	"context"
-	"errors" // Add errors import
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 	"time"
 
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 
 	"github.com/belphemur/night-routine/internal/constants"
@@ -177,32 +178,36 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 	}
 	s.logger.Debug().Int("event_count", len(events.Items)).Msg("Fetched existing events")
 
-	// Map events created by our app by assignment ID for easy lookup
-	eventsByAssignmentID := make(map[int64][]*calendar.Event) // Renamed and changed key type
+	// Map events created by our app by assignment ID and date for easy lookup.
+	eventsByAssignmentID := make(map[int64][]*calendar.Event)
+	eventsByDate := make(map[string][]*calendar.Event)
 	ourEventCount := 0
 	for _, event := range events.Items {
-		if event.ExtendedProperties == nil || event.ExtendedProperties.Private == nil {
+		if !eventBelongsToApp(event, s.appUrl) {
 			continue
 		}
 
-		appIdentifier, appOk := event.ExtendedProperties.Private["app"]
-		assignmentIDStr, idOk := event.ExtendedProperties.Private["assignmentId"]
-
-		if !appOk || appIdentifier != constants.NightRoutineIdentifier || !idOk {
-			continue // Skip if not our app's event or missing assignmentId
-		}
-
-		// Convert assignment ID string to int64
-		assignmentID, err := strconv.ParseInt(assignmentIDStr, 10, 64)
-		if err != nil {
-			s.logger.Warn().Err(err).Str("event_id", event.Id).Str("assignmentId_str", assignmentIDStr).Msg("Failed to parse assignmentId from event properties")
-			continue // Skip if parsing fails
-		}
-
 		ourEventCount++
-		eventsByAssignmentID[assignmentID] = append(eventsByAssignmentID[assignmentID], event) // Use assignmentID as key
+		if eventDate := eventStartDate(event); eventDate != "" {
+			eventsByDate[eventDate] = append(eventsByDate[eventDate], event)
+		}
+
+		assignmentID, ok, err := eventAssignmentID(event)
+		if err != nil {
+			s.logger.Warn().Err(err).Str("event_id", event.Id).Msg("Failed to parse assignmentId from event properties")
+			continue
+		}
+		if !ok {
+			continue
+		}
+
+		eventsByAssignmentID[assignmentID] = append(eventsByAssignmentID[assignmentID], event)
 	}
-	s.logger.Debug().Int("our_event_count", ourEventCount).Msg("Mapped existing events created by this app by assignment ID")
+	s.logger.Debug().
+		Int("our_event_count", ourEventCount).
+		Int("assignments_with_events", len(eventsByAssignmentID)).
+		Int("dates_with_events", len(eventsByDate)).
+		Msg("Mapped existing events created by this app")
 
 	// Track assignments we've already processed to avoid duplicates
 	processedAssignments := make(map[int64]bool)
@@ -266,56 +271,82 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 			// Check if we already have a Google Calendar event ID for this assignment
 			if a.GoogleCalendarEventID != "" {
 				goroutineLogger.Debug().Str("event_id", a.GoogleCalendarEventID).Msg("Assignment has existing event ID, attempting update")
-				// Try to update the existing event
 				event, err := s.srv.Events.Get(s.calendarID, a.GoogleCalendarEventID).Do()
 				if err == nil {
-					// Event exists, update it
-					goroutineLogger.Debug().Str("event_id", event.Id).Msg("Existing event found, updating")
-					event.Summary = formatEventSummary(a)
-					event.Description = formatEventDescription(a)
-					event.Start.Date = startDateStr
-					event.End.Date = endDateStr
-					event.ExtendedProperties.Private = privateData
-					setNoReminders(event)
+					if eventBelongsToApp(event, s.appUrl) {
+						goroutineLogger.Debug().Str("event_id", event.Id).Msg("Existing managed event found by ID, updating")
+						populateManagedEvent(event, a, privateData, startDateStr, endDateStr, s.appUrl)
 
-					_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
-					if err == nil {
-						goroutineLogger.Info().Str("event_id", event.Id).Msg("Successfully updated existing event")
-						// Successfully updated, return from goroutine
-						return
+						_, err = s.srv.Events.Update(s.calendarID, event.Id, event).Do()
+						if err == nil {
+							goroutineLogger.Info().Str("event_id", event.Id).Msg("Successfully updated existing event")
+							return
+						}
+						goroutineLogger.Warn().Err(err).Str("event_id", event.Id).Msg("Failed to update existing event, will attempt relink or recreate")
+					} else {
+						goroutineLogger.Warn().Str("event_id", event.Id).Msg("Stored event ID points to an event not managed by Night Routine, will relink or recreate")
 					}
-					goroutineLogger.Warn().Err(err).Str("event_id", event.Id).Msg("Failed to update existing event, will attempt delete and create")
-					// If update fails, we'll fall through to create a new event
+				} else if isGoogleAPINotFound(err) {
+					goroutineLogger.Info().Str("event_id", a.GoogleCalendarEventID).Msg("Stored event ID no longer exists in Google Calendar, will relink or recreate")
 				} else {
-					goroutineLogger.Warn().Err(err).Str("event_id", a.GoogleCalendarEventID).Msg("Failed to get existing event by ID, will attempt delete and create")
+					goroutineLogger.Warn().Err(err).Str("event_id", a.GoogleCalendarEventID).Msg("Failed to get existing event by ID, will attempt relink or recreate")
 				}
-				// If get fails or update fails, we'll fall through to create a new event
 			}
 
-			// We need to safely access the shared eventsByAssignmentID map
+			var assignmentEvents []*calendar.Event
+			var dateEvents []*calendar.Event
 			mu.Lock()
-			// Look up events using the assignment ID
-			assignmentEvents := eventsByAssignmentID[a.ID]
+			assignmentEvents = append(assignmentEvents, eventsByAssignmentID[a.ID]...)
+			dateEvents = append(dateEvents, eventsByDate[startDateStr]...)
 			mu.Unlock()
 
-			// Delete any existing events associated with this assignment ID (if we couldn't update or had no ID)
-			// Note: This logic might need adjustment. Currently, it deletes *all* events found for this assignment ID
-			// if the initial update/get failed. Consider if only *one* event should exist per assignment ID.
-			if len(assignmentEvents) > 0 {
-				goroutineLogger.Debug().Int("count", len(assignmentEvents)).Msg("Deleting existing events for this assignment ID")
-				for _, existingEvent := range assignmentEvents {
-					// Skip if this is the event we just tried to update (and failed)
-					if existingEvent.Id == a.GoogleCalendarEventID {
-						continue
+			reusableEvent, duplicateEvents := selectReusableManagedEvent(assignmentEvents, dateEvents)
+			if reusableEvent != nil {
+				goroutineLogger.Debug().
+					Str("event_id", reusableEvent.Id).
+					Int("duplicate_count", len(duplicateEvents)).
+					Msg("Found existing managed event to relink")
+				populateManagedEvent(reusableEvent, a, privateData, startDateStr, endDateStr, s.appUrl)
+
+				_, err := s.srv.Events.Update(s.calendarID, reusableEvent.Id, reusableEvent).Do()
+				if err == nil {
+					if a.GoogleCalendarEventID != reusableEvent.Id {
+						if err := s.scheduler.UpdateGoogleCalendarEventID(a, reusableEvent.Id); err != nil {
+							goroutineLogger.Error().Err(err).Str("event_id", reusableEvent.Id).Msg("Failed to relink assignment in DB to existing managed event")
+						} else {
+							goroutineLogger.Info().Str("event_id", reusableEvent.Id).Msg("Relinked assignment in DB to existing managed event")
+						}
 					}
+
+					for _, duplicateEvent := range duplicateEvents {
+						goroutineLogger.Debug().Str("event_id", duplicateEvent.Id).Msg("Deleting duplicate managed event")
+						err := s.srv.Events.Delete(s.calendarID, duplicateEvent.Id).Do()
+						if err != nil {
+							goroutineLogger.Error().Err(err).Str("event_id", duplicateEvent.Id).Msg("Failed to delete duplicate managed event")
+							errChan <- fmt.Errorf("failed to delete duplicate managed event %s for %v: %w", duplicateEvent.Id, a.Date, err)
+						} else {
+							goroutineLogger.Info().Str("event_id", duplicateEvent.Id).Msg("Successfully deleted duplicate managed event")
+						}
+					}
+					return
+				}
+
+				goroutineLogger.Warn().Err(err).Str("event_id", reusableEvent.Id).Msg("Failed to update relink candidate, will recreate")
+				duplicateEvents = append([]*calendar.Event{reusableEvent}, duplicateEvents...)
+			}
+
+			if len(duplicateEvents) > 0 {
+				goroutineLogger.Debug().Int("count", len(duplicateEvents)).Msg("Deleting existing managed events before recreation")
+				for _, existingEvent := range duplicateEvents {
 					goroutineLogger.Debug().Str("event_id", existingEvent.Id).Msg("Deleting event")
 					err := s.srv.Events.Delete(s.calendarID, existingEvent.Id).Do()
 					if err != nil {
-						// Log error but try to continue, maybe other deletes will work
+						if isGoogleAPINotFound(err) {
+							goroutineLogger.Info().Str("event_id", existingEvent.Id).Msg("Managed event already missing during delete, continuing with recreation")
+							continue
+						}
 						goroutineLogger.Error().Err(err).Str("event_id", existingEvent.Id).Msg("Failed to delete existing event")
-						// Send error to channel but don't return immediately, attempt creation anyway
 						errChan <- fmt.Errorf("failed to delete existing event %s for %v: %w", existingEvent.Id, a.Date, err)
-						// return // Decide if deletion failure is fatal for this assignment
 					} else {
 						goroutineLogger.Info().Str("event_id", existingEvent.Id).Msg("Successfully deleted existing event")
 					}
@@ -325,14 +356,12 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 			// Create new event with our identifier
 			goroutineLogger.Debug().Msg("Creating new calendar event")
 			event := &calendar.Event{
-				Summary: formatEventSummary(a),
 				Start: &calendar.EventDateTime{
 					Date: startDateStr,
 				},
 				End: &calendar.EventDateTime{
 					Date: endDateStr,
 				},
-				Description:  formatEventDescription(a),
 				Location:     "Home",
 				Transparency: "transparent",
 				Source: &calendar.EventSource{
@@ -343,7 +372,7 @@ func (s *Service) SyncSchedule(ctx context.Context, assignments []*scheduler.Ass
 					Private: privateData,
 				},
 			}
-			setNoReminders(event)
+			populateManagedEvent(event, a, privateData, startDateStr, endDateStr, s.appUrl)
 
 			// Create the event in Google Calendar
 			createdEvent, err := s.srv.Events.Insert(s.calendarID, event).Do()
@@ -418,4 +447,102 @@ func setNoReminders(event *calendar.Event) {
 		Overrides:       []*calendar.EventReminder{},
 		ForceSendFields: []string{"UseDefault", "Overrides"},
 	}
+}
+
+func populateManagedEvent(event *calendar.Event, assignment *scheduler.Assignment, privateData map[string]string, startDateStr string, endDateStr string, appURL string) {
+	event.Summary = formatEventSummary(assignment)
+	event.Description = formatEventDescription(assignment)
+	if event.Start == nil {
+		event.Start = &calendar.EventDateTime{}
+	}
+	event.Start.Date = startDateStr
+	if event.End == nil {
+		event.End = &calendar.EventDateTime{}
+	}
+	event.End.Date = endDateStr
+	if event.Source == nil {
+		event.Source = &calendar.EventSource{}
+	}
+	event.Source.Title = constants.NightRoutineIdentifier
+	event.Source.Url = appURL
+	if event.ExtendedProperties == nil {
+		event.ExtendedProperties = &calendar.EventExtendedProperties{}
+	}
+	event.ExtendedProperties.Private = privateData
+	setNoReminders(event)
+}
+
+func eventBelongsToApp(event *calendar.Event, appURL string) bool {
+	if event == nil {
+		return false
+	}
+	if event.ExtendedProperties != nil && event.ExtendedProperties.Private != nil {
+		if appIdentifier, ok := event.ExtendedProperties.Private["app"]; ok && appIdentifier == constants.NightRoutineIdentifier {
+			return true
+		}
+	}
+	return event.Source != nil && event.Source.Url == appURL
+}
+
+func eventAssignmentID(event *calendar.Event) (int64, bool, error) {
+	if event == nil || event.ExtendedProperties == nil || event.ExtendedProperties.Private == nil {
+		return 0, false, nil
+	}
+	assignmentIDStr, ok := event.ExtendedProperties.Private["assignmentId"]
+	if !ok || assignmentIDStr == "" {
+		return 0, false, nil
+	}
+	assignmentID, err := strconv.ParseInt(assignmentIDStr, 10, 64)
+	if err != nil {
+		return 0, true, fmt.Errorf("failed to parse assignmentId %q: %w", assignmentIDStr, err)
+	}
+	return assignmentID, true, nil
+}
+
+func eventStartDate(event *calendar.Event) string {
+	if event == nil || event.Start == nil {
+		return ""
+	}
+	if event.Start.Date != "" {
+		return event.Start.Date
+	}
+	if event.Start.DateTime == "" {
+		return ""
+	}
+	startTime, err := time.Parse(time.RFC3339, event.Start.DateTime)
+	if err != nil {
+		return ""
+	}
+	return startTime.Format("2006-01-02")
+}
+
+func selectReusableManagedEvent(priorityEvents []*calendar.Event, fallbackEvents []*calendar.Event) (*calendar.Event, []*calendar.Event) {
+	orderedEvents := make([]*calendar.Event, 0, len(priorityEvents)+len(fallbackEvents))
+	seen := make(map[string]struct{}, len(priorityEvents)+len(fallbackEvents))
+
+	appendUnique := func(events []*calendar.Event) {
+		for _, event := range events {
+			if event == nil || event.Id == "" {
+				continue
+			}
+			if _, ok := seen[event.Id]; ok {
+				continue
+			}
+			seen[event.Id] = struct{}{}
+			orderedEvents = append(orderedEvents, event)
+		}
+	}
+
+	appendUnique(priorityEvents)
+	appendUnique(fallbackEvents)
+
+	if len(orderedEvents) == 0 {
+		return nil, nil
+	}
+	return orderedEvents[0], orderedEvents[1:]
+}
+
+func isGoogleAPINotFound(err error) bool {
+	var googleAPIError *googleapi.Error
+	return errors.As(err, &googleAPIError) && googleAPIError.Code == 404
 }
