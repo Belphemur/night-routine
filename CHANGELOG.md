@@ -1,3 +1,11 @@
+## [0.31.14](https://github.com/Belphemur/night-routine/compare/v0.31.13...v0.31.14) (2026-05-24)
+
+
+### Bug Fixes
+
+* **calendar:** ignore duplicate delete 404 and cover relink cleanup ([b3b2674](https://github.com/Belphemur/night-routine/commit/b3b26743f8e3e71bd1b5ee9a172fdc2681352421))
+* **calendar:** relink managed events during sync ([4bd2ae4](https://github.com/Belphemur/night-routine/commit/4bd2ae4fcd59702ee8a55126acfc88856b993452))
+
 ## [0.31.13](https://github.com/Belphemur/night-routine/compare/v0.31.12...v0.31.13) (2026-05-19)
 
 
