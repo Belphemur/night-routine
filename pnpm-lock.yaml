@@ -28,7 +28,7 @@ importers:
         version: 4.3.1
       autoprefixer:
         specifier: ^10.4.22
-        version: 10.5.1(postcss@8.5.15)
+        version: 10.5.2(postcss@8.5.15)
       postcss:
         specifier: ^8.5.6
         version: 8.5.15
@@ -446,8 +446,8 @@ packages:
   array-ify@1.0.0:
     resolution: {integrity: sha512-c5AMf34bKdvPhQ7tBGhqkgKNUzMr4WUs+WDtC2ZUGOUncbxKMTvqxYctiseW3+L4bA8ec+GcZ6/A/FW4m8ukng==}
 
-  autoprefixer@10.5.1:
-    resolution: {integrity: sha512-jwM2pcTuCWUoN70FEvf5XrXyDbUgRURK4FnU8v0jWZZYU/KkVvN9T33mu1sVLFY9JW3kTWzKheEpn6xYLRc/VA==}
+  autoprefixer@10.5.2:
+    resolution: {integrity: sha512-rD5t5DwOjJdmSORcTq64j8MawTC+tbQ+HHqjR4NDumamy/ambn1UJrlKL+KdwujWxMkFjPM3pPHOEA9tl4767Q==}
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
@@ -632,8 +632,8 @@ packages:
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
 
-  electron-to-chromium@1.5.377:
-    resolution: {integrity: sha512-cH1jZgJHoezfTnKfKwnScpHywTFVnJUNITDPREFdhNjiuD502+QFpG0Qk7G8jhsV/f+CEAFlIrzP1fT+IMb92g==}
+  electron-to-chromium@1.5.378:
+    resolution: {integrity: sha512-VinvOAuuPmdD1guEgGv5f2Qp7/vlfqOrUOMYNnOD4wj3pit8kRsQHzfIf6teyUGWo15Tg5+bOJaRunvyltpVWQ==}
 
   emoji-regex@10.6.0:
     resolution: {integrity: sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A==}
@@ -1114,8 +1114,8 @@ packages:
     resolution: {integrity: sha512-Z3lTE9pLaJF47NyMhd4ww1yFTAP8YhYI8SleJiHzM46Fgpm5cnNzSl9XfzFNqbaz+VlJrIj3fXQ4DeN1Rjm6cw==}
     engines: {node: '>=18'}
 
-  node-releases@2.0.48:
-    resolution: {integrity: sha512-1uz8041X6LoI6ZSdZacM9lVY28vuzDlSKitnpbSNK0RfKoIJkX29NBPVEFXhnuSuEOA9Ww0xnPJ+ILWbGAv8DA==}
+  node-releases@2.0.49:
+    resolution: {integrity: sha512-f06bl1D+8ZDkn2oOQQKAh5/otFWqVnM1Q5oerA8Pex7UfT66Tx4IPHIqVVFKqFT3FUtaDstdgkM7yT7JWhqxfw==}
     engines: {node: '>=18'}
 
   normalize-package-data@6.0.2:
@@ -2112,7 +2112,7 @@ snapshots:
 
   array-ify@1.0.0: {}
 
-  autoprefixer@10.5.1(postcss@8.5.15):
+  autoprefixer@10.5.2(postcss@8.5.15):
     dependencies:
       browserslist: 4.28.4
       caniuse-lite: 1.0.30001799
@@ -2135,8 +2135,8 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.10.38
       caniuse-lite: 1.0.30001799
-      electron-to-chromium: 1.5.377
-      node-releases: 2.0.48
+      electron-to-chromium: 1.5.378
+      node-releases: 2.0.49
       update-browserslist-db: 1.2.3(browserslist@4.28.4)
 
   callsites@3.1.0: {}
@@ -2292,7 +2292,7 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
 
-  electron-to-chromium@1.5.377: {}
+  electron-to-chromium@1.5.378: {}
 
   emoji-regex@10.6.0: {}
 
@@ -2730,7 +2730,7 @@ snapshots:
       emojilib: 2.4.0
       skin-tone: 2.0.0
 
-  node-releases@2.0.48: {}
+  node-releases@2.0.49: {}
 
   normalize-package-data@6.0.2:
     dependencies:
