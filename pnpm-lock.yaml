@@ -28,10 +28,10 @@ importers:
         version: 4.3.2
       autoprefixer:
         specifier: ^10.4.22
-        version: 10.5.2(postcss@8.5.16)
+        version: 10.5.2(postcss@8.5.17)
       postcss:
         specifier: ^8.5.6
-        version: 8.5.16
+        version: 8.5.17
       semantic-release:
         specifier: ^25.0.0
         version: 25.0.6
@@ -1332,8 +1332,8 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.5.16:
-    resolution: {integrity: sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==}
+  postcss@8.5.17:
+    resolution: {integrity: sha512-J7EF+8X+CzRPaJPOv9Ck2wNWJvGnnl3PcNPAdGg6GTLjyVpyQ0yATMSXRFRV01BviT/9Gwuc3rjEyJbDJG9a4w==}
     engines: {node: ^10 || ^12 || >=14}
 
   pretty-ms@9.3.0:
@@ -2112,13 +2112,13 @@ snapshots:
 
   array-ify@1.0.0: {}
 
-  autoprefixer@10.5.2(postcss@8.5.16):
+  autoprefixer@10.5.2(postcss@8.5.17):
     dependencies:
       browserslist: 4.28.4
       caniuse-lite: 1.0.30001799
       fraction.js: 5.3.4
       picocolors: 1.1.1
-      postcss: 8.5.16
+      postcss: 8.5.17
       postcss-value-parser: 4.2.0
 
   baseline-browser-mapping@2.10.38: {}
@@ -2854,7 +2854,7 @@ snapshots:
 
   postcss-value-parser@4.2.0: {}
 
-  postcss@8.5.16:
+  postcss@8.5.17:
     dependencies:
       nanoid: 3.3.15
       picocolors: 1.1.1
