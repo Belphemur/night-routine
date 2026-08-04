@@ -1,3 +1,10 @@
+## [0.31.35](https://github.com/Belphemur/night-routine/compare/v0.31.34...v0.31.35) (2026-08-04)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/knadh/koanf/parsers/toml/v2 to v2.2.2 ([#388](https://github.com/Belphemur/night-routine/issues/388)) ([d2cc7b2](https://github.com/Belphemur/night-routine/commit/d2cc7b286c2261ea6057ce21d198231a5647b62e))
+
 ## [0.31.34](https://github.com/Belphemur/night-routine/compare/v0.31.33...v0.31.34) (2026-08-04)
 
 
