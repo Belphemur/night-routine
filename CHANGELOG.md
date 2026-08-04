@@ -1,3 +1,10 @@
+## [0.31.34](https://github.com/Belphemur/night-routine/compare/v0.31.33...v0.31.34) (2026-08-04)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/knadh/koanf/providers/confmap to v1.0.1 ([#389](https://github.com/Belphemur/night-routine/issues/389)) ([ef7e76f](https://github.com/Belphemur/night-routine/commit/ef7e76f23a79507744f4a55a7e4c0e02c0b31670))
+
 ## [0.31.33](https://github.com/Belphemur/night-routine/compare/v0.31.32...v0.31.33) (2026-08-03)
 
 
