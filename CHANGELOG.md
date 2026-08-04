@@ -1,3 +1,11 @@
+## [0.31.36](https://github.com/Belphemur/night-routine/compare/v0.31.35...v0.31.36) (2026-08-04)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/knadh/koanf/providers/env/v2 to v2.0.1 ([#390](https://github.com/Belphemur/night-routine/issues/390)) ([cc50456](https://github.com/Belphemur/night-routine/commit/cc504561a24b314445b13c2f786f0e57353286f0))
+* **deps:** update module github.com/knadh/koanf/v2 to v2.3.6 ([#391](https://github.com/Belphemur/night-routine/issues/391)) ([fb84020](https://github.com/Belphemur/night-routine/commit/fb840208f537ff6ca6f05d60d2ca374e9ac22dc5))
+
 ## [0.31.35](https://github.com/Belphemur/night-routine/compare/v0.31.34...v0.31.35) (2026-08-04)
 
 
