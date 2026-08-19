@@ -1,3 +1,11 @@
+## [0.31.40](https://github.com/Belphemur/night-routine/compare/v0.31.39...v0.31.40) (2026-08-19)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/stretchr/testify to v1.12.1 ([#397](https://github.com/Belphemur/night-routine/issues/397)) ([2e9dcf7](https://github.com/Belphemur/night-routine/commit/2e9dcf7a20887974495de8e69d9ae698d03c676b))
+* **deps:** update module modernc.org/sqlite to v1.57.0 ([#398](https://github.com/Belphemur/night-routine/issues/398)) ([7ed59ea](https://github.com/Belphemur/night-routine/commit/7ed59ea6f993f0521f768240c30b48b9cdf9cf3a))
+
 ## [0.31.39](https://github.com/Belphemur/night-routine/compare/v0.31.38...v0.31.39) (2026-08-17)
 
 
