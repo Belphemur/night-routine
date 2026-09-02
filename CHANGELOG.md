@@ -1,3 +1,10 @@
+## [0.31.45](https://github.com/Belphemur/night-routine/compare/v0.31.44...v0.31.45) (2026-09-02)
+
+
+### Bug Fixes
+
+* **deps:** update module modernc.org/sqlite to v1.58.0 ([#405](https://github.com/Belphemur/night-routine/issues/405)) ([14e4bd6](https://github.com/Belphemur/night-routine/commit/14e4bd631c6ed24e244a7bf73e612595cc68d6f3))
+
 ## [0.31.44](https://github.com/Belphemur/night-routine/compare/v0.31.43...v0.31.44) (2026-09-02)
 
 
