@@ -1,6 +1,6 @@
 module github.com/belphemur/night-routine
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
@@ -14,7 +14,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.296.0
+	google.golang.org/api v0.297.0
 	modernc.org/sqlite v1.57.0
 )
 
