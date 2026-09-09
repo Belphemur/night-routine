@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
-	github.com/golang-migrate/migrate/v4 v4.20.0
+	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/knadh/koanf/parsers/toml/v2 v2.2.2
 	github.com/knadh/koanf/providers/confmap v1.0.1
 	github.com/knadh/koanf/providers/env/v2 v2.0.1
