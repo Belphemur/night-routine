@@ -14,7 +14,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/oauth2 v0.37.0
-	google.golang.org/api v0.297.0
+	google.golang.org/api v0.298.0
 	modernc.org/sqlite v1.58.0
 )
 
