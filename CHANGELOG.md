@@ -1,3 +1,10 @@
+## [0.31.49](https://github.com/Belphemur/night-routine/compare/v0.31.48...v0.31.49) (2026-09-14)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/api to v0.298.0 ([#415](https://github.com/Belphemur/night-routine/issues/415)) ([facfaac](https://github.com/Belphemur/night-routine/commit/facfaac33b26267defe428bf61bd8687637f3e9a))
+
 ## [0.31.48](https://github.com/Belphemur/night-routine/compare/v0.31.47...v0.31.48) (2026-09-09)
 
 
