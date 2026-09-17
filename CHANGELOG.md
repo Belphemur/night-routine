@@ -1,3 +1,10 @@
+## [0.31.51](https://github.com/Belphemur/night-routine/compare/v0.31.50...v0.31.51) (2026-09-17)
+
+
+### Bug Fixes
+
+* **deps:** update module go.uber.org/atomic to v1.12.0 ([#418](https://github.com/Belphemur/night-routine/issues/418)) ([8840800](https://github.com/Belphemur/night-routine/commit/8840800c6232d271d10c9134c028846e06436205))
+
 ## [0.31.50](https://github.com/Belphemur/night-routine/compare/v0.31.49...v0.31.50) (2026-09-15)
 
 
