@@ -1,3 +1,10 @@
+## [0.31.53](https://github.com/Belphemur/night-routine/compare/v0.31.52...v0.31.53) (2026-09-24)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/knadh/koanf/v2 to v2.3.7 ([#420](https://github.com/Belphemur/night-routine/issues/420)) ([be0f9c8](https://github.com/Belphemur/night-routine/commit/be0f9c8282c28f2b650f4e295d68a4da7e93c2d1))
+
 ## [0.31.52](https://github.com/Belphemur/night-routine/compare/v0.31.51...v0.31.52) (2026-09-21)
 
 
