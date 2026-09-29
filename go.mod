@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.299.0
-	modernc.org/sqlite v1.60.0
+	modernc.org/sqlite v1.60.1
 )
 
 require (
