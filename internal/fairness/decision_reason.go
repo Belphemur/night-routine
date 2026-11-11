@@ -19,6 +19,9 @@ const (
 	// DecisionReasonDoubleConsecutiveSwap represents that assignments were swapped to avoid
 	// both parents having back-to-back consecutive nights (e.g. AA BB → AB AB).
 	DecisionReasonDoubleConsecutiveSwap DecisionReason = "Double Consecutive Swap"
+	// DecisionReasonManualSwap represents that the user manually swapped the parents
+	// of two assignments via the web UI.
+	DecisionReasonManualSwap DecisionReason = "Manual Swap"
 )
 
 // String returns the string representation of the DecisionReason

@@ -386,10 +386,12 @@ func (d *doubleConsecutiveTracker) observe(
 
 	// Atomically swap both assignments in a single transaction.
 	// In-memory state is only updated after the transaction commits.
+	// Smoothing swaps are not overrides — the algorithm stays free to
+	// rebalance these days on future recalculations.
 	updatedA, updatedB, err := tracker.SwapAssignments(
 		parentForA, schedule[swapA].Date,
 		parentForB, schedule[swapB].Date,
-		fairness.DecisionReasonDoubleConsecutiveSwap,
+		fairness.DecisionReasonDoubleConsecutiveSwap, false,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to swap assignments for %s and %s: %w",

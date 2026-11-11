@@ -61,9 +61,12 @@ type TrackerInterface interface {
 	GetAssignmentDetails(assignmentID int64) (*AssignmentDetails, error)
 
 	// SwapAssignments atomically swaps two assignments' parents within a single
-	// database transaction. Both assignments are upserted with the new parent
-	// and the given decision reason. Returns the updated assignment records.
-	SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason DecisionReason) (updatedA *Assignment, updatedB *Assignment, err error)
+	// database transaction. Both assignments are upserted with the new parent,
+	// the given decision reason, and the given override flag (true when the
+	// swap represents explicit user intent that must survive schedule
+	// recalculation, false for algorithm-internal smoothing). Returns the
+	// updated assignment records.
+	SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason DecisionReason, override bool) (updatedA *Assignment, updatedB *Assignment, err error)
 }
 
 // Ensure Tracker implements the TrackerInterface

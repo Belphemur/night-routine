@@ -139,6 +139,7 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 						Parent:         "Alice",
 						ParentType:     "ParentA",
 						DecisionReason: "Override",
+						Override:       true,
 					},
 				},
 			},
@@ -212,6 +213,7 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 						Parent:         "Bob",
 						ParentType:     "ParentB",
 						DecisionReason: "Override",
+						Override:       true,
 					},
 				},
 			},
@@ -274,4 +276,39 @@ func TestHomeHandler_flattenCalendarData(t *testing.T) {
 		// Check hover classes
 		assert.Contains(t, classes, "hover:shadow-lg")
 	})
+}
+
+// TestFlattenCalendarData_ManualSwapRowIsLocked pins that a manual swap row
+// (persisted override with reason "Manual Swap") renders with the lock marker
+// and unlock routing, keyed on the persisted override flag rather than the
+// decision-reason string.
+func TestFlattenCalendarData_ManualSwapRowIsLocked(t *testing.T) {
+	handler := &HomeHandler{}
+
+	date := time.Date(2025, 11, 26, 0, 0, 0, 0, time.UTC)
+	weeks := [][]viewhelpers.CalendarDay{
+		{
+			{
+				Date:           date,
+				DayOfMonth:     26,
+				IsCurrentMonth: true,
+				Assignment: &viewhelpers.DisplayAssignment{
+					ID:             4,
+					Date:           date,
+					Parent:         "Alice",
+					ParentType:     "ParentA",
+					CaregiverType:  "parent",
+					DecisionReason: "Manual Swap",
+					Override:       true,
+				},
+			},
+		},
+	}
+
+	result := handler.flattenCalendarData(weeks)
+	require.Len(t, result.Days, 1)
+
+	day := result.Days[0]
+	assert.True(t, day.IsOverridden, "manual swap rows must be recognized as locked via the override flag")
+	assert.Contains(t, day.CSSClasses, "overridden")
 }

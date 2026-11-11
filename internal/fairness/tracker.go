@@ -134,14 +134,15 @@ const selectAssignmentByDateSQL = `
 	LIMIT 1`
 
 // SwapAssignments atomically swaps two assignments' parents within a single
-// database transaction. Both are upserted with the new parent and the given
-// decision reason. The in-memory Assignment records are returned only after
-// the transaction commits successfully.
-func (t *Tracker) SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason DecisionReason) (*Assignment, *Assignment, error) {
+// database transaction. Both are upserted with the new parent, the given
+// decision reason, and the given override flag. The in-memory Assignment
+// records are returned only after the transaction commits successfully.
+func (t *Tracker) SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason DecisionReason, override bool) (*Assignment, *Assignment, error) {
 	swapLogger := t.logger.With().
 		Str("parentA", parentA).Str("dateA", dateA.Format(dateFormat)).
 		Str("parentB", parentB).Str("dateB", dateB.Format(dateFormat)).
 		Str("reason", reason.String()).
+		Bool("override", override).
 		Logger()
 	swapLogger.Debug().Msg("Swapping assignments atomically")
 
@@ -153,14 +154,14 @@ func (t *Tracker) SwapAssignments(parentA string, dateA time.Time, parentB strin
 	err := t.db.WithTransaction(ctx, func(tx *sql.Tx) error {
 		// Upsert assignment A.
 		if _, err := tx.ExecContext(ctx, upsertAssignmentSQL,
-			parentA, dateA.Format(dateFormat), false, reason.String(), CaregiverTypeParent.String(),
+			parentA, dateA.Format(dateFormat), override, reason.String(), CaregiverTypeParent.String(),
 		); err != nil {
 			return fmt.Errorf("failed to upsert assignment A (%s): %w", dateA.Format(dateFormat), err)
 		}
 
 		// Upsert assignment B.
 		if _, err := tx.ExecContext(ctx, upsertAssignmentSQL,
-			parentB, dateB.Format(dateFormat), false, reason.String(), CaregiverTypeParent.String(),
+			parentB, dateB.Format(dateFormat), override, reason.String(), CaregiverTypeParent.String(),
 		); err != nil {
 			return fmt.Errorf("failed to upsert assignment B (%s): %w", dateB.Format(dateFormat), err)
 		}

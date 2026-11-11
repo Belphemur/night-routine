@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +14,7 @@ import (
 	"github.com/belphemur/night-routine/internal/config"
 	"github.com/belphemur/night-routine/internal/fairness"
 	Scheduler "github.com/belphemur/night-routine/internal/fairness/scheduler"
+	"github.com/rs/zerolog"
 )
 
 // AssignmentDetailsHandler handles requests for assignment fairness calculation details
@@ -38,6 +41,7 @@ func NewAssignmentDetailsHandler(baseHandler *BaseHandler, tracker fairness.Trac
 func (h *AssignmentDetailsHandler) RegisterRoutes() {
 	http.HandleFunc("/api/assignment-details", h.handleGetAssignmentDetails)
 	http.HandleFunc("/api/assignment-babysitter", h.handleSetAssignmentBabysitter)
+	http.HandleFunc("/api/assignment-swap", h.handleSwapAssignments)
 }
 
 // AssignmentDetailsResponse represents the JSON response for assignment details
@@ -318,6 +322,301 @@ func (h *AssignmentDetailsHandler) handleSetAssignmentBabysitter(w http.Response
 	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
 		handlerLogger.Error().Err(err).Msg("Failed to encode success response")
 	}
+}
+
+type swapAssignmentsRequest struct {
+	AssignmentID int64  `json:"assignment_id"`
+	SwapWithDate string `json:"swap_with_date"`
+}
+
+// containsString reports whether the slice contains the given value.
+func containsString(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+// writeJSONError writes a JSON error response with the given status code.
+func (h *AssignmentDetailsHandler) writeJSONError(w http.ResponseWriter, logger zerolog.Logger, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(map[string]string{"error": message}); err != nil {
+		logger.Error().Err(err).Msg("Failed to encode error response")
+	}
+}
+
+func (h *AssignmentDetailsHandler) handleSwapAssignments(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.logger.With().Str("handler", "handleSwapAssignments").Logger()
+	handlerLogger.Info().Str("method", r.Method).Msg("Handling swap assignments request")
+
+	if r.Method != http.MethodPost {
+		handlerLogger.Warn().Msg("Invalid method for swap assignments request")
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// CSRF mitigation: a cross-site attacker can only submit "simple" requests
+	// (text/plain, form encodings) without a CORS preflight. Requiring the
+	// application/json media type forces any cross-origin call through
+	// preflight, which this server never answers, so forged cross-site POSTs
+	// are rejected by the browser before they reach the handler.
+	contentType := r.Header.Get("Content-Type")
+	mediaType, _, parseErr := mime.ParseMediaType(contentType)
+	if parseErr != nil || mediaType != "application/json" {
+		handlerLogger.Warn().Str("content_type", contentType).Msg("Rejecting swap request with unsupported content type")
+		h.writeJSONError(w, handlerLogger, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		return
+	}
+
+	if !h.CheckAuthentication(r.Context(), handlerLogger) {
+		handlerLogger.Warn().Msg("Unauthenticated access attempt to swap assignments")
+		h.writeJSONError(w, handlerLogger, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req swapAssignmentsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to decode swap assignments payload")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.AssignmentID <= 0 || strings.TrimSpace(req.SwapWithDate) == "" {
+		handlerLogger.Warn().Int64("assignment_id", req.AssignmentID).Msg("Invalid assignment id or swap date")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "assignment_id and swap_with_date are required")
+		return
+	}
+
+	targetDate, err := time.Parse("2006-01-02", strings.TrimSpace(req.SwapWithDate))
+	if err != nil {
+		handlerLogger.Warn().Str("swap_with_date", req.SwapWithDate).Msg("Invalid swap_with_date format")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "swap_with_date must be a valid date in YYYY-MM-DD format")
+		return
+	}
+
+	assignment, err := h.Tracker.GetAssignmentByID(req.AssignmentID)
+	if err != nil {
+		handlerLogger.Error().Err(err).Int64("assignment_id", req.AssignmentID).Msg("Failed to get assignment")
+		h.writeJSONError(w, handlerLogger, http.StatusInternalServerError, "Failed to retrieve assignment")
+		return
+	}
+
+	if assignment == nil {
+		handlerLogger.Warn().Int64("assignment_id", req.AssignmentID).Msg("Assignment not found")
+		h.writeJSONError(w, handlerLogger, http.StatusNotFound, "Assignment not found")
+		return
+	}
+
+	// Enforce the same past-event threshold used by the babysitter and webhook
+	// handlers: neither leg of the swap may be outside the threshold.
+	_, _, thresholdDays, _, schedErr := h.ConfigStore.GetSchedule()
+	if schedErr != nil {
+		handlerLogger.Error().Err(schedErr).Msg("Failed to get schedule configuration for threshold check")
+		h.writeJSONError(w, handlerLogger, http.StatusInternalServerError, "Failed to validate assignment dates")
+		return
+	}
+
+	now := time.Now()
+	thresholdDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -thresholdDays)
+
+	y, m, d := assignment.Date.Date()
+	sourceDate := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+
+	// Normalize the parsed target date to midnight in the same location as
+	// the source date so equality and Before comparisons compare calendar
+	// dates, not wall-clock instants across time zones (time.Parse returns
+	// UTC).
+	ty, tm, td := targetDate.Date()
+	targetDate = time.Date(ty, tm, td, 0, 0, 0, 0, now.Location())
+
+	if sourceDate.Before(thresholdDate) {
+		handlerLogger.Warn().
+			Int("threshold_days", thresholdDays).
+			Str("assignment_date", sourceDate.Format("2006-01-02")).
+			Msg("Rejecting swap for past assignment outside threshold")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Assignment is too far in the past to modify")
+		return
+	}
+
+	if targetDate.Before(thresholdDate) {
+		handlerLogger.Warn().
+			Int("threshold_days", thresholdDays).
+			Str("swap_with_date", targetDate.Format("2006-01-02")).
+			Msg("Rejecting swap with target date outside threshold")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Swap target date is too far in the past to modify")
+		return
+	}
+
+	if sourceDate.Equal(targetDate) {
+		handlerLogger.Warn().Str("swap_with_date", targetDate.Format("2006-01-02")).Msg("Swap target date equals the assignment date")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Cannot swap an assignment with itself")
+		return
+	}
+
+	targetAssignment, err := h.Tracker.GetAssignmentByDate(targetDate)
+	if err != nil {
+		handlerLogger.Error().Err(err).Str("swap_with_date", targetDate.Format("2006-01-02")).Msg("Failed to get target assignment")
+		h.writeJSONError(w, handlerLogger, http.StatusInternalServerError, "Failed to retrieve target assignment")
+		return
+	}
+
+	if targetAssignment == nil {
+		handlerLogger.Warn().Str("swap_with_date", targetDate.Format("2006-01-02")).Msg("Target assignment not found")
+		h.writeJSONError(w, handlerLogger, http.StatusNotFound, "No assignment exists on the target date")
+		return
+	}
+
+	if assignment.CaregiverType != fairness.CaregiverTypeParent || targetAssignment.CaregiverType != fairness.CaregiverTypeParent {
+		handlerLogger.Warn().
+			Int64("assignment_id", req.AssignmentID).
+			Str("source_type", assignment.CaregiverType.String()).
+			Str("target_type", targetAssignment.CaregiverType.String()).
+			Msg("Rejecting swap involving non-parent assignment")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Both assignments must be parent assignments to swap")
+		return
+	}
+
+	// A swap between two nights that already belong to the same parent would
+	// change nothing yet still lock both rows as overrides, freezing them
+	// against future fairness recalculations. Refuse it instead.
+	if assignment.Parent == targetAssignment.Parent {
+		handlerLogger.Warn().
+			Int64("assignment_id", req.AssignmentID).
+			Str("parent", assignment.Parent).
+			Msg("Rejecting swap between two nights assigned to the same parent")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Both nights are already assigned to the same parent")
+		return
+	}
+
+	// After the swap the source date carries the target assignment's parent and
+	// vice versa. Verify neither parent is unavailable on the date it receives.
+	parentA, parentB, parentsErr := h.ConfigStore.GetParents()
+	if parentsErr != nil {
+		handlerLogger.Error().Err(parentsErr).Msg("Failed to get parent names")
+		h.writeJSONError(w, handlerLogger, http.StatusInternalServerError, "Failed to validate parent availability")
+		return
+	}
+
+	// Historical rows can carry a parent name that is no longer configured
+	// (e.g. after a rename). Refuse to move such a row as a locked override:
+	// the availability check below could not reason about the stale name.
+	configuredParents := map[string]bool{parentA: true, parentB: true}
+	if !configuredParents[assignment.Parent] || !configuredParents[targetAssignment.Parent] {
+		handlerLogger.Warn().
+			Int64("assignment_id", req.AssignmentID).
+			Str("source_parent", assignment.Parent).
+			Str("target_parent", targetAssignment.Parent).
+			Msg("Rejecting swap involving a parent that is no longer configured")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Assignment parent does not match the configured parents")
+		return
+	}
+
+	// After the swap the source date carries the target assignment's parent
+	// and the target date carries the source assignment's parent — verify the
+	// post-swap pairing, mirroring the scheduler's double-consecutive swap.
+	if err := h.verifySwapAvailability(targetAssignment.Parent, sourceDate, assignment.Parent, targetDate, parentA, parentB, &handlerLogger); err != nil {
+		if apiErr, ok := err.(*swapAvailabilityError); ok {
+			h.writeJSONError(w, handlerLogger, http.StatusBadRequest, apiErr.Error())
+		} else {
+			h.writeJSONError(w, handlerLogger, http.StatusInternalServerError, "Failed to validate parent availability")
+		}
+		return
+	}
+
+	// SwapAssignments(parentA, dateA, ...) assigns parentA to dateA and parentB
+	// to dateB, mirroring the scheduler's double-consecutive smoothing. The
+	// swap is recorded as an override (explicit user intent) so the
+	// recalculation below respects it instead of re-deriving both days.
+	_, _, swapErr := h.Tracker.SwapAssignments(
+		targetAssignment.Parent, sourceDate,
+		assignment.Parent, targetDate,
+		fairness.DecisionReasonManualSwap, true,
+	)
+	if swapErr != nil {
+		handlerLogger.Error().Err(swapErr).
+			Int64("assignment_id", req.AssignmentID).
+			Str("swap_with_date", targetDate.Format("2006-01-02")).
+			Msg("Failed to swap assignments")
+		h.writeJSONError(w, handlerLogger, http.StatusInternalServerError, "Failed to swap assignments")
+		return
+	}
+
+	// Keep calendar and future assignments coherent after the manual swap.
+	// Recalculate from the EARLIER of the two dates so the swapped target
+	// assignment itself is covered by the regeneration and calendar sync when
+	// the user swapped with an earlier night.
+	fromDate := sourceDate
+	if targetDate.Before(fromDate) {
+		fromDate = targetDate
+	}
+	if err := h.recalculateSchedule(r.Context(), fromDate); err != nil {
+		handlerLogger.Error().Err(err).Int64("assignment_id", req.AssignmentID).Msg("Failed to recalculate schedule after swapping assignments")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		handlerLogger.Error().Err(err).Msg("Failed to encode success response")
+	}
+
+	handlerLogger.Info().Msg("Successfully swapped assignments")
+}
+
+// swapAvailabilityError signals a user-facing validation failure (a parent is
+// unavailable on a date they would receive in the swap).
+type swapAvailabilityError struct {
+	parent        string
+	formattedDate string
+}
+
+func (e *swapAvailabilityError) Error() string {
+	return fmt.Sprintf("%s is unavailable on %s", e.parent, e.formattedDate)
+}
+
+// verifySwapAvailability checks that the parent receiving each date in the swap
+// is not unavailable on that date, mirroring the scheduler's
+// isParentAvailableOnDate day-of-week constraint logic. A non-nil non-API error
+// indicates a configuration lookup failure, not a validation rejection.
+func (h *AssignmentDetailsHandler) verifySwapAvailability(parentOnSourceDate string, sourceDate time.Time, parentOnTargetDate string, targetDate time.Time, parentA, parentB string, logger *zerolog.Logger) error {
+	type availabilityCheck struct {
+		parent     string
+		date       time.Time
+		roleColumn string
+	}
+
+	roleFor := func(parent string) string {
+		if parent == parentA {
+			return "parent_a"
+		}
+		return "parent_b"
+	}
+
+	checks := []availabilityCheck{
+		{parent: parentOnSourceDate, date: sourceDate, roleColumn: roleFor(parentOnSourceDate)},
+		{parent: parentOnTargetDate, date: targetDate, roleColumn: roleFor(parentOnTargetDate)},
+	}
+
+	for _, check := range checks {
+		unavailableDays, err := h.ConfigStore.GetAvailability(check.roleColumn)
+		if err != nil {
+			logger.Error().Err(err).Str("parent_role", check.roleColumn).Msg("Failed to get parent availability")
+			return fmt.Errorf("failed to get availability for %s: %w", check.roleColumn, err)
+		}
+		dayOfWeek := check.date.Format("Monday")
+		if containsString(unavailableDays, dayOfWeek) {
+			logger.Warn().
+				Str("parent", check.parent).
+				Str("date", check.date.Format("2006-01-02")).
+				Str("day", dayOfWeek).
+				Msg("Swap rejected: parent unavailable on target date")
+			return &swapAvailabilityError{parent: check.parent, formattedDate: check.date.Format("2006-01-02")}
+		}
+	}
+
+	return nil
 }
 
 func (h *AssignmentDetailsHandler) recalculateSchedule(ctx context.Context, fromDate time.Time) error {
