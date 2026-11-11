@@ -1,0 +1,8 @@
+# pnpm 12+ reads these settings from pnpm-workspace.yaml.
+# onlyBuiltDependencies / ignoredBuiltDependencies were removed in pnpm 11
+# and replaced by the allowBuilds map (true = allow build scripts, false = deny).
+allowBuilds:
+  # Deny: @parcel/watcher's postinstall is unnecessary — its native binaries
+  # ship as separate optional platform dependencies. Under pnpm 10 its build
+  # script was silently skipped as well, so this preserves the old behaviour.
+  '@parcel/watcher': false
