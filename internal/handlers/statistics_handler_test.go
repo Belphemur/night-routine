@@ -238,6 +238,10 @@ func TestStatisticsHandler_MultipleParents(t *testing.T) {
 	// Use fixed dates in the same month to ensure both parents appear
 	// Use dates in the past to ensure they are counted
 	baseDate := time.Date(2025, 10, 15, 0, 0, 0, 0, time.UTC) // October 2025
+	// Pin "now" to the day after the last assignment: the statistics page
+	// only counts the last 12 months, so an unstubbed real clock eventually
+	// pushed these fixed dates out of the window.
+	handler.now = func() time.Time { return baseDate.AddDate(0, 0, 1) }
 
 	// Create assignments for both parents on different days in the same month
 	_, err := tracker.RecordAssignment("TestParentA", baseDate, false, fairness.DecisionReasonTotalCount)
@@ -263,6 +267,10 @@ func TestStatisticsHandler_IncludesBabysitterSection(t *testing.T) {
 	defer cleanup()
 
 	baseDate := time.Date(2025, 10, 15, 0, 0, 0, 0, time.UTC)
+	// Pin "now" to the day after the last assignment: the statistics page
+	// only counts the last 12 months, so an unstubbed real clock eventually
+	// pushed these fixed dates out of the window.
+	handler.now = func() time.Time { return baseDate.AddDate(0, 0, 2) }
 	_, err := tracker.RecordAssignment("TestParentA", baseDate, false, fairness.DecisionReasonTotalCount)
 	require.NoError(t, err)
 	_, err = tracker.RecordBabysitterAssignment("Dawn", baseDate.AddDate(0, 0, 1), true)
