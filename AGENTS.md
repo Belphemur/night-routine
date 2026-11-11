@@ -2,56 +2,82 @@
 
 A Go application that automates night routine scheduling between two parents with Google Calendar integration and babysitter support.
 
+**This is the root/hub file.** Every package keeps its own `AGENTS.md` with package-specific detail — read the one for the package you are touching before changing it.
+
+```
+cmd/night-routine/AGENTS.md
+internal/
+  config/AGENTS.md
+  database/AGENTS.md
+  fairness/AGENTS.md           (covers internal/fairness/scheduler too)
+  calendar/AGENTS.md
+  handlers/AGENTS.md
+  token/AGENTS.md
+  signals/AGENTS.md
+  logging/AGENTS.md
+  constants/AGENTS.md
+  viewhelpers/AGENTS.md
+```
+
 ## Architecture Overview
 
 ```
 cmd/night-routine/     Entry point: bootstrap, service loop, signal handling
 internal/
-  ├── config/          Configuration: TOML + env + database-backed runtime config
+  ├── config/          Configuration: TOML + env (koanf) + database-backed runtime config
   ├── database/        SQLite layer: migrations, CRUD, config/token stores
-  ├── fairness/        Core scheduling algorithm + assignment tracking
-  │   └── scheduler/   Schedule generation with fairness rules
-  ├── calendar/        Google Calendar API: event sync, notification channels
-  ├── handlers/        HTTP handlers + web UI templates + static assets
+  ├── fairness/        Assignment tracking + TrackerInterface; scheduler/ = schedule generation
+  ├── calendar/        Google Calendar API: event sync, push notification channels
+  ├── handlers/        HTTP handlers + web UI templates + embedded static assets
   ├── token/           OAuth2 token lifecycle management
-  ├── signals/         Event bus: TokenSetup, CalendarSelected
+  ├── signals/         Event bus: TokenSetup, CalendarSelected (maniartech/signals)
   ├── logging/         Zerolog-based structured logging
-  ├── constants/       Shared enums and identifiers
+  ├── constants/       Shared enums and identifiers (NightRoutineIdentifier, StatsOrder)
   └── viewhelpers/     Calendar grid preparation for templates
-configs/               Default TOML configuration
+configs/               Default TOML configuration (routine.toml)
 docs/                  Internal architecture and planning docs
-docs-site/             Public MkDocs documentation
+docs-site/             Public MkDocs documentation — do NOT touch when changing code docs
 build/                 Dockerfile for multi-arch production images
 ```
 
 ## Data Flow
 
 ```
-User action (web UI / Google Calendar edit)
+User action (web UI) or Google Calendar webhook (/api/webhook/calendar)
   → HTTP handler (internal/handlers)
-    → Fairness tracker (internal/fairness) — update assignment in DB
     → Scheduler (internal/fairness/scheduler) — regenerate schedule
-    → Calendar service (internal/calendar) — sync to Google Calendar
+      → Tracker (internal/fairness) — persist assignment + decision details in DB
+    → Calendar service (internal/calendar) — sync events to Google Calendar
 ```
 
-## Key Conventions
+Overrides, unlocks and settings changes flow through the same path; handlers trigger `GenerateSchedule` + `SyncSchedule` after mutating mutations.
 
-- **CGO-free**: Uses `modernc.org/sqlite` (pure Go). `CGO_ENABLED=0` always.
-- **Error wrapping**: Always use `fmt.Errorf("context: %w", err)`.
-- **Logging**: `zerolog` only, via `logging.GetLogger("component")`.
-- **Config**: File/env for static settings, database for UI-configurable settings.
-- **Tests**: Table-driven tests, regression tests for every bug fix.
-- **Build**: `pnpm install` → `go generate ./...` → `go build`.
-- **Commits**: Conventional commits (`fix(scope):`, `feat(scope):`, etc.).
+## Key Conventions (global)
+
+- **CGO-free**: Uses `modernc.org/sqlite` (pure Go, driver name `"sqlite"`). `CGO_ENABLED=0` always.
+- **Error wrapping**: Always `fmt.Errorf("context: %w", err)`.
+- **Logging**: `zerolog` only, via `logging.GetLogger("component")`. Never `fmt.Print`/`log.Print`.
+- **Config**: File/env for static settings (OAuth, port, paths), database for UI-configurable settings (parents, availability, schedule, calendar ID). Handlers read config live from the DB — no restart needed.
+- **Tests**: Table-driven tests; add a regression test for every bug fix.
+- **Build**: `pnpm install` → `go generate ./...` → `go build`. `go generate` regenerates embedded Tailwind CSS (`internal/handlers/base_handler.go`) — required after template/CSS changes.
+- **Commits**: Conventional commits (`fix(scope):`, `feat(scope):`, …). Releases are cut by semantic-release.
+- **Migrations**: Embedded, numbered (`000001_*.up.sql`/`.down.sql`); never modify an existing migration, add a new one.
 
 ## Fairness Algorithm
 
-Decision cascade (first match wins):
+Implemented in `internal/fairness/scheduler/scheduler.go` (`determineNextParent`). Decision cascade, first match wins:
 
-1. **Unavailability** — One parent unavailable → assign other
-2. **TotalCount** — Parent with fewer total assignments
-3. **ConsecutiveLimit** — If tied, force switch after 2+ consecutive same-parent days
-4. **RecentCount** — If tied and no streak, parent with fewer last-30-day assignments
-5. **Alternating** — Default: alternate from last parent
+0. **No prior parent assignments** — assign the parent with fewer (or equal) total assignments (`TotalCount`).
+1. **Unavailability** — checked *before* the cascade: one parent unavailable on that weekday → assign the other; both unavailable → error.
+2. **TotalCount** — parent with fewer total assignments.
+3. **ConsecutiveLimit** — totals tied and last parent had ≥2 consecutive assignments → force switch.
+4. **RecentCount** — totals tied, no streak → parent with fewer last-30-day assignments.
+5. **Alternating** — default: alternate from the last parent.
 
-Babysitter assignments are **always excluded** from parent fairness calculations.
+`DecisionReason` values recorded per assignment: `TotalCount`, `RecentCount`, `ConsecutiveLimit`, `Alternating`, `Unavailability`, `Override`.
+
+Babysitter assignments (`caregiver_type = 'babysitter'`, always `override`) are excluded from parent fairness calculations (streaks, stats, lastParent) and break the consecutive-run tracker.
+
+## Details
+
+See the package-level `AGENTS.md` files linked above; `internal/fairness/AGENTS.md` documents the tracker interface and babysitter rules in full.
