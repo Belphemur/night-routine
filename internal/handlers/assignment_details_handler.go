@@ -500,6 +500,20 @@ func (h *AssignmentDetailsHandler) handleSwapAssignments(w http.ResponseWriter, 
 		return
 	}
 
+	// Historical rows can carry a parent name that is no longer configured
+	// (e.g. after a rename). Refuse to move such a row as a locked override:
+	// the availability check below could not reason about the stale name.
+	configuredParents := map[string]bool{parentA: true, parentB: true}
+	if !configuredParents[assignment.Parent] || !configuredParents[targetAssignment.Parent] {
+		handlerLogger.Warn().
+			Int64("assignment_id", req.AssignmentID).
+			Str("source_parent", assignment.Parent).
+			Str("target_parent", targetAssignment.Parent).
+			Msg("Rejecting swap involving a parent that is no longer configured")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Assignment parent does not match the configured parents")
+		return
+	}
+
 	// After the swap the source date carries the target assignment's parent
 	// and the target date carries the source assignment's parent — verify the
 	// post-swap pairing, mirroring the scheduler's double-consecutive swap.

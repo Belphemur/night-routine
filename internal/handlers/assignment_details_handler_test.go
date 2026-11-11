@@ -844,3 +844,42 @@ func TestHandleSwapAssignments_EarlierTargetRecalculatedFromEarliestDate(t *test
 	assert.Contains(t, recordingSvc.syncedDays, dateA.Format("2006-01-02"),
 		"calendar sync must cover the source date")
 }
+
+func TestHandleSwapAssignments_RejectsUnconfiguredParentName(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	dateA := now.AddDate(0, 0, 1)
+	dateB := now.AddDate(0, 0, 2)
+
+	// "Charlie" is not one of the configured parents (Alice/Bob) — e.g. a
+	// historical row from before a rename. Swapping it as a locked override
+	// must be refused.
+	staleAssignment, err := tracker.RecordAssignment("Charlie", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", dateB, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(staleAssignment.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := newSwapRequest(payload)
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "configured parents")
+
+	// Nothing swapped, no override gained.
+	keptA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	assert.Equal(t, "Charlie", keptA.Parent)
+	assert.False(t, keptA.Override)
+	keptB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	assert.Equal(t, "Bob", keptB.Parent)
+	assert.False(t, keptB.Override)
+}

@@ -141,12 +141,12 @@
                                 {{if eq .Assignment.ParentType "ParentA"}}bg-linear-to-br from-blue-50 to-indigo-100 text-indigo-900 border-indigo-200 hover:from-blue-100 hover:to-indigo-200{{end}}
                                 {{if eq .Assignment.ParentType "ParentB"}}bg-linear-to-br from-amber-50 to-orange-100 text-orange-900 border-orange-200 hover:from-amber-100 hover:to-orange-200{{end}}
                                 {{if eq .Assignment.ParentType "Babysitter"}}bg-linear-to-br from-slate-100 to-zinc-200 text-slate-900 border-slate-300 hover:from-slate-200 hover:to-zinc-300{{end}}
-                                {{if eq .Assignment.DecisionReason "Override"}}overridden{{end}}
+                                {{if .Assignment.Override}}overridden{{end}}
                             {{end}}" 
                         data-date="{{.Date.Format "2006-01-02"}}" 
                         {{if .Assignment}}data-assignment-id="{{.Assignment.ID}}"{{end}}
                         {{if .Assignment}}data-caregiver-type="{{.Assignment.CaregiverType}}"{{end}}
-                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.ParentType "Babysitter"}} (babysitter){{end}}{{if eq .Assignment.DecisionReason "Override"}} - Locked (manually overridden){{end}}{{end}}">
+                        aria-label="{{.Date.Format "January 2, 2006"}}{{if .Assignment}} - {{.Assignment.Parent}} assigned{{if eq .Assignment.ParentType "Babysitter"}} (babysitter){{end}}{{if .Assignment.Override}} - Locked (manually overridden){{end}}{{end}}">
                         <span class="block text-lg md:text-xl font-bold mb-1">{{.DayOfMonth}}</span>
                         {{if .Assignment}}
                         <span class="block text-xs md:text-sm font-semibold">{{.Assignment.Parent}}</span>
@@ -945,6 +945,11 @@
             let currentDetailsCaregiverType = 'parent';
             let currentDetailsAssignmentDate = null;
             let isSwapSubmitting = false;
+            // Token that invalidates a pending modal-hide transition: a failed
+            // request can reopen the swap modal while hideSwapModal's
+            // transitionend callback is still scheduled, and that callback
+            // must not then hide the reopened form.
+            let swapModalHideToken = 0;
 
         function openDetailsModal() {
             detailsModal.classList.remove('hidden');
@@ -1174,15 +1179,19 @@
                 }
             }
 
-            function showSwapModal() {
+            function showSwapModal(prefillDate) {
                 if (!swapModal) {
                     return;
                 }
 
-                // Pre-fill the suggestion with the day adjacent to the current
-                // assignment's date.
-                swapDateInput.value = '';
-                if (currentDetailsAssignmentDate) {
+                // Invalidate any pending hide transition from a previous
+                // close so it cannot hide this reopened modal.
+                swapModalHideToken++;
+
+                // Pre-fill: the attempted target date after a failed request,
+                // otherwise the day adjacent to the current assignment's date.
+                swapDateInput.value = prefillDate || '';
+                if (!swapDateInput.value && currentDetailsAssignmentDate) {
                     const assignmentDate = new Date(currentDetailsAssignmentDate + 'T00:00:00');
                     if (!isNaN(assignmentDate.getTime())) {
                         const adjacent = new Date(assignmentDate);
@@ -1216,7 +1225,12 @@
                 swapModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
                 swapModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
 
+                const hideToken = ++swapModalHideToken;
                 swapModalPanel.addEventListener('transitionend', function () {
+                    // A showSwapModal() call bumped the token — skip hiding.
+                    if (hideToken !== swapModalHideToken) {
+                        return;
+                    }
                     swapModal.classList.add('hidden');
                 }, { once: true });
             }
@@ -1297,7 +1311,10 @@
                     console.error('Error swapping assignments:', error);
                     isSwapSubmitting = false;
                     hideSwapLoadingModal();
-                    showSwapModal();
+                    // Reopen the form with the attempted target date still
+                    // selected so a retry does not silently fall back to the
+                    // pre-filled adjacent day.
+                    showSwapModal(swapDate);
                     swapModalError.textContent = error.message || 'Failed to swap assignments. Please try again.';
                     swapModalError.classList.remove('hidden');
                 });
