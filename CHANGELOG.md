@@ -1,3 +1,10 @@
+# [0.32.0](https://github.com/Belphemur/night-routine/compare/v0.31.56...v0.32.0) (2026-11-11)
+
+
+### Features
+
+* **ui:** add "Swap With Other Parent" action to the assignment details modal ([6ef0b6b](https://github.com/Belphemur/night-routine/commit/6ef0b6b764ed20601d04f5efe94ed7364be2b5b0))
+
 ## [0.31.56](https://github.com/Belphemur/night-routine/compare/v0.31.55...v0.31.56) (2026-11-11)
 
 
