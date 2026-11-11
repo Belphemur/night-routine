@@ -1,3 +1,11 @@
+## [0.31.56](https://github.com/Belphemur/night-routine/compare/v0.31.55...v0.31.56) (2026-11-11)
+
+
+### Bug Fixes
+
+* **deps:** update Go module dependencies ([66f9e72](https://github.com/Belphemur/night-routine/commit/66f9e72f4f29cb41e4e1c88f1cf6cf73ee9a80cb))
+* **tests:** make statistics handler tests time-independent ([e1394c5](https://github.com/Belphemur/night-routine/commit/e1394c58c0a41c0012c3af80283727c76c5be0a2))
+
 ## [0.31.55](https://github.com/Belphemur/night-routine/compare/v0.31.54...v0.31.55) (2026-09-29)
 
 
