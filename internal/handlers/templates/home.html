@@ -944,6 +944,7 @@
             let currentDetailsAssignmentId = null;
             let currentDetailsCaregiverType = 'parent';
             let currentDetailsAssignmentDate = null;
+            let isSwapSubmitting = false;
 
         function openDetailsModal() {
             detailsModal.classList.remove('hidden');
@@ -1156,8 +1157,14 @@
                     detailsModalSwapParent.classList.add('hidden');
                 }
 
+                // Action buttons are exposed only for a successfully loaded
+                // parent or babysitter assignment — never while details are
+                // loading or after a failed fetch (unknown caregiver type).
                 if (currentDetailsCaregiverType === 'babysitter') {
                     detailsModalRemoveBabysitter.classList.remove('hidden');
+                    return;
+                }
+                if (currentDetailsCaregiverType !== 'parent') {
                     return;
                 }
 
@@ -1250,12 +1257,21 @@
                     return;
                 }
 
+                // In-flight guard: both the confirm button and the Enter key
+                // can fire this in quick succession — only the first request
+                // goes out.
+                if (isSwapSubmitting) {
+                    return;
+                }
+
                 const swapDate = (swapDateInput.value || '').trim();
                 if (!swapDate) {
                     swapModalError.textContent = 'Please choose a date to swap with.';
                     swapModalError.classList.remove('hidden');
                     return;
                 }
+
+                isSwapSubmitting = true;
 
                 const assignmentId = currentDetailsAssignmentId;
                 hideSwapModal();
@@ -1279,6 +1295,7 @@
                     window.location.reload();
                 }).catch(error => {
                     console.error('Error swapping assignments:', error);
+                    isSwapSubmitting = false;
                     hideSwapLoadingModal();
                     showSwapModal();
                     swapModalError.textContent = error.message || 'Failed to swap assignments. Please try again.';
@@ -1409,6 +1426,12 @@
             if (isLoadingDetails) return;
             isLoadingDetails = true;
             currentDetailsAssignmentId = assignmentId;
+            // Reset the caregiver state for the newly clicked assignment so no
+            // action button from the previously viewed assignment stays
+            // visible while the new details are loading or if the fetch fails.
+            currentDetailsCaregiverType = null;
+            currentDetailsAssignmentDate = null;
+            updateDetailsActionButtons();
 
             // Show loading spinner on the source calendar cell
             let loadingOverlay = null;
@@ -1444,6 +1467,10 @@
                     if (loadingOverlay) loadingOverlay.remove();
                     isLoadingDetails = false;
                     console.error('Error fetching assignment details:', error);
+                    // Keep action buttons hidden: currentDetailsCaregiverType
+                    // is still null from the fetch start, so no stale action
+                    // is offered for an assignment whose details never loaded.
+                    updateDetailsActionButtons();
                     const errorContainer = document.createElement('div');
                     errorContainer.className = 'bg-red-50 rounded-lg p-3';
                     const errorText = document.createElement('p');

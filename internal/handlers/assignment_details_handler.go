@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -357,6 +358,19 @@ func (h *AssignmentDetailsHandler) handleSwapAssignments(w http.ResponseWriter, 
 		return
 	}
 
+	// CSRF mitigation: a cross-site attacker can only submit "simple" requests
+	// (text/plain, form encodings) without a CORS preflight. Requiring the
+	// application/json media type forces any cross-origin call through
+	// preflight, which this server never answers, so forged cross-site POSTs
+	// are rejected by the browser before they reach the handler.
+	contentType := r.Header.Get("Content-Type")
+	mediaType, _, parseErr := mime.ParseMediaType(contentType)
+	if parseErr != nil || mediaType != "application/json" {
+		handlerLogger.Warn().Str("content_type", contentType).Msg("Rejecting swap request with unsupported content type")
+		h.writeJSONError(w, handlerLogger, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		return
+	}
+
 	if !h.CheckAuthentication(r.Context(), handlerLogger) {
 		handlerLogger.Warn().Msg("Unauthenticated access attempt to swap assignments")
 		h.writeJSONError(w, handlerLogger, http.StatusUnauthorized, "Unauthorized")
@@ -465,6 +479,18 @@ func (h *AssignmentDetailsHandler) handleSwapAssignments(w http.ResponseWriter, 
 		return
 	}
 
+	// A swap between two nights that already belong to the same parent would
+	// change nothing yet still lock both rows as overrides, freezing them
+	// against future fairness recalculations. Refuse it instead.
+	if assignment.Parent == targetAssignment.Parent {
+		handlerLogger.Warn().
+			Int64("assignment_id", req.AssignmentID).
+			Str("parent", assignment.Parent).
+			Msg("Rejecting swap between two nights assigned to the same parent")
+		h.writeJSONError(w, handlerLogger, http.StatusBadRequest, "Both nights are already assigned to the same parent")
+		return
+	}
+
 	// After the swap the source date carries the target assignment's parent and
 	// vice versa. Verify neither parent is unavailable on the date it receives.
 	parentA, parentB, parentsErr := h.ConfigStore.GetParents()
@@ -505,7 +531,14 @@ func (h *AssignmentDetailsHandler) handleSwapAssignments(w http.ResponseWriter, 
 	}
 
 	// Keep calendar and future assignments coherent after the manual swap.
-	if err := h.recalculateSchedule(r.Context(), sourceDate); err != nil {
+	// Recalculate from the EARLIER of the two dates so the swapped target
+	// assignment itself is covered by the regeneration and calendar sync when
+	// the user swapped with an earlier night.
+	fromDate := sourceDate
+	if targetDate.Before(fromDate) {
+		fromDate = targetDate
+	}
+	if err := h.recalculateSchedule(r.Context(), fromDate); err != nil {
 		handlerLogger.Error().Err(err).Int64("assignment_id", req.AssignmentID).Msg("Failed to recalculate schedule after swapping assignments")
 	}
 

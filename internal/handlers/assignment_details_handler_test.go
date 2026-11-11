@@ -23,11 +23,15 @@ import (
 
 type recordingCalendarService struct {
 	noopCalendarService
-	syncCalls int
+	syncCalls  int
+	syncedDays []string
 }
 
-func (r *recordingCalendarService) SyncSchedule(_ context.Context, _ []*Scheduler.Assignment) error {
+func (r *recordingCalendarService) SyncSchedule(_ context.Context, assignments []*Scheduler.Assignment) error {
 	r.syncCalls++
+	for _, a := range assignments {
+		r.syncedDays = append(r.syncedDays, a.Date.Format("2006-01-02"))
+	}
 	return nil
 }
 
@@ -420,6 +424,14 @@ func TestHandleSetAssignmentBabysitter_PastThreshold(t *testing.T) {
 	assert.Contains(t, resp["error"], "too far in the past")
 }
 
+// newSwapRequest builds an authenticated-shape POST /api/assignment-swap
+// request with the application/json content type the handler requires.
+func newSwapRequest(payload []byte) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
 func TestHandleSwapAssignments_Success(t *testing.T) {
 	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
 	defer cleanup()
@@ -436,7 +448,7 @@ func TestHandleSwapAssignments_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -469,7 +481,7 @@ func TestHandleSwapAssignments_Unauthenticated(t *testing.T) {
 	defer cleanup()
 
 	payload := []byte(`{"assignment_id":1,"swap_with_date":"2025-01-16"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -492,6 +504,7 @@ func TestHandleSwapAssignments_InvalidPayload(t *testing.T) {
 	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewBufferString("bad json"))
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -515,6 +528,7 @@ func TestHandleSwapAssignments_MissingFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewBufferString(tt.payload))
+			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			handler.handleSwapAssignments(w, req)
 			assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -527,7 +541,7 @@ func TestHandleSwapAssignments_SourceNotFound(t *testing.T) {
 	defer cleanup()
 
 	payload := []byte(`{"assignment_id":99999,"swap_with_date":"2025-01-16"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -544,7 +558,7 @@ func TestHandleSwapAssignments_PastThreshold(t *testing.T) {
 	require.NoError(t, err)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + testCurrentDate().Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -569,7 +583,7 @@ func TestHandleSwapAssignments_TargetDatePastThreshold(t *testing.T) {
 	require.NoError(t, err)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + targetDate.Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -591,7 +605,7 @@ func TestHandleSwapAssignments_TargetNotFound(t *testing.T) {
 
 	// Target date has no assignment at all.
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + now.AddDate(0, 0, 3).Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -607,7 +621,7 @@ func TestHandleSwapAssignments_SameDate(t *testing.T) {
 	require.NoError(t, err)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + assignment.Date.Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -629,7 +643,7 @@ func TestHandleSwapAssignments_RejectsBabysitterAssignment(t *testing.T) {
 	require.NoError(t, err)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(babysitterAssignment.ID, 10) + `,"swap_with_date":"` + now.AddDate(0, 0, 2).Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -668,7 +682,7 @@ func TestHandleSwapAssignments_RejectsUnavailableParent(t *testing.T) {
 	require.NotNil(t, assignmentA)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
@@ -705,11 +719,128 @@ func TestHandleSwapAssignments_TriggersScheduleRecalculation(t *testing.T) {
 	require.NoError(t, err)
 
 	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req := newSwapRequest(payload)
 	w := httptest.NewRecorder()
 
 	handler.handleSwapAssignments(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 1, recordingSvc.syncCalls, "swapping assignments should trigger schedule recalculation/sync")
+}
+
+func TestHandleSwapAssignments_RejectsUnsupportedContentType(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	dateA := now.AddDate(0, 0, 1)
+	dateB := now.AddDate(0, 0, 2)
+
+	assignmentA, err := tracker.RecordAssignment("Alice", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", dateB, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	// A cross-site attacker can only submit "simple" requests (e.g.
+	// text/plain) without a CORS preflight — those must be rejected.
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "text/plain")
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusUnsupportedMediaType, w.Code)
+
+	// Nothing must have been swapped.
+	keptA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	assert.Equal(t, "Alice", keptA.Parent)
+	keptB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	assert.Equal(t, "Bob", keptB.Parent)
+}
+
+func TestHandleSwapAssignments_RejectsSameParentNights(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	dateA := now.AddDate(0, 0, 1)
+	dateB := now.AddDate(0, 0, 2)
+
+	// Both nights belong to Alice: a "swap" would change nothing yet lock
+	// both rows as overrides.
+	assignmentA, err := tracker.RecordAssignment("Alice", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Alice", dateB, false, fairness.DecisionReasonAlternating)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := newSwapRequest(payload)
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "same parent")
+
+	// Neither row may gain an override.
+	keptA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	assert.False(t, keptA.Override)
+	keptB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	assert.False(t, keptB.Override)
+}
+
+func TestHandleSwapAssignments_EarlierTargetRecalculatedFromEarliestDate(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	recordingSvc := &recordingCalendarService{}
+	handler.CalendarService = recordingSvc
+
+	now := testCurrentDate()
+	// The user picks an EARLIER target: dateB (Bob) is before dateA (Alice).
+	dateB := now.AddDate(0, 0, 1)
+	dateA := now.AddDate(0, 0, 2)
+
+	assignmentA, err := tracker.RecordAssignment("Alice", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", dateB, false, fairness.DecisionReasonAlternating)
+	require.NoError(t, err)
+
+	// Give both rows calendar event IDs so the recalculation's sync actually
+	// carries them (only assignments with event IDs are synced).
+	require.NoError(t, tracker.UpdateAssignmentGoogleCalendarEventID(assignmentA.ID, "event-source"))
+	assignmentB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	require.NotNil(t, assignmentB)
+	require.NoError(t, tracker.UpdateAssignmentGoogleCalendarEventID(assignmentB.ID, "event-target"))
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := newSwapRequest(payload)
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// The swap covered both rows regardless of direction.
+	updatedA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	assert.Equal(t, "Bob", updatedA.Parent)
+	updatedB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	assert.Equal(t, "Alice", updatedB.Parent)
+
+	// The recalculation must start from the EARLIER date so both swapped
+	// nights are regenerated and synced to Google Calendar.
+	assert.Contains(t, recordingSvc.syncedDays, dateB.Format("2006-01-02"),
+		"calendar sync must cover the earlier target date")
+	assert.Contains(t, recordingSvc.syncedDays, dateA.Format("2006-01-02"),
+		"calendar sync must cover the source date")
 }

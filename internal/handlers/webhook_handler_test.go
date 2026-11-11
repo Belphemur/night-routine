@@ -267,7 +267,11 @@ const defaultTestThresholdDays = 5
 
 func TestWebhookHandler_RecalculateSchedule(t *testing.T) {
 	now := time.Now()
-	fromDate := now.Truncate(24 * time.Hour)
+	// Local midnight, NOT now.Truncate(24h): Truncate works on absolute
+	// duration since the UTC zero time, so it yields UTC midnight expressed
+	// in the local zone (e.g. 19:00 EST) and silently shifts the window.
+	y, m, d := now.Date()
+	fromDate := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
 	ctx := context.Background()
 
 	// setupMocks configures tracker/scheduler/calendar mocks for each test case.

@@ -48,6 +48,15 @@ func recalculateScheduleAndSync(
 		recalcLogger.Debug().Time("end_date", endDate).Msg("Using last assignment date as recalculation end date")
 	}
 
+	// Normalize the end date to midnight in the recalculation window's
+	// location. GetLastAssignmentDate parses the stored date string as UTC,
+	// while GenerateSchedule's inclusive loop compares instants — a
+	// UTC-midnight end would silently skip the final day on any server whose
+	// local zone is offset from UTC (regression: last assignment never
+	// regenerated or synced after a manual swap).
+	ey, em, ed := endDate.Date()
+	endDate = time.Date(ey, em, ed, 0, 0, 0, 0, fromDate.Location())
+
 	recalcLogger.Debug().Time("start_date", fromDate).Time("end_date", endDate).Msg("Generating schedule for recalculation window")
 	assignments, err := scheduler.GenerateSchedule(fromDate, endDate, time.Now())
 	if err != nil {

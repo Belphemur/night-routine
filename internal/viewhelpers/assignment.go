@@ -12,4 +12,5 @@ type DisplayAssignment struct {
 	ParentType     string // "ParentA", "ParentB", or "Babysitter"
 	CaregiverType  string // "parent" or "babysitter"
 	DecisionReason string // e.g. "Total Count", "Alternating", "Override"
+	Override       bool   // True when the row records explicit user intent (locked for recalculation)
 }

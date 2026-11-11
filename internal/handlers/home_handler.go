@@ -126,7 +126,10 @@ func (h *HomeHandler) flattenCalendarData(weeks [][]viewhelpers.CalendarDay) Mob
 				dayJSON.AssignmentParent = day.Assignment.Parent
 				dayJSON.CaregiverType = day.Assignment.CaregiverType
 				dayJSON.AssignmentReason = day.Assignment.DecisionReason
-				dayJSON.IsOverridden = day.Assignment.DecisionReason == "Override"
+				// The persisted override flag is the source of truth for locked
+				// rows: it covers webhook overrides and manual swaps alike, not
+				// just rows whose decision reason happens to be "Override".
+				dayJSON.IsOverridden = day.Assignment.Override
 
 				// Add assignment-specific classes
 				classes := append(baseClasses, "cursor-pointer", "transition-all", "duration-200")
@@ -216,6 +219,7 @@ func (h *HomeHandler) generateCalendarData(logger zerolog.Logger) (monthName str
 			ParentType:     a.ParentType.String(),
 			CaregiverType:  a.CaregiverType.String(),
 			DecisionReason: string(a.DecisionReason),
+			Override:       a.Override,
 		}
 	}
 
