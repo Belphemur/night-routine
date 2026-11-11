@@ -120,8 +120,8 @@ func (m *MockTracker) GetAssignmentDetails(assignmentID int64) (*fairness.Assign
 	return args.Get(0).(*fairness.AssignmentDetails), args.Error(1)
 }
 
-func (m *MockTracker) SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason fairness.DecisionReason) (*fairness.Assignment, *fairness.Assignment, error) {
-	args := m.Called(parentA, dateA, parentB, dateB, reason)
+func (m *MockTracker) SwapAssignments(parentA string, dateA time.Time, parentB string, dateB time.Time, reason fairness.DecisionReason, override bool) (*fairness.Assignment, *fairness.Assignment, error) {
+	args := m.Called(parentA, dateA, parentB, dateB, reason, override)
 	var a, b *fairness.Assignment
 	if args.Get(0) != nil {
 		a = args.Get(0).(*fairness.Assignment)

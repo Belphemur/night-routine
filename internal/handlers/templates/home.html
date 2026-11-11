@@ -287,6 +287,10 @@
                     class="hidden mb-2 w-full rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-600 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-slate-700">
                     Mark As Babysitter
                 </button>
+                <button type="button" id="details-modal-swap-parent"
+                    class="hidden mb-2 w-full rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-orange-600">
+                    Swap With Other Parent
+                </button>
                 <button type="button" id="details-modal-remove-babysitter"
                     class="hidden mb-2 w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-amber-600">
                     Return To Parent Schedule
@@ -411,6 +415,65 @@
                 <h3 class="text-base font-semibold leading-6 text-gray-900">Recalculating Schedule</h3>
                 <div class="mt-2">
                     <p class="text-sm text-gray-500">Please wait while we unlock the event and recalculate the schedule...</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Swap Parents Date Modal -->
+<div id="swap-modal" class="relative z-10 hidden" aria-labelledby="swap-modal-title" role="dialog" aria-modal="true">
+    <div id="swap-modal-backdrop"
+        class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div id="swap-modal-panel"
+                class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+                <div>
+                    <h3 class="text-base font-semibold leading-6 text-gray-900" id="swap-modal-title">Swap With Other
+                        Parent</h3>
+                    <div class="mt-3">
+                        <label for="swap-date-input"
+                            class="block text-sm font-medium text-slate-700 mb-1">Swap with assignment on</label>
+                        <input id="swap-date-input" type="date"
+                            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                        <p class="mt-2 text-xs text-gray-500">The parents of the two nights will exchange places and the
+                            schedule will be recalculated.</p>
+                        <p id="swap-modal-error" class="hidden mt-2 text-xs text-red-600"></p>
+                    </div>
+                </div>
+                <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="swap-modal-confirm"
+                        class="inline-flex w-full justify-center rounded-md bg-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 sm:ml-3 sm:w-auto">
+                        Swap
+                    </button>
+                    <button type="button" id="swap-modal-cancel"
+                        class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Swap Parents / Recalculate Loading Modal -->
+<div id="swap-loading-modal" class="relative z-10 hidden" aria-label="Swapping Assignments" role="dialog" aria-modal="true">
+    <div id="swap-loading-modal-backdrop" class="fixed inset-0 bg-gray-500/75 transition-opacity duration-300 ease-out opacity-0"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div id="swap-loading-modal-panel" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all duration-300 ease-out opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95 sm:p-6 sm:my-8 sm:w-full sm:max-w-sm">
+            <div class="text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 mb-4">
+                    <svg class="h-6 w-6 text-orange-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Swapping Assignments</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-500">Please wait while we swap the parents and recalculate the schedule...</p>
                 </div>
             </div>
         </div>
@@ -855,6 +918,7 @@
         const detailsModalClose = document.getElementById('details-modal-close');
             const detailsModalMarkBabysitter = document.getElementById('details-modal-mark-babysitter');
             const detailsModalRemoveBabysitter = document.getElementById('details-modal-remove-babysitter');
+            const detailsModalSwapParent = document.getElementById('details-modal-swap-parent');
         const detailsModalContent = document.getElementById('details-modal-content');
             const babysitterModal = document.getElementById('babysitter-modal');
             const babysitterModalBackdrop = document.getElementById('babysitter-modal-backdrop');
@@ -866,9 +930,20 @@
             const babysitterLoadingModal = document.getElementById('babysitter-loading-modal');
             const babysitterLoadingModalBackdrop = document.getElementById('babysitter-loading-modal-backdrop');
             const babysitterLoadingModalPanel = document.getElementById('babysitter-loading-modal-panel');
+            const swapModal = document.getElementById('swap-modal');
+            const swapModalBackdrop = document.getElementById('swap-modal-backdrop');
+            const swapModalPanel = document.getElementById('swap-modal-panel');
+            const swapModalCancel = document.getElementById('swap-modal-cancel');
+            const swapModalConfirm = document.getElementById('swap-modal-confirm');
+            const swapDateInput = document.getElementById('swap-date-input');
+            const swapModalError = document.getElementById('swap-modal-error');
+            const swapLoadingModal = document.getElementById('swap-loading-modal');
+            const swapLoadingModalBackdrop = document.getElementById('swap-loading-modal-backdrop');
+            const swapLoadingModalPanel = document.getElementById('swap-loading-modal-panel');
         let isLoadingDetails = false;
             let currentDetailsAssignmentId = null;
             let currentDetailsCaregiverType = 'parent';
+            let currentDetailsAssignmentDate = null;
 
         function openDetailsModal() {
             detailsModal.classList.remove('hidden');
@@ -1022,7 +1097,8 @@
                 'Consecutive Limit': 'Totals were tied, but one parent had too many consecutive night assignments (limit: 2). The algorithm switched to the other parent.',
                 'Alternating': 'Both parents had equal counts, so the algorithm maintained an alternating pattern.',
                 'Override': 'This assignment was manually changed in Google Calendar by a user.',
-                'Double Consecutive Swap': 'Both parents had back-to-back consecutive nights (e.g. AA BB). The algorithm swapped boundary assignments to produce an alternating pattern (AB AB).'
+                'Double Consecutive Swap': 'Both parents had back-to-back consecutive nights (e.g. AA BB). The algorithm swapped boundary assignments to produce an alternating pattern (AB AB).',
+                'Manual Swap': 'A parent manually swapped this night with another night using the web UI. Both nights are locked until they are changed again or unlocked.'
             };
 
             const reasonExplanation = document.createElement('p');
@@ -1076,6 +1152,9 @@
 
                 detailsModalMarkBabysitter.classList.add('hidden');
                 detailsModalRemoveBabysitter.classList.add('hidden');
+                if (detailsModalSwapParent) {
+                    detailsModalSwapParent.classList.add('hidden');
+                }
 
                 if (currentDetailsCaregiverType === 'babysitter') {
                     detailsModalRemoveBabysitter.classList.remove('hidden');
@@ -1083,6 +1162,128 @@
                 }
 
                 detailsModalMarkBabysitter.classList.remove('hidden');
+                if (detailsModalSwapParent) {
+                    detailsModalSwapParent.classList.remove('hidden');
+                }
+            }
+
+            function showSwapModal() {
+                if (!swapModal) {
+                    return;
+                }
+
+                // Pre-fill the suggestion with the day adjacent to the current
+                // assignment's date.
+                swapDateInput.value = '';
+                if (currentDetailsAssignmentDate) {
+                    const assignmentDate = new Date(currentDetailsAssignmentDate + 'T00:00:00');
+                    if (!isNaN(assignmentDate.getTime())) {
+                        const adjacent = new Date(assignmentDate);
+                        adjacent.setDate(adjacent.getDate() + 1);
+                        swapDateInput.value = getLocalDateString(adjacent);
+                    }
+                }
+                swapModalError.textContent = '';
+                swapModalError.classList.add('hidden');
+
+                swapModal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        swapModalBackdrop.classList.remove('opacity-0');
+                        swapModalBackdrop.classList.add('opacity-100');
+                        swapModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                        swapModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                    });
+                });
+
+                setTimeout(() => swapDateInput.focus(), 100);
+            }
+
+            function hideSwapModal() {
+                if (!swapModal) {
+                    return;
+                }
+
+                swapModalBackdrop.classList.remove('opacity-100');
+                swapModalBackdrop.classList.add('opacity-0');
+                swapModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+                swapModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+                swapModalPanel.addEventListener('transitionend', function () {
+                    swapModal.classList.add('hidden');
+                }, { once: true });
+            }
+
+            function showSwapLoadingModal() {
+                if (!swapLoadingModal) {
+                    return;
+                }
+
+                swapLoadingModal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        swapLoadingModalBackdrop.classList.remove('opacity-0');
+                        swapLoadingModalBackdrop.classList.add('opacity-100');
+                        swapLoadingModalPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                        swapLoadingModalPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+                    });
+                });
+            }
+
+            function hideSwapLoadingModal() {
+                if (!swapLoadingModal) {
+                    return;
+                }
+
+                swapLoadingModalBackdrop.classList.remove('opacity-100');
+                swapLoadingModalBackdrop.classList.add('opacity-0');
+                swapLoadingModalPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+                swapLoadingModalPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+                swapLoadingModalPanel.addEventListener('transitionend', function () {
+                    swapLoadingModal.classList.add('hidden');
+                }, { once: true });
+            }
+
+            function submitSwapUpdate() {
+                if (!currentDetailsAssignmentId) {
+                    return;
+                }
+
+                const swapDate = (swapDateInput.value || '').trim();
+                if (!swapDate) {
+                    swapModalError.textContent = 'Please choose a date to swap with.';
+                    swapModalError.classList.remove('hidden');
+                    return;
+                }
+
+                const assignmentId = currentDetailsAssignmentId;
+                hideSwapModal();
+                showSwapLoadingModal();
+
+                fetch('/api/assignment-swap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        assignment_id: Number(assignmentId),
+                        swap_with_date: swapDate
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        return response.json().catch(() => ({})).then(errBody => {
+                            throw new Error(errBody.error || 'Failed to swap assignments');
+                        });
+                    }
+                    window.location.reload();
+                }).catch(error => {
+                    console.error('Error swapping assignments:', error);
+                    hideSwapLoadingModal();
+                    showSwapModal();
+                    swapModalError.textContent = error.message || 'Failed to swap assignments. Please try again.';
+                    swapModalError.classList.remove('hidden');
+                });
             }
 
             function showBabysitterModal() {
@@ -1234,6 +1435,7 @@
                     if (loadingOverlay) loadingOverlay.remove();
                     isLoadingDetails = false;
                     currentDetailsCaregiverType = data.caregiver_type || 'parent';
+                    currentDetailsAssignmentDate = data.calculation_date || null;
                     updateDetailsActionButtons();
                     detailsModalContent.replaceChildren(buildDetailsContent(data));
                     openDetailsModal();
@@ -1265,6 +1467,7 @@
 
             currentDetailsAssignmentId = null;
             currentDetailsCaregiverType = 'parent';
+            currentDetailsAssignmentDate = null;
         }
 
         // Details modal event listeners
@@ -1284,6 +1487,13 @@
                         const assignmentId = currentDetailsAssignmentId;
                         hideDetailsModal();
                         showUnlockModal(assignmentId);
+                    }
+                });
+            }
+            if (detailsModalSwapParent) {
+                detailsModalSwapParent.addEventListener('click', function () {
+                    if (currentDetailsAssignmentId) {
+                        showSwapModal();
                     }
                 });
             }
@@ -1325,6 +1535,9 @@
                 if (babysitterModal && !babysitterModal.classList.contains('hidden')) {
                     hideBabysitterModal();
                 }
+                if (swapModal && !swapModal.classList.contains('hidden')) {
+                    hideSwapModal();
+                }
             }
         });
 
@@ -1348,6 +1561,29 @@
                 babysitterModal.addEventListener('click', function (e) {
                     if (!babysitterModalPanel.contains(e.target)) {
                         hideBabysitterModal();
+                    }
+                });
+            }
+            if (swapModalCancel) {
+                swapModalCancel.addEventListener('click', hideSwapModal);
+            }
+            if (swapModalConfirm) {
+                swapModalConfirm.addEventListener('click', function () {
+                    submitSwapUpdate();
+                });
+            }
+            if (swapDateInput) {
+                swapDateInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' && currentDetailsAssignmentId) {
+                        e.preventDefault();
+                        submitSwapUpdate();
+                    }
+                });
+            }
+            if (swapModal) {
+                swapModal.addEventListener('click', function (e) {
+                    if (!swapModalPanel.contains(e.target)) {
+                        hideSwapModal();
                     }
                 });
             }

@@ -419,3 +419,297 @@ func TestHandleSetAssignmentBabysitter_PastThreshold(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, resp["error"], "too far in the past")
 }
+
+func TestHandleSwapAssignments_Success(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	handler.CalendarService = &recordingCalendarService{}
+
+	now := testCurrentDate()
+	dateA := now.AddDate(0, 0, 1)
+	dateB := now.AddDate(0, 0, 2)
+
+	assignmentA, err := tracker.RecordAssignment("Alice", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	assignmentB, err := tracker.RecordAssignment("Bob", dateB, false, fairness.DecisionReasonAlternating)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// Both rows swapped: dateA now carries Bob, dateB carries Alice. The
+	// swap is recorded as an override so schedule recalculation keeps it.
+	updatedA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	require.NotNil(t, updatedA)
+	assert.Equal(t, "Bob", updatedA.Parent)
+	assert.Equal(t, fairness.DecisionReasonManualSwap, updatedA.DecisionReason)
+	assert.Equal(t, fairness.CaregiverTypeParent, updatedA.CaregiverType)
+	assert.True(t, updatedA.Override)
+
+	updatedB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	require.NotNil(t, updatedB)
+	assert.Equal(t, "Alice", updatedB.Parent)
+	assert.Equal(t, fairness.DecisionReasonManualSwap, updatedB.DecisionReason)
+	assert.Equal(t, fairness.CaregiverTypeParent, updatedB.CaregiverType)
+	assert.True(t, updatedB.Override)
+
+	_ = assignmentB
+}
+
+func TestHandleSwapAssignments_Unauthenticated(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, false)
+	defer cleanup()
+
+	payload := []byte(`{"assignment_id":1,"swap_with_date":"2025-01-16"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandleSwapAssignments_WrongMethod(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/assignment-swap", nil)
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestHandleSwapAssignments_InvalidPayload(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewBufferString("bad json"))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandleSwapAssignments_MissingFields(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{"zero assignment_id", `{"assignment_id":0,"swap_with_date":"2025-01-16"}`},
+		{"empty swap_with_date", `{"assignment_id":1,"swap_with_date":""}`},
+		{"whitespace swap_with_date", `{"assignment_id":1,"swap_with_date":"   "}`},
+		{"bad date format", `{"assignment_id":1,"swap_with_date":"16-01-2025"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewBufferString(tt.payload))
+			w := httptest.NewRecorder()
+			handler.handleSwapAssignments(w, req)
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+		})
+	}
+}
+
+func TestHandleSwapAssignments_SourceNotFound(t *testing.T) {
+	handler, _, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	payload := []byte(`{"assignment_id":99999,"swap_with_date":"2025-01-16"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandleSwapAssignments_PastThreshold(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	// Source assignment far in the past (beyond the configured 5-day threshold)
+	oldDate := testCurrentDate().AddDate(0, 0, -30)
+	assignment, err := tracker.RecordAssignment("Alice", oldDate, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + testCurrentDate().Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "too far in the past")
+}
+
+func TestHandleSwapAssignments_TargetDatePastThreshold(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	targetDate := now.AddDate(0, 0, -30)
+
+	assignment, err := tracker.RecordAssignment("Alice", now, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", targetDate, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + targetDate.Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "too far in the past")
+}
+
+func TestHandleSwapAssignments_TargetNotFound(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	assignment, err := tracker.RecordAssignment("Alice", now.AddDate(0, 0, 1), false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	// Target date has no assignment at all.
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + now.AddDate(0, 0, 3).Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandleSwapAssignments_SameDate(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	assignment, err := tracker.RecordAssignment("Alice", now.AddDate(0, 0, 1), false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignment.ID, 10) + `,"swap_with_date":"` + assignment.Date.Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandleSwapAssignments_RejectsBabysitterAssignment(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+
+	babysitterAssignment, err := tracker.RecordAssignment("Alice", now.AddDate(0, 0, 1), false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	require.NoError(t, tracker.UpdateAssignmentToBabysitter(babysitterAssignment.ID, "Dawn", true))
+
+	// Create the target assignment as a normal parent assignment.
+	_, err = tracker.RecordAssignment("Bob", now.AddDate(0, 0, 2), false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(babysitterAssignment.ID, 10) + `,"swap_with_date":"` + now.AddDate(0, 0, 2).Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "parent assignments")
+}
+
+func TestHandleSwapAssignments_RejectsUnavailableParent(t *testing.T) {
+	handler, tracker, db, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	now := testCurrentDate()
+	dateA := now.AddDate(0, 0, 1)
+	dateB := now.AddDate(0, 0, 2)
+
+	// Alice (parent_a) takes dateA, Bob (parent_b) takes dateB.
+	// After the swap Alice would take dateB — make parent_a unavailable on
+	// dateB's weekday so the swap must be rejected.
+	_, err := tracker.RecordAssignment("Alice", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", dateB, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+
+	cfgStore, err := database.NewConfigStore(db)
+	require.NoError(t, err)
+	err = cfgStore.SaveAvailability("parent_a", []string{dateB.Format("Monday")})
+	require.NoError(t, err)
+
+	// Fetch the real assignment ID for dateA.
+	assignmentA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	require.NotNil(t, assignmentA)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var resp map[string]string
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp["error"], "unavailable")
+
+	// Nothing should have been swapped.
+	keptA, err := tracker.GetAssignmentByDate(dateA)
+	require.NoError(t, err)
+	assert.Equal(t, "Alice", keptA.Parent)
+	keptB, err := tracker.GetAssignmentByDate(dateB)
+	require.NoError(t, err)
+	assert.Equal(t, "Bob", keptB.Parent)
+}
+
+func TestHandleSwapAssignments_TriggersScheduleRecalculation(t *testing.T) {
+	handler, tracker, _, cleanup := setupTestAssignmentDetailsHandler(t, true)
+	defer cleanup()
+
+	recordingSvc := &recordingCalendarService{}
+	handler.CalendarService = recordingSvc
+
+	now := testCurrentDate()
+	dateA := now.AddDate(0, 0, 1)
+	dateB := now.AddDate(0, 0, 2)
+
+	assignmentA, err := tracker.RecordAssignment("Alice", dateA, false, fairness.DecisionReasonTotalCount)
+	require.NoError(t, err)
+	_, err = tracker.RecordAssignment("Bob", dateB, false, fairness.DecisionReasonAlternating)
+	require.NoError(t, err)
+
+	payload := []byte(`{"assignment_id":` + strconv.FormatInt(assignmentA.ID, 10) + `,"swap_with_date":"` + dateB.Format("2006-01-02") + `"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/assignment-swap", bytes.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	handler.handleSwapAssignments(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 1, recordingSvc.syncCalls, "swapping assignments should trigger schedule recalculation/sync")
+}
